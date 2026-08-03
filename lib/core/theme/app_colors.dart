@@ -20,6 +20,26 @@ class AppColors {
   
   static const Color textPrimaryLight = Color(0xFF121212);
   static const Color textSecondaryLight = Color(0xFF757575);
+
+  // Semantic Shortcuts & Aliases
+  static const Color primary = moneyGreen;
+  static const Color onPrimary = deepSpaceBlack;
+  static const Color background = deepSpaceBlack;
+  static const Color surface = offBlack;
+  static const Color surfaceVariant = darkGray;
+  static const Color textPrimary = textPrimaryDark;
+  static const Color textSecondary = textSecondaryDark;
+  static const Color textTertiary = Color(0xFF888888);
+  
+  static const Color success = moneyGreen;
+  static const Color danger = alertRed;
+  static const Color warning = warningYellow;
+  
+  // Chart Colors
+  static const Color chartGreen = moneyGreen;
+  static const Color chartBlue = Color(0xFF2196F3);
+  static const Color chartOrange = Color(0xFFFF9800);
+  static const Color chartPurple = Color(0xFF9C27B0);
 }
 
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
