@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stock_investment_tracker/core/theme/app_theme.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
@@ -44,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
                     _buildSectionTitle(context, 'App Appearance'),
                     const SizedBox(height: 16),
                     _buildAppearancePreferences(context, colors, ref, settings),
-                  ],
+                  ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuad),
                 ),
               ),
             ),
@@ -174,7 +175,7 @@ class SettingsScreen extends ConsumerWidget {
                     onDeleted: () {
                       ref.read(settingsControllerProvider.notifier).removeFavorite(ticker);
                     },
-                  )),
+                  ).animate(key: ValueKey(ticker)).fade(duration: 200.ms).scale(duration: 200.ms, begin: const Offset(0.8, 0.8))),
               ActionChip(
                 label: const Text('Add Ticker'),
                 avatar: const Icon(Icons.add, size: 16),
