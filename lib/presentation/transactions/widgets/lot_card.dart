@@ -4,7 +4,7 @@ import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
-import 'package:stock_investment_tracker/presentation/common/status_badge.dart';
+import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/sale_event_row.dart';
 

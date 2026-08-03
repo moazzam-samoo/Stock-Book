@@ -23,6 +23,8 @@ class AppColors {
 
   // Additional Tokens & Aliases
   static const Color brandIndigo = Color(0xFF6366F1);
+  static const Color backgroundDark = deepSpaceBlack;
+  static const Color dangerRed = alertRed;
   static const Color surfaceDark = offBlack;
   static const Color neutral500 = Color(0xFF718096);
 

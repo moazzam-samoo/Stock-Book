@@ -6,7 +6,7 @@ part of 'dashboard_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$allLotsHash() => r'f297a6da8772ba98da58121b74937c1f9bd3b23f';
+String _$allLotsHash() => r'3a7a2df8945eacc6e8069b7153a5e6d8cd709454';
 
 /// See also [allLots].
 @ProviderFor(allLots)
@@ -23,7 +23,7 @@ final allLotsProvider = AutoDisposeStreamProvider<List<Lot>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllLotsRef = AutoDisposeStreamProviderRef<List<Lot>>;
-String _$portfolioSummaryHash() => r'8e0d5eb1ff38a04278a56169331339e1348b2d7e';
+String _$portfolioSummaryHash() => r'fa092a692e2d4a998982e23902d9b8fdf4077461';
 
 /// See also [portfolioSummary].
 @ProviderFor(portfolioSummary)

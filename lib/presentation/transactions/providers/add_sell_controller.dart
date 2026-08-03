@@ -28,13 +28,12 @@ class AddSellController extends _$AddSellController {
       final sale = Sale(
         id: const Uuid().v4(),
         sellDate: sellDate,
-        sharesSold: sharesSold,
+        sharesSold: sharesSold.toInt(),
         sellPricePerShare: sellPricePerShare,
         amountReceived: amountReceived,
-        realizedProfitLoss: realizedProfitLoss,
       );
 
-      final newSales = List<Sale>.from(lot.sales ?? [])..add(sale);
+      final newSales = List<Sale>.from(lot.sales)..add(sale);
       
       final sharesRemaining = lot.sharesRemaining - sharesSold;
       final amountInvestedRemaining = lot.amountInvestedRemaining - (sharesSold * lot.buyPricePerShare);
@@ -44,12 +43,12 @@ class AddSellController extends _$AddSellController {
       if (sharesRemaining <= 0.001) {
         newStatus = LotStatus.closed;
       } else if (sharesRemaining < lot.sharesPurchased) {
-        newStatus = LotStatus.partial;
+        newStatus = LotStatus.partiallySold;
       }
 
       final updatedLot = lot.copyWith(
         sales: newSales,
-        sharesRemaining: sharesRemaining,
+        sharesRemaining: sharesRemaining.toInt(),
         amountInvestedRemaining: amountInvestedRemaining,
         realizedProfitLoss: totalRealizedProfitLoss,
         status: newStatus,

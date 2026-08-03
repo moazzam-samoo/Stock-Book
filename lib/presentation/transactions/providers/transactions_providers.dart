@@ -36,11 +36,15 @@ List<Lot> filteredLots(FilteredLotsRef ref) {
     
     bool matchesStatus = true;
     if (statusFilter != 'All') {
-      final targetStatus = LotStatus.values.firstWhere(
-        (e) => e.name.toLowerCase() == statusFilter.toLowerCase(),
-        orElse: () => LotStatus.open,
-      );
-      matchesStatus = lot.status == targetStatus;
+      if (statusFilter.toLowerCase() == 'partial') {
+        matchesStatus = lot.status == LotStatus.partiallySold;
+      } else {
+        final targetStatus = LotStatus.values.firstWhere(
+          (e) => e.name.toLowerCase() == statusFilter.toLowerCase(),
+          orElse: () => LotStatus.open,
+        );
+        matchesStatus = lot.status == targetStatus;
+      }
     }
 
     return matchesSearch && matchesStatus;

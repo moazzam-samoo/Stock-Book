@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 class PrimaryButton extends StatelessWidget {
-  final String label;
+  final String? label;
+  final String? text;
   final VoidCallback onPressed;
   final bool isLoading;
 
   const PrimaryButton({
     super.key,
-    required this.label,
+    this.label,
+    this.text,
     required this.onPressed,
     this.isLoading = false,
   });
@@ -22,7 +24,7 @@ class PrimaryButton extends StatelessWidget {
               width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(label),
+          : Text(label ?? text ?? ''),
     );
   }
 }
