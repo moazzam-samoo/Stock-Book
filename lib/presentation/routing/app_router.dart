@@ -9,6 +9,7 @@ import '../auth/screens/sign_in_screen.dart';
 import '../onboarding/screens/onboarding_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../settings/screens/settings_screen.dart';
+import '../transactions/screens/transactions_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -78,7 +79,7 @@ GoRouter appRouter(AppRouterRef ref) {
             routes: [
               GoRoute(
                 path: '/transactions',
-                builder: (context, state) => const Center(child: Text('Transactions Placeholder')),
+                builder: (context, state) => const TransactionsScreen(),
               ),
             ],
           ),
