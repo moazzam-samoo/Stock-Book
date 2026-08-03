@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:stock_investment_tracker/core/theme/app_theme.dart';
+import 'package:stock_investment_tracker/core/theme/app_colors.dart';
+import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
+import 'package:stock_investment_tracker/presentation/auth/controllers/auth_controller.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/buttons.dart';
-import 'package:stock_investment_tracker/presentation/common/numeric_input.dart';
+import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -13,8 +15,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final user = ref.watch(authControllerProvider).valueOrNull;
+    final colors = Theme.of(context).extension<AppSemanticColors>() ?? AppSemanticColors.dark;
+    final currentUid = ref.watch(currentUserIdProvider);
     final settingsAsync = ref.watch(settingsProvider);
 
     return AppScaffold(
@@ -34,7 +36,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     _buildSectionTitle(context, 'Account'),
                     const SizedBox(height: 16),
-                    _buildAccountSection(context, user, colors, ref),
+                    _buildAccountSection(context, currentUid, colors, ref),
                     const SizedBox(height: 32),
                     
                     _buildSectionTitle(context, 'Portfolio Preferences'),
@@ -52,7 +54,7 @@ class SettingsScreen extends ConsumerWidget {
             loading: () => const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (err, stack) => SliverFillRemaining(
+            error: (err, stack) => const SliverFillRemaining(
               child: Center(child: Text('Error loading settings')),
             ),
           ),
@@ -71,7 +73,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildAccountSection(
-      BuildContext context, user, AppColors colors, WidgetRef ref) {
+      BuildContext context, String? uid, AppSemanticColors colors, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -84,9 +86,8 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                backgroundColor: colors.primary,
-                child: user?.photoURL == null ? const Icon(Icons.person, color: Colors.white) : null,
+                backgroundColor: colors.success,
+                child: const Icon(Icons.person, color: Colors.white),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -94,11 +95,11 @@ class SettingsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user?.displayName ?? 'Guest',
+                      uid ?? 'Guest User',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(
-                      user?.email ?? '',
+                      uid != null ? 'Logged In' : 'Not signed in',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).textTheme.bodySmall?.color,
                           ),
@@ -122,7 +123,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPortfolioPreferences(BuildContext context, AppColors colors, WidgetRef ref, settings) {
+  Widget _buildPortfolioPreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -170,12 +171,12 @@ class SettingsScreen extends ConsumerWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              ...settings.favorites.map((ticker) => Chip(
+              ...((settings.favorites as List<String>).map((ticker) => Chip(
                     label: Text(ticker),
                     onDeleted: () {
                       ref.read(settingsControllerProvider.notifier).removeFavorite(ticker);
                     },
-                  ).animate(key: ValueKey(ticker)).fade(duration: 200.ms).scale(duration: 200.ms, begin: const Offset(0.8, 0.8))),
+                  ).animate(key: ValueKey(ticker)).fade(duration: 200.ms).scale(duration: 200.ms, begin: const Offset(0.8, 0.8)))),
               ActionChip(
                 label: const Text('Add Ticker'),
                 avatar: const Icon(Icons.add, size: 16),
@@ -190,7 +191,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppearancePreferences(BuildContext context, AppColors colors, WidgetRef ref, settings) {
+  Widget _buildAppearancePreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -206,7 +207,7 @@ class SettingsScreen extends ConsumerWidget {
               ButtonSegment(value: 'dark', label: Text('Dark'), icon: Icon(Icons.dark_mode, size: 16)),
               ButtonSegment(value: 'light', label: Text('Light'), icon: Icon(Icons.light_mode, size: 16)),
             ],
-            selected: {settings.themeMode},
+            selected: {settings.themeMode as String},
             onSelectionChanged: (set) {
               if (set.isNotEmpty) {
                 ref.read(settingsControllerProvider.notifier).updateThemeMode(set.first);
@@ -264,7 +265,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Theme.of(context).extension<AppColors>()?.danger),
+            style: TextButton.styleFrom(foregroundColor: AppColors.alertRed),
             child: const Text('Sign Out'),
           ),
         ],
@@ -272,6 +273,7 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (result == true) {
+      ref.read(mockAuthNotifierProvider.notifier).state = false;
       ref.read(authControllerProvider.notifier).signOut();
     }
   }

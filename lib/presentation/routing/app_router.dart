@@ -7,19 +7,22 @@ import '../common/app_bottom_nav_bar.dart';
 import '../common/app_scaffold.dart';
 import '../auth/screens/sign_in_screen.dart';
 import '../onboarding/screens/onboarding_screen.dart';
+import '../dashboard/screens/dashboard_screen.dart';
+import '../settings/screens/settings_screen.dart';
 
 part 'app_router.g.dart';
 
 @riverpod
 GoRouter appRouter(AppRouterRef ref) {
   final authState = ref.watch(authStateProvider);
+  final isMockLoggedIn = ref.watch(mockAuthNotifierProvider);
   final onboardingSeen = ref.watch(onboardingControllerProvider);
 
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final isLoggedIn = (authState.valueOrNull != null) || isMockLoggedIn;
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
       final isGoingToSignIn = state.matchedLocation == '/sign-in';
 
@@ -67,7 +70,7 @@ GoRouter appRouter(AppRouterRef ref) {
             routes: [
               GoRoute(
                 path: '/',
-                builder: (context, state) => const Center(child: Text('Dashboard Placeholder')),
+                builder: (context, state) => const DashboardScreen(),
               ),
             ],
           ),
@@ -75,11 +78,15 @@ GoRouter appRouter(AppRouterRef ref) {
             routes: [
               GoRoute(
                 path: '/portfolio',
-                builder: (context, state) => const Center(child: Text('Portfolio Placeholder')),
+                builder: (context, state) => const Center(child: Text('Transactions Placeholder')),
               ),
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/add-stock',

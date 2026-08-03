@@ -4,12 +4,13 @@ import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/entities/sale.dart';
 import 'package:stock_investment_tracker/data/models/sale_model.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/core/utils/timestamp_converter.dart';
 
 part 'lot_model.freezed.dart';
 part 'lot_model.g.dart';
 
 @freezed
-class LotModel with _$LotModel {
+abstract class LotModel with _$LotModel {
   const factory LotModel({
     required String id,
     required String ticker,

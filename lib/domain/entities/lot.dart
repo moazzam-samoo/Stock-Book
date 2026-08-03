@@ -1,7 +1,9 @@
 import 'package:stock_investment_tracker/domain/entities/sale.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 
-class Lot {
+import 'package:equatable/equatable.dart';
+
+class Lot extends Equatable {
   final String id;
   final String ticker;
   final DateTime buyDate;
@@ -57,4 +59,19 @@ class Lot {
       status: status ?? this.status,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        id,
+        ticker,
+        buyDate,
+        sharesPurchased,
+        buyPricePerShare,
+        amountInvested,
+        sales,
+        sharesRemaining,
+        amountInvestedRemaining,
+        realizedProfitLoss,
+        status,
+      ];
 }

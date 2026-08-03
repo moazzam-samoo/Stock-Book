@@ -5,7 +5,7 @@ part 'user_settings_model.freezed.dart';
 part 'user_settings_model.g.dart';
 
 @freezed
-class UserSettingsModel with _$UserSettingsModel {
+abstract class UserSettingsModel with _$UserSettingsModel {
   const factory UserSettingsModel({
     @Default([]) List<String> favorites,
     @Default(10000.0) double startingCapital,

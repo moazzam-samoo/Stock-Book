@@ -8,9 +8,9 @@ void main() {
       final lot = LotModel(
         id: 'lot_123',
         ticker: 'SYS',
-        shares: 100,
-        pricePerShare: 550.0,
-        date: DateTime(2023, 10, 1),
+        sharesPurchased: 100,
+        buyPricePerShare: 550.0,
+        buyDate: DateTime(2023, 10, 1),
       );
 
       final json = lot.toJson();
@@ -18,29 +18,27 @@ void main() {
 
       expect(fromJson.id, lot.id);
       expect(fromJson.ticker, lot.ticker);
-      expect(fromJson.shares, lot.shares);
-      expect(fromJson.pricePerShare, lot.pricePerShare);
-      expect(fromJson.date, lot.date);
+      expect(fromJson.sharesPurchased, lot.sharesPurchased);
+      expect(fromJson.buyPricePerShare, lot.buyPricePerShare);
+      expect(fromJson.buyDate, lot.buyDate);
       expect(fromJson, lot); // Freezed models support equality
     });
 
     test('SaleModel roundtrip serialization', () {
       final sale = SaleModel(
         id: 'sale_123',
-        lotId: 'lot_123',
-        shares: 50,
-        pricePerShare: 600.0,
-        date: DateTime(2023, 10, 15),
+        sharesSold: 50,
+        sellPricePerShare: 600.0,
+        sellDate: DateTime(2023, 10, 15),
       );
 
       final json = sale.toJson();
       final fromJson = SaleModel.fromJson(json);
 
       expect(fromJson.id, sale.id);
-      expect(fromJson.lotId, sale.lotId);
-      expect(fromJson.shares, sale.shares);
-      expect(fromJson.pricePerShare, sale.pricePerShare);
-      expect(fromJson.date, sale.date);
+      expect(fromJson.sharesSold, sale.sharesSold);
+      expect(fromJson.sellPricePerShare, sale.sellPricePerShare);
+      expect(fromJson.sellDate, sale.sellDate);
       expect(fromJson, sale); // Freezed models support equality
     });
   });

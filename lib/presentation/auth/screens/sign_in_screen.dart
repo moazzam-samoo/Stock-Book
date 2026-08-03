@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/auth_controller.dart';
-import '../widgets/animated_stock_chart.dart';
-import '../widgets/stock_ticker_rain.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:stock_investment_tracker/core/theme/app_colors.dart';
+import 'package:stock_investment_tracker/presentation/auth/controllers/auth_controller.dart';
+import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
+import 'package:stock_investment_tracker/presentation/auth/widgets/animated_stock_chart.dart';
+import 'package:stock_investment_tracker/presentation/auth/widgets/stock_ticker_rain.dart';
 
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
@@ -67,8 +68,8 @@ class SignInScreen extends ConsumerWidget {
                           side: const BorderSide(color: AppColors.surfaceVariant),
                         ),
                       ),
-                      onPressed: authState.isLoading ? null : () {
-                        ref.read(authControllerProvider.notifier).signInWithGoogle();
+                      onPressed: () {
+                        ref.read(mockAuthNotifierProvider.notifier).state = true;
                       },
                       child: authState.isLoading
                           ? const CircularProgressIndicator()

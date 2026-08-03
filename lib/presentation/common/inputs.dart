@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 class AppTextField extends StatelessWidget {
   final String label;
+  final String? hint;
+  final String? initialValue;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
@@ -12,6 +14,8 @@ class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
     required this.label,
+    this.hint,
+    this.initialValue,
     this.controller,
     this.onChanged,
     this.validator,
@@ -23,12 +27,14 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      initialValue: initialValue,
       onChanged: onChanged,
       validator: validator,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: label.isNotEmpty ? label : null,
+        hintText: hint,
       ),
       style: Theme.of(context).textTheme.bodyLarge,
     );
@@ -37,13 +43,17 @@ class AppTextField extends StatelessWidget {
 
 class NumericInput extends StatelessWidget {
   final String label;
+  final String? hint;
+  final String? initialValue;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
 
   const NumericInput({
     super.key,
-    required this.label,
+    this.label = '',
+    this.hint,
+    this.initialValue,
     this.controller,
     this.onChanged,
     this.validator,
@@ -53,6 +63,8 @@ class NumericInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppTextField(
       label: label,
+      hint: hint,
+      initialValue: initialValue,
       controller: controller,
       onChanged: onChanged,
       validator: validator,

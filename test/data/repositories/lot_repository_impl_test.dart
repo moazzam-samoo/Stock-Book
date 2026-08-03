@@ -14,58 +14,60 @@ void main() {
 
   setUp(() {
     mockDataSource = MockFirestoreDataSource();
-    repository = LotRepositoryImpl(mockDataSource);
+    repository = LotRepositoryImpl(
+      uid: 'user_123',
+      firestoreDataSource: mockDataSource,
+    );
   });
 
   group('LotRepositoryImpl', () {
     final tLotModel = LotModel(
       id: 'lot1',
       ticker: 'SYS',
-      shares: 100,
-      pricePerShare: 50.0,
-      date: DateTime(2023, 1, 1),
+      sharesPurchased: 100,
+      buyPricePerShare: 50.0,
+      buyDate: DateTime(2023, 1, 1),
     );
 
     final tLot = Lot(
       id: 'lot1',
       ticker: 'SYS',
-      shares: 100,
-      pricePerShare: 50.0,
-      date: DateTime(2023, 1, 1),
+      sharesPurchased: 100,
+      buyPricePerShare: 50.0,
+      amountInvested: 5000.0,
+      buyDate: DateTime(2023, 1, 1),
     );
 
-    test('addLot calls addDocument on dataSource', () async {
-      when(mockDataSource.addDocument(any, any)).thenAnswer((_) async => 'lot1');
+    test('addLot calls addLot on dataSource', () async {
+      when(mockDataSource.addLot(any, any)).thenAnswer((_) async {});
 
       await repository.addLot(tLot);
 
-      verify(mockDataSource.addDocument('lots', tLotModel.toJson())).called(1);
+      verify(mockDataSource.addLot('user_123', tLotModel)).called(1);
     });
 
-    test('deleteLot calls deleteDocument on dataSource', () async {
-      when(mockDataSource.deleteDocument(any, any)).thenAnswer((_) async {});
+    test('deleteLot calls deleteLot on dataSource', () async {
+      when(mockDataSource.deleteLot(any, any)).thenAnswer((_) async {});
 
       await repository.deleteLot('lot1');
 
-      verify(mockDataSource.deleteDocument('lots', 'lot1')).called(1);
+      verify(mockDataSource.deleteLot('user_123', 'lot1')).called(1);
     });
 
-    test('updateLot calls updateDocument on dataSource', () async {
-      when(mockDataSource.updateDocument(any, any, any)).thenAnswer((_) async {});
+    test('updateLot calls updateLot on dataSource', () async {
+      when(mockDataSource.updateLot(any, any)).thenAnswer((_) async {});
 
       await repository.updateLot(tLot);
 
-      verify(mockDataSource.updateDocument('lots', 'lot1', tLotModel.toJson())).called(1);
+      verify(mockDataSource.updateLot('user_123', tLotModel)).called(1);
     });
 
-    test('getLotsStream yields mapped entities', () {
-      when(mockDataSource.getCollectionStream('lots')).thenAnswer((_) => Stream.value([
-            {'id': 'lot1', ...tLotModel.toJson()}
-          ]));
+    test('watchAllLots yields mapped entities', () {
+      when(mockDataSource.watchAllLots('user_123')).thenAnswer((_) => Stream.value([tLotModel]));
 
       expect(
-        repository.getLotsStream(),
-        emits([tLot]),
+        repository.watchAllLots(),
+        emits([tLot.copyWith(amountInvested: 5000.0)]),
       );
     });
   });

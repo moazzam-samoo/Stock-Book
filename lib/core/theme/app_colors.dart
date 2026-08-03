@@ -21,6 +21,11 @@ class AppColors {
   static const Color textPrimaryLight = Color(0xFF121212);
   static const Color textSecondaryLight = Color(0xFF757575);
 
+  // Additional Tokens & Aliases
+  static const Color brandIndigo = Color(0xFF6366F1);
+  static const Color surfaceDark = offBlack;
+  static const Color neutral500 = Color(0xFF718096);
+
   // Semantic Shortcuts & Aliases
   static const Color primary = moneyGreen;
   static const Color onPrimary = deepSpaceBlack;

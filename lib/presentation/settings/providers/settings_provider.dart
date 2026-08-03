@@ -5,17 +5,27 @@ import 'package:stock_investment_tracker/providers/repository_providers.dart';
 part 'settings_provider.g.dart';
 
 @riverpod
-Stream<UserSettings> settings(SettingsRef ref) {
+Stream<UserSettings> settings(SettingsRef ref) async* {
   final repo = ref.watch(settingsRepositoryProvider);
+  const defaultSettings = UserSettings(
+    favorites: ['SYS', 'TRG', 'OGDC', 'LUCK'],
+    startingCapital: 500000.0,
+    currency: 'PKR',
+    themeMode: 'dark',
+  );
+
   if (repo == null) {
-    return Stream.value(const UserSettings(
-      favorites: [],
-      startingCapital: 10000.0,
-      currency: 'PKR',
-      themeMode: 'dark',
-    ));
+    yield defaultSettings;
+    return;
   }
-  return repo.watchSettings();
+
+  try {
+    await for (final s in repo.watchSettings()) {
+      yield s;
+    }
+  } catch (e) {
+    yield defaultSettings;
+  }
 }
 
 @riverpod

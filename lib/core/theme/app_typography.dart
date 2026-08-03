@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTypography {
+  static TextStyle display = GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white);
+  static TextStyle h2 = GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.white);
+  static TextStyle h3 = GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white);
+  static TextStyle body = GoogleFonts.inter(fontSize: 14, color: Colors.white);
+  static TextStyle caption = GoogleFonts.inter(fontSize: 12, color: const Color(0xFF718096));
+
   static TextTheme get darkTextTheme {
     return GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
       displayLarge: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
