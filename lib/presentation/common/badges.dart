@@ -1,15 +1,31 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 
 enum TradeStatus { open, partial, closed }
 
 class StatusBadge extends StatelessWidget {
-  final TradeStatus status;
+  final dynamic status;
 
   const StatusBadge({
     super.key,
     required this.status,
   });
+
+  TradeStatus get _tradeStatus {
+    if (status is TradeStatus) return status as TradeStatus;
+    if (status is LotStatus) {
+      switch (status as LotStatus) {
+        case LotStatus.open:
+          return TradeStatus.open;
+        case LotStatus.partiallySold:
+          return TradeStatus.partial;
+        case LotStatus.closed:
+          return TradeStatus.closed;
+      }
+    }
+    return TradeStatus.open;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +33,7 @@ class StatusBadge extends StatelessWidget {
     Color textColor;
     String label;
 
-    switch (status) {
+    switch (_tradeStatus) {
       case TradeStatus.open:
         bgColor = AppColors.moneyGreen.withOpacity(0.2);
         textColor = AppColors.moneyGreen;
