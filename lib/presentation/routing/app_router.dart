@@ -77,16 +77,20 @@ GoRouter appRouter(AppRouterRef ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/portfolio',
+                path: '/transactions',
                 builder: (context, state) => const Center(child: Text('Transactions Placeholder')),
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
         ],
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/add-stock',

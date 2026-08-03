@@ -10,6 +10,10 @@ import 'package:stock_investment_tracker/domain/repositories/sale_repository.dar
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 
+import 'package:stock_investment_tracker/data/repositories/mock_lot_repository_impl.dart';
+
+final mockLotRepo = MockLotRepositoryImpl();
+
 final firebaseFirestoreProvider = Provider<FirebaseFirestore?>((ref) {
   try {
     final instance = FirebaseFirestore.instance;
@@ -34,7 +38,9 @@ final hiveDataSourceProvider = Provider<HiveDataSource>((ref) {
 final lotRepositoryProvider = Provider<LotRepository?>((ref) {
   final uid = ref.watch(currentUserIdProvider);
   final dataSource = ref.watch(firestoreDataSourceProvider);
-  if (uid == null || dataSource == null) return null;
+  if (uid == null || dataSource == null) {
+    return mockLotRepo; // Use mock if firebase/auth is missing
+  }
   return LotRepositoryImpl(
     uid: uid,
     firestoreDataSource: dataSource,

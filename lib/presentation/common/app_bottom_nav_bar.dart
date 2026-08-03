@@ -25,18 +25,25 @@ class AppBottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
-                icon: Icons.dashboard_outlined,
-                activeIcon: Icons.dashboard,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_filled,
                 label: 'Dashboard',
                 isSelected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                icon: Icons.pie_chart_outline,
-                activeIcon: Icons.pie_chart,
-                label: 'Portfolio',
+                icon: Icons.receipt_long_outlined,
+                activeIcon: Icons.receipt_long,
+                label: 'Transactions',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
+              ),
+              _NavItem(
+                icon: Icons.settings_outlined,
+                activeIcon: Icons.settings,
+                label: 'Settings',
+                isSelected: currentIndex == 2,
+                onTap: () => onTap(2),
               ),
             ],
           ),
@@ -70,7 +77,7 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.moneyGreen.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppColors.brandIndigo.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -78,14 +85,14 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? AppColors.moneyGreen : AppColors.textSecondaryDark,
+              color: isSelected ? AppColors.brandIndigo : AppColors.textSecondaryDark,
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.moneyGreen,
+                      color: AppColors.brandIndigo,
                       fontWeight: FontWeight.bold,
                     ),
               ),
