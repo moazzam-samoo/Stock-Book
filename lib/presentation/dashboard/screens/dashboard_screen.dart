@@ -58,20 +58,11 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.xxl),
                       
                       if (allocationData.isNotEmpty) ...[
-                        Text(
-                          'Allocation',
-                          style: AppTypography.h2.copyWith(color: AppColors.textPrimaryDark),
-                        ),
-                        Text(
-                          'Tap segment to highlight',
-                          style: AppTypography.caption.copyWith(color: AppColors.neutral500),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
                         AllocationDonutChart(
                           allocations: allocationData,
                           totalHoldings: portfolioSummary.currentlyInvested,
                         ),
-                        const SizedBox(height: AppSpacing.xxl),
+                        const SizedBox(height: AppSpacing.xl),
                       ],
                       
                       Row(
@@ -79,23 +70,29 @@ class DashboardScreen extends ConsumerWidget {
                         children: [
                           Text(
                             'Your Stocks',
-                            style: AppTypography.h2.copyWith(color: AppColors.textPrimaryDark),
+                            style: AppTypography.h2.copyWith(
+                              color: AppColors.textPrimaryDark,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              context.go('/transactions');
-                            },
-                            child: Text(
-                              'View all',
-                              style: AppTypography.body.copyWith(
-                                color: AppColors.brandIndigo,
-                                fontWeight: FontWeight.w600,
+                          GestureDetector(
+                            onTap: () => context.go('/transactions'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                              child: Text(
+                                'View all',
+                                style: AppTypography.body.copyWith(
+                                  color: const Color(0xFF4361EE),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: 12),
                       
                       if (stockSummaries.isEmpty)
                         EmptyStateView(
@@ -106,32 +103,41 @@ class DashboardScreen extends ConsumerWidget {
                           onButtonPressed: () {
                             context.go('/transactions');
                           },
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceDark,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF242731), width: 1.2),
+                          ),
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: stockSummaries.length,
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              color: Color(0xFF242731),
+                              indent: 16,
+                              endIndent: 16,
+                            ),
+                            itemBuilder: (context, index) {
+                              final summary = stockSummaries[index];
+                              return StockRow(
+                                summary: summary,
+                                animationDelayMs: index * 100,
+                                onTap: () {
+                                  context.push('/stock/${summary.ticker}');
+                                },
+                              );
+                            },
+                          ),
                         ),
+                      const SizedBox(height: 100), // Bottom padding for floating navigation bar
                     ]),
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final summary = stockSummaries[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                          child: StockRow(
-                            summary: summary,
-                            animationDelayMs: index * 100,
-                            onTap: () {
-                              context.push('/stock/${summary.ticker}');
-                            },
-                          ),
-                        );
-                      },
-                      childCount: stockSummaries.length,
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)), // Bottom padding for nav bar
               ],
             ),
           );

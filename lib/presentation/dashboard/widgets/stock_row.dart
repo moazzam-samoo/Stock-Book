@@ -47,14 +47,14 @@ class StockRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
         child: Row(
           children: [
             Hero(
               tag: 'avatar_${summary.ticker}',
-              child: TickerAvatar(ticker: summary.ticker, size: 40),
+              child: TickerAvatar(ticker: summary.ticker, size: 42),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,34 +63,50 @@ class StockRow extends StatelessWidget {
                     children: [
                       Text(
                         summary.ticker,
-                        style: AppTypography.h3.copyWith(color: AppColors.textPrimaryDark),
+                        style: AppTypography.h3.copyWith(
+                          color: AppColors.textPrimaryDark,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
+                      const SizedBox(width: 8),
                       StatusBadge(status: _mapStatus(summary.status)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${formatNumber.format(summary.sharesHeld)} sh @ $displayAvgPrice',
-                    style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                    '${formatNumber.format(summary.sharesHeld)} sh  ·  avg $displayAvgPrice',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            Row(
               children: [
-                SparklineChart(isPositive: isPositive, color: color),
-                if (summary.realizedPL != 0) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '${isPositive ? '+' : '-'}$displayRealized',
-                    style: AppTypography.caption.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.bold,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SparklineChart(isPositive: isPositive, color: color),
+                    const SizedBox(height: 4),
+                    Text(
+                      summary.realizedPL != 0 ? '${isPositive ? '+' : '-'}$displayRealized' : '-',
+                      style: AppTypography.caption.copyWith(
+                        color: summary.realizedPL != 0 ? color : AppColors.neutral500,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.neutral500,
+                  size: 18,
+                ),
               ],
             ),
           ],

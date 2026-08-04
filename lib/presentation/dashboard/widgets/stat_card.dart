@@ -31,11 +31,11 @@ class StatCard extends StatelessWidget {
       : formatNumber.format(value);
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2D3748)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF242731), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,17 +45,21 @@ class StatCard extends StatelessWidget {
             label.toUpperCase(),
             style: AppTypography.caption.copyWith(
               color: AppColors.neutral500,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+              fontSize: 11,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 6),
           Text(
             displayValue,
             style: AppTypography.h2.copyWith(
               color: valueColor ?? AppColors.textPrimaryDark,
               fontFamily: 'JetBrains Mono',
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
