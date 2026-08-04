@@ -35,7 +35,7 @@ class StatCardGrid extends StatelessWidget {
           children: [
             Expanded(
               child: StatCard(
-                label: 'TOTAL INVESTED',
+                label: 'TOTAL CASH',
                 value: summary.totalInvested,
                 isCurrency: true,
                 animationDelayMs: 100,
@@ -47,7 +47,7 @@ class StatCardGrid extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'TOTAL INVESTED IN STOCKS',
+                label: 'TOTAL INVESTED (STOCKS)',
                 value: summary.currentlyInvested,
                 isCurrency: true,
                 animationDelayMs: 200,
@@ -79,7 +79,7 @@ class StatCardGrid extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'TOTAL FREE UN-INVESTED',
+                label: 'FREE CASH (UN-INVESTED)',
                 value: summary.freeCash,
                 isCurrency: true,
                 animationDelayMs: 400,
@@ -95,7 +95,7 @@ class StatCardGrid extends StatelessWidget {
           children: [
             Expanded(
               child: StatCard(
-                label: 'TOTAL FREE CASH',
+                label: 'TOTAL LIQUID CAPITAL',
                 value: liquidFreeCash,
                 isCurrency: true,
                 animationDelayMs: 500,
@@ -106,7 +106,7 @@ class StatCardGrid extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'OPEN LOTS',
+                label: 'OPEN TRADES',
                 value: summary.openLots,
                 isCurrency: false,
                 animationDelayMs: 600,
