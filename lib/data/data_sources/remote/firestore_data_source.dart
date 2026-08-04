@@ -23,17 +23,23 @@ class FirestoreDataSource {
   }
 
   Future<void> addLot(String uid, LotModel lot) async {
+    final json = lot.toJson()..remove('id');
+    // Explicitly serialize nested sales to avoid _SaleModel instances
+    json['sales'] = lot.sales.map((s) => s.toJson()..remove('id')).toList();
     await _firestore
         .collection(FirestorePaths.lots(uid))
         .doc(lot.id)
-        .set(lot.toJson()..remove('id'));
+        .set(json);
   }
 
   Future<void> updateLot(String uid, LotModel lot) async {
+    final json = lot.toJson()..remove('id');
+    // Explicitly serialize nested sales to avoid _SaleModel instances
+    json['sales'] = lot.sales.map((s) => s.toJson()..remove('id')).toList();
     await _firestore
         .collection(FirestorePaths.lots(uid))
         .doc(lot.id)
-        .update(lot.toJson()..remove('id'));
+        .update(json);
   }
 
   Future<void> deleteLot(String uid, String lotId) async {
