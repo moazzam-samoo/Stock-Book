@@ -109,7 +109,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Row(
-            crossAxisAlignment: CrossAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Left: Donut Chart
               SizedBox(
