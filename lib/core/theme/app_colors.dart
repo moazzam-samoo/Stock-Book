@@ -26,6 +26,7 @@ class AppColors {
   static const Color backgroundDark = deepSpaceBlack;
   static const Color dangerRed = alertRed;
   static const Color surfaceDark = offBlack;
+  static const Color neutral400 = Color(0xFFA0AEC0);
   static const Color neutral500 = Color(0xFF718096);
 
   // Semantic Shortcuts & Aliases
