@@ -12,12 +12,14 @@ class PortfolioHeader extends ConsumerWidget {
   final double totalValue;
   final double profitLossPercentage;
   final DateTime? lastSyncTime;
+  final bool isOffline;
 
   const PortfolioHeader({
     super.key,
     required this.totalValue,
     required this.profitLossPercentage,
     this.lastSyncTime,
+    this.isOffline = false,
   });
 
   Widget _buildUserAvatar(String? photoUrl, String? displayName) {
@@ -96,14 +98,30 @@ class PortfolioHeader extends ConsumerWidget {
           children: [
             _buildUserAvatar(photoUrl, displayName),
             if (lastSyncTime != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Last Sync: ${DateFormat('h:mm a').format(lastSyncTime!)}',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.neutral500,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w400,
-                ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isOffline ? AppColors.alertRed : const Color(0xFF00FF7F),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isOffline
+                        ? 'Offline (${DateFormat('h:mm a').format(lastSyncTime!)})'
+                        : 'Last Sync: ${DateFormat('h:mm a').format(lastSyncTime!)}',
+                    style: AppTypography.caption.copyWith(
+                      color: isOffline ? AppColors.alertRed : AppColors.neutral500,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
             ],
           ],

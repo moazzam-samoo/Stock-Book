@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +16,6 @@ import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_car
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stock_row.dart';
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/metric_detail_card.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,36 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   DashboardMetricType? _selectedMetric;
   DateTime _lastSyncTime = DateTime.now();
+  bool _isOffline = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivity();
+  }
+
+  Future<void> _initConnectivity() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateConnectivityStatus(results);
+
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(_updateConnectivityStatus);
+  }
+
+  void _updateConnectivityStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (_isOffline != offline && mounted) {
+      setState(() {
+        _isOffline = offline;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +91,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ? (portfolioSummary.realizedPL / portfolioSummary.currentlyInvested) * 100 
                             : 0.0,
                         lastSyncTime: _lastSyncTime,
+                        isOffline: _isOffline,
                       ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
                       
                       const SizedBox(height: AppSpacing.xl),

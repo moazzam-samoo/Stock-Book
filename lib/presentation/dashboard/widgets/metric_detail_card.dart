@@ -87,12 +87,16 @@ class MetricDetailCard extends StatelessWidget {
 
   String _getTitle() {
     switch (metricType) {
-      case DashboardMetricType.invested:
-        return 'Invested Capital Breakdown';
+      case DashboardMetricType.totalInvested:
+        return 'Total Cumulative Invested Capital';
+      case DashboardMetricType.currentlyInvested:
+        return 'Currently Invested Capital';
       case DashboardMetricType.realizedPL:
         return 'Realized Profit / Loss Details';
+      case DashboardMetricType.totalFree:
+        return 'Total Free (Uninvested Base Capital)';
       case DashboardMetricType.freeCash:
-        return 'Free Cash & Liquidity';
+        return 'Free Cash & Liquid Capital';
       case DashboardMetricType.openLots:
         return 'Open Purchase Lots';
     }
@@ -100,10 +104,14 @@ class MetricDetailCard extends StatelessWidget {
 
   IconData _getIcon() {
     switch (metricType) {
-      case DashboardMetricType.invested:
+      case DashboardMetricType.totalInvested:
+        return Icons.account_balance_outlined;
+      case DashboardMetricType.currentlyInvested:
         return Icons.pie_chart_outline;
       case DashboardMetricType.realizedPL:
         return Icons.show_chart;
+      case DashboardMetricType.totalFree:
+        return Icons.savings_outlined;
       case DashboardMetricType.freeCash:
         return Icons.account_balance_wallet_outlined;
       case DashboardMetricType.openLots:
@@ -113,15 +121,77 @@ class MetricDetailCard extends StatelessWidget {
 
   Widget _buildMetricBody() {
     switch (metricType) {
-      case DashboardMetricType.invested:
+      case DashboardMetricType.totalInvested:
+        return _buildTotalInvestedBody();
+      case DashboardMetricType.currentlyInvested:
         return _buildInvestedBody();
       case DashboardMetricType.realizedPL:
         return _buildRealizedPLBody();
+      case DashboardMetricType.totalFree:
+        return _buildTotalFreeBody();
       case DashboardMetricType.freeCash:
         return _buildFreeCashBody();
       case DashboardMetricType.openLots:
         return _buildOpenLotsBody();
     }
+  }
+
+  Widget _buildTotalInvestedBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppCurrencyFormatter.format(summary.totalInvested, decimalDigits: 0),
+          style: AppTypography.h1.copyWith(
+            color: AppColors.textPrimaryDark,
+            fontFamily: 'JetBrains Mono',
+            fontSize: 24,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(child: _buildDetailStat('Total Purchases', '${lots.length} lots')),
+            Expanded(
+              child: _buildDetailStat(
+                'Deployment',
+                '${(summary.currentlyInvested / (summary.totalInvested > 0 ? summary.totalInvested : 1) * 100).toStringAsFixed(1)}% Active',
+                color: AppColors.moneyGreen,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTotalFreeBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppCurrencyFormatter.format(summary.freeCash, decimalDigits: 0),
+          style: AppTypography.h1.copyWith(
+            color: AppColors.textPrimaryDark,
+            fontFamily: 'JetBrains Mono',
+            fontSize: 24,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(child: _buildDetailStat('Base Uninvested Cash', 'Excludes Sales Profit')),
+            Expanded(
+              child: _buildDetailStat(
+                'Status',
+                summary.freeCash > 0 ? 'Cash Available' : 'Fully Deployed',
+                color: AppColors.moneyGreen,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildInvestedBody() {
@@ -188,13 +258,14 @@ class MetricDetailCard extends StatelessWidget {
 
   Widget _buildFreeCashBody() {
     final totalVal = summary.portfolioValue > 0 ? summary.portfolioValue : 1.0;
-    final cashPercent = (summary.freeCash / totalVal * 100).toStringAsFixed(1);
+    final liquidCash = summary.freeCash + summary.realizedPL;
+    final cashPercent = (liquidCash / totalVal * 100).toStringAsFixed(1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppCurrencyFormatter.format(summary.freeCash, decimalDigits: 0),
+          AppCurrencyFormatter.format(liquidCash, decimalDigits: 0),
           style: AppTypography.h1.copyWith(
             color: AppColors.textPrimaryDark,
             fontFamily: 'JetBrains Mono',
@@ -207,9 +278,9 @@ class MetricDetailCard extends StatelessWidget {
             Expanded(child: _buildDetailStat('Cash Ratio', '$cashPercent% of portfolio')),
             Expanded(
               child: _buildDetailStat(
-                'Liquidity',
-                summary.freeCash > 0 ? 'Liquid' : 'Fully Invested',
-                color: AppColors.moneyGreen,
+                'Includes Sales Profit',
+                summary.realizedPL >= 0 ? '+${AppCurrencyFormatter.format(summary.realizedPL)}' : AppCurrencyFormatter.format(summary.realizedPL),
+                color: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
               ),
             ),
           ],
