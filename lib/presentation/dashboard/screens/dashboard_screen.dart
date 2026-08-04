@@ -86,9 +86,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       PortfolioHeader(
-                        totalValue: portfolioSummary.currentlyInvested + portfolioSummary.realizedPL + portfolioSummary.freeCash,
-                        profitLossPercentage: portfolioSummary.currentlyInvested > 0 
-                            ? (portfolioSummary.realizedPL / portfolioSummary.currentlyInvested) * 100 
+                        totalValue: portfolioSummary.portfolioValue,
+                        profitLossPercentage: portfolioSummary.startingCapital > 0 
+                            ? ((portfolioSummary.portfolioValue - portfolioSummary.startingCapital) / portfolioSummary.startingCapital) * 100 
                             : 0.0,
                         lastSyncTime: _lastSyncTime,
                         isOffline: _isOffline,

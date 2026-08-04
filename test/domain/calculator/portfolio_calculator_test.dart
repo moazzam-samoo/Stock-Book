@@ -183,16 +183,17 @@ void main() {
 
       final summary = PortfolioCalculator.calculatePortfolioSummary([lot1, lot2], 10000.0);
 
-      // total invested historically = 3000
+      // total invested = starting capital = 10000
       // currently invested = 1000 (AAPL)
       // realized PL = 1000 (MSFT)
-      // free cash = 10000 - 1000 + 1000 = 10000
-      // portfolio value = 10000 (cash) + 1000 (invested) = 11000
+      // free cash (uninvested base capital) = 10000 - 1000 = 9000
+      // portfolio value = 10000 (starting capital) + 1000 (profit) = 11000
       
-      expect(summary.totalInvested, 3000.0);
+      expect(summary.startingCapital, 10000.0);
+      expect(summary.totalInvested, 10000.0);
       expect(summary.currentlyInvested, 1000.0);
       expect(summary.realizedPL, 1000.0);
-      expect(summary.freeCash, 10000.0);
+      expect(summary.freeCash, 9000.0);
       expect(summary.openLots, 1);
       expect(summary.portfolioValue, 11000.0);
     });

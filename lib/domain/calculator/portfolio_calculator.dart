@@ -121,13 +121,11 @@ class PortfolioCalculator {
     List<Lot> allLots,
     double startingCapital,
   ) {
-    double totalInvested = 0.0;
     double currentlyInvested = 0.0;
     double realizedPL = 0.0;
     int openLots = 0;
 
     for (final lot in allLots) {
-      totalInvested += lot.amountInvested;
       currentlyInvested += calculateAmountInvestedRemaining(lot);
       realizedPL += calculateRealizedProfitLoss(lot);
       if (calculateLotStatus(lot) != LotStatus.closed) {
@@ -135,11 +133,12 @@ class PortfolioCalculator {
       }
     }
 
-    final freeCash = startingCapital - currentlyInvested + realizedPL;
-    final portfolioValue = freeCash + currentlyInvested;
+    final freeCash = startingCapital - currentlyInvested;
+    final portfolioValue = startingCapital + realizedPL;
 
     return PortfolioSummary(
-      totalInvested: _round(totalInvested),
+      startingCapital: _round(startingCapital),
+      totalInvested: _round(startingCapital),
       currentlyInvested: _round(currentlyInvested),
       realizedPL: _round(realizedPL),
       freeCash: _round(freeCash),
