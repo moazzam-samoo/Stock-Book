@@ -1,26 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/sale_event_row.dart';
 
-class LotCard extends StatefulWidget {
+class LotCard extends ConsumerStatefulWidget {
   final Lot lot;
 
   const LotCard({super.key, required this.lot});
 
   @override
-  State<LotCard> createState() => _LotCardState();
+  ConsumerState<LotCard> createState() => _LotCardState();
 }
 
-class _LotCardState extends State<LotCard> {
+class _LotCardState extends ConsumerState<LotCard> {
   bool _isExpanded = false;
 
   void _toggleExpand() {
+    HapticFeedback.lightImpact();
     setState(() {
       _isExpanded = !_isExpanded;
     });
@@ -34,17 +39,55 @@ class _LotCardState extends State<LotCard> {
     return GestureDetector(
       onTap: _toggleExpand,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.offBlack),
+      child: Slidable(
+        key: ValueKey(widget.lot.id),
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          extentRatio: 0.25,
+          children: [
+            SlidableAction(
+              onPressed: (context) async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Lot?'),
+                    content: const Text('This will permanently delete this lot and all its sales. This action cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Delete', style: TextStyle(color: AppColors.dangerRed)),
+                      ),
+                    ],
+                  ),
+                );
+                
+                if (confirm == true) {
+                  HapticFeedback.mediumImpact();
+                  await ref.read(lotRepositoryProvider)!.deleteLot(widget.lot.id!);
+                }
+              },
+              backgroundColor: AppColors.dangerRed,
+              foregroundColor: Colors.white,
+              icon: Icons.delete,
+              label: 'Delete',
+            ),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.offBlack),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Row
             Row(
@@ -104,7 +147,7 @@ class _LotCardState extends State<LotCard> {
                   style: AppTypography.caption.copyWith(color: AppColors.neutral500, fontStyle: FontStyle.italic),
                 )
               else
-                ...widget.lot.sales!.map((sale) => SaleEventRow(sale: sale)).toList(),
+                ...widget.lot.sales!.map((sale) => SaleEventRow(sale: sale, lotId: widget.lot.id!)).toList(),
               
               const SizedBox(height: 16),
               Row(
@@ -140,6 +183,6 @@ class _LotCardState extends State<LotCard> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

@@ -8,6 +8,7 @@ import '../common/app_scaffold.dart';
 import '../auth/screens/sign_in_screen.dart';
 import '../onboarding/screens/onboarding_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
+import '../dashboard/screens/stock_detail_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../transactions/screens/transactions_screen.dart';
 
@@ -95,6 +96,13 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: '/add-stock',
         builder: (context, state) => const Center(child: Text('Add Stock Placeholder')),
+      ),
+      GoRoute(
+        path: '/stock/:ticker',
+        builder: (context, state) {
+          final ticker = state.pathParameters['ticker']!;
+          return StockDetailScreen(ticker: ticker);
+        },
       ),
     ],
   );

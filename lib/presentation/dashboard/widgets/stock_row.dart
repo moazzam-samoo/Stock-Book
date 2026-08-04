@@ -50,7 +50,10 @@ class StockRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
         child: Row(
           children: [
-            TickerAvatar(ticker: summary.ticker, size: 40),
+            Hero(
+              tag: 'avatar_${summary.ticker}',
+              child: TickerAvatar(ticker: summary.ticker, size: 40),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

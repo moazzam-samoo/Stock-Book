@@ -5,6 +5,7 @@ import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data
 import 'package:stock_investment_tracker/data/models/lot_model.dart';
 import 'package:stock_investment_tracker/data/repositories/lot_repository_impl.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
+import 'package:stock_investment_tracker/domain/calculator/portfolio_calculator.dart';
 import 'lot_repository_impl_test.mocks.dart';
 
 @GenerateMocks([FirestoreDataSource])
@@ -67,7 +68,7 @@ void main() {
 
       expect(
         repository.watchAllLots(),
-        emits([tLot.copyWith(amountInvested: 5000.0)]),
+        emits([PortfolioCalculator.enrichLot(tLot)]),
       );
     });
   });

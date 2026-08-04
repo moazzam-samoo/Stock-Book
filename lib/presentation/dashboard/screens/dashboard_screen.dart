@@ -12,6 +12,7 @@ import 'package:stock_investment_tracker/presentation/dashboard/widgets/dashboar
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/portfolio_header.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card_grid.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stock_row.dart';
+import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -97,27 +98,14 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.md),
                       
                       if (stockSummaries.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                const Icon(Icons.show_chart, size: 64, color: AppColors.neutral500),
-                                const SizedBox(height: AppSpacing.md),
-                                Text(
-                                  'No stocks yet',
-                                  style: AppTypography.h3.copyWith(color: AppColors.neutral500),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                PrimaryButton(
-                                  label: 'Add your first stock',
-                                  onPressed: () {
-                                    context.go('/transactions'); // For now, transactions FAB handles adding
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
+                        EmptyStateView(
+                          icon: Icons.show_chart,
+                          title: 'No stocks yet',
+                          message: 'Add your first stock purchase to track your portfolio.',
+                          buttonLabel: 'Add your first stock',
+                          onButtonPressed: () {
+                            context.go('/transactions');
+                          },
                         ),
                     ]),
                   ),

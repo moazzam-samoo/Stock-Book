@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
@@ -8,6 +9,7 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/trans
 import 'package:stock_investment_tracker/presentation/transactions/widgets/filter_chip_row.dart';
 
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_transaction_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 
 class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
@@ -38,24 +40,10 @@ class TransactionsScreen extends ConsumerWidget {
             const FilterChipRow(),
             Expanded(
               child: lots.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.receipt_long_outlined,
-                            size: 64,
-                            color: AppColors.neutral500.withOpacity(0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No transactions found',
-                            style: AppTypography.h3.copyWith(
-                              color: AppColors.neutral500,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? EmptyStateView(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'No transactions found',
+                      message: 'Add your first stock purchase to get started.',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 100),
@@ -74,6 +62,7 @@ class TransactionsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.brandIndigo,
         onPressed: () {
+          HapticFeedback.lightImpact();
           AddTransactionBottomSheet.show(context);
         },
         child: const Icon(Icons.add, color: Colors.white),
