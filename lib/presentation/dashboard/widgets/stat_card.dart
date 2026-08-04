@@ -4,6 +4,7 @@ import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class StatCard extends StatelessWidget {
   final String label;
