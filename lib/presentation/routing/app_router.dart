@@ -16,14 +16,13 @@ part 'app_router.g.dart';
 @riverpod
 GoRouter appRouter(AppRouterRef ref) {
   final authState = ref.watch(authStateProvider);
-  final isMockLoggedIn = ref.watch(mockAuthNotifierProvider);
   final onboardingSeen = ref.watch(onboardingControllerProvider);
 
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isLoggedIn = (authState.valueOrNull != null) || isMockLoggedIn;
+      final isLoggedIn = authState.valueOrNull != null;
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
       final isGoingToSignIn = state.matchedLocation == '/sign-in';
 

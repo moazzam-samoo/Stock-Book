@@ -13,6 +13,21 @@ class SignInScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     
+    // Listen for auth errors
+    ref.listen<AsyncValue>(
+      authControllerProvider,
+      (_, state) {
+        if (!state.isLoading && state.hasError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.error.toString()),
+              backgroundColor: AppColors.dangerRed,
+            ),
+          );
+        }
+      },
+    );
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -69,7 +84,7 @@ class SignInScreen extends ConsumerWidget {
                         ),
                       ),
                       onPressed: () {
-                        ref.read(mockAuthNotifierProvider.notifier).state = true;
+                        ref.read(authControllerProvider.notifier).signInWithGoogle();
                       },
                       child: authState.isLoading
                           ? const CircularProgressIndicator()

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stock_investment_tracker/presentation/common/offline_banner.dart';
 
 class AppScaffold extends StatelessWidget {
   final Widget body;
@@ -20,7 +21,14 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar,
-      body: SafeArea(child: body),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const OfflineBanner(),
+            Expanded(child: body),
+          ],
+        ),
+      ),
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,

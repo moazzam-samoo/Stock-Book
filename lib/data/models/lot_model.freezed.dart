@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LotModel {
 
- String get id; String get ticker;@TimestampConverter() DateTime get buyDate; int get sharesPurchased; double get buyPricePerShare;
+ String get id; String get ticker;@TimestampConverter() DateTime get buyDate; int get sharesPurchased; double get buyPricePerShare; List<SaleModel> get sales;
 /// Create a copy of LotModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $LotModelCopyWith<LotModel> get copyWith => _$LotModelCopyWithImpl<LotModel>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LotModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.buyDate, buyDate) || other.buyDate == buyDate)&&(identical(other.sharesPurchased, sharesPurchased) || other.sharesPurchased == sharesPurchased)&&(identical(other.buyPricePerShare, buyPricePerShare) || other.buyPricePerShare == buyPricePerShare));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LotModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.buyDate, buyDate) || other.buyDate == buyDate)&&(identical(other.sharesPurchased, sharesPurchased) || other.sharesPurchased == sharesPurchased)&&(identical(other.buyPricePerShare, buyPricePerShare) || other.buyPricePerShare == buyPricePerShare)&&const DeepCollectionEquality().equals(other.sales, sales));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,ticker,buyDate,sharesPurchased,buyPricePerShare);
+int get hashCode => Object.hash(runtimeType,id,ticker,buyDate,sharesPurchased,buyPricePerShare,const DeepCollectionEquality().hash(sales));
 
 @override
 String toString() {
-  return 'LotModel(id: $id, ticker: $ticker, buyDate: $buyDate, sharesPurchased: $sharesPurchased, buyPricePerShare: $buyPricePerShare)';
+  return 'LotModel(id: $id, ticker: $ticker, buyDate: $buyDate, sharesPurchased: $sharesPurchased, buyPricePerShare: $buyPricePerShare, sales: $sales)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $LotModelCopyWith<$Res>  {
   factory $LotModelCopyWith(LotModel value, $Res Function(LotModel) _then) = _$LotModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String ticker,@TimestampConverter() DateTime buyDate, int sharesPurchased, double buyPricePerShare
+ String id, String ticker,@TimestampConverter() DateTime buyDate, int sharesPurchased, double buyPricePerShare, List<SaleModel> sales
 });
 
 
@@ -65,14 +65,15 @@ class _$LotModelCopyWithImpl<$Res>
 
 /// Create a copy of LotModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? buyDate = null,Object? sharesPurchased = null,Object? buyPricePerShare = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? buyDate = null,Object? sharesPurchased = null,Object? buyPricePerShare = null,Object? sales = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
 as String,buyDate: null == buyDate ? _self.buyDate : buyDate // ignore: cast_nullable_to_non_nullable
 as DateTime,sharesPurchased: null == sharesPurchased ? _self.sharesPurchased : sharesPurchased // ignore: cast_nullable_to_non_nullable
 as int,buyPricePerShare: null == buyPricePerShare ? _self.buyPricePerShare : buyPricePerShare // ignore: cast_nullable_to_non_nullable
-as double,
+as double,sales: null == sales ? _self.sales : sales // ignore: cast_nullable_to_non_nullable
+as List<SaleModel>,
   ));
 }
 
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ticker, @TimestampConverter()  DateTime buyDate,  int sharesPurchased,  double buyPricePerShare)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ticker, @TimestampConverter()  DateTime buyDate,  int sharesPurchased,  double buyPricePerShare,  List<SaleModel> sales)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LotModel() when $default != null:
-return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.buyPricePerShare);case _:
+return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.buyPricePerShare,_that.sales);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ticker, @TimestampConverter()  DateTime buyDate,  int sharesPurchased,  double buyPricePerShare)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ticker, @TimestampConverter()  DateTime buyDate,  int sharesPurchased,  double buyPricePerShare,  List<SaleModel> sales)  $default,) {final _that = this;
 switch (_that) {
 case _LotModel():
-return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.buyPricePerShare);case _:
+return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.buyPricePerShare,_that.sales);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ticker, @TimestampConverter()  DateTime buyDate,  int sharesPurchased,  double buyPricePerShare)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ticker, @TimestampConverter()  DateTime buyDate,  int sharesPurchased,  double buyPricePerShare,  List<SaleModel> sales)?  $default,) {final _that = this;
 switch (_that) {
 case _LotModel() when $default != null:
-return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.buyPricePerShare);case _:
+return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.buyPricePerShare,_that.sales);case _:
   return null;
 
 }
@@ -213,7 +214,7 @@ return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.
 @JsonSerializable()
 
 class _LotModel implements LotModel {
-  const _LotModel({required this.id, required this.ticker, @TimestampConverter() required this.buyDate, required this.sharesPurchased, required this.buyPricePerShare});
+  const _LotModel({required this.id, required this.ticker, @TimestampConverter() required this.buyDate, required this.sharesPurchased, required this.buyPricePerShare, final  List<SaleModel> sales = const []}): _sales = sales;
   factory _LotModel.fromJson(Map<String, dynamic> json) => _$LotModelFromJson(json);
 
 @override final  String id;
@@ -221,6 +222,13 @@ class _LotModel implements LotModel {
 @override@TimestampConverter() final  DateTime buyDate;
 @override final  int sharesPurchased;
 @override final  double buyPricePerShare;
+ final  List<SaleModel> _sales;
+@override@JsonKey() List<SaleModel> get sales {
+  if (_sales is EqualUnmodifiableListView) return _sales;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_sales);
+}
+
 
 /// Create a copy of LotModel
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LotModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.buyDate, buyDate) || other.buyDate == buyDate)&&(identical(other.sharesPurchased, sharesPurchased) || other.sharesPurchased == sharesPurchased)&&(identical(other.buyPricePerShare, buyPricePerShare) || other.buyPricePerShare == buyPricePerShare));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LotModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.buyDate, buyDate) || other.buyDate == buyDate)&&(identical(other.sharesPurchased, sharesPurchased) || other.sharesPurchased == sharesPurchased)&&(identical(other.buyPricePerShare, buyPricePerShare) || other.buyPricePerShare == buyPricePerShare)&&const DeepCollectionEquality().equals(other._sales, _sales));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,ticker,buyDate,sharesPurchased,buyPricePerShare);
+int get hashCode => Object.hash(runtimeType,id,ticker,buyDate,sharesPurchased,buyPricePerShare,const DeepCollectionEquality().hash(_sales));
 
 @override
 String toString() {
-  return 'LotModel(id: $id, ticker: $ticker, buyDate: $buyDate, sharesPurchased: $sharesPurchased, buyPricePerShare: $buyPricePerShare)';
+  return 'LotModel(id: $id, ticker: $ticker, buyDate: $buyDate, sharesPurchased: $sharesPurchased, buyPricePerShare: $buyPricePerShare, sales: $sales)';
 }
 
 
@@ -255,7 +263,7 @@ abstract mixin class _$LotModelCopyWith<$Res> implements $LotModelCopyWith<$Res>
   factory _$LotModelCopyWith(_LotModel value, $Res Function(_LotModel) _then) = __$LotModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ticker,@TimestampConverter() DateTime buyDate, int sharesPurchased, double buyPricePerShare
+ String id, String ticker,@TimestampConverter() DateTime buyDate, int sharesPurchased, double buyPricePerShare, List<SaleModel> sales
 });
 
 
@@ -272,14 +280,15 @@ class __$LotModelCopyWithImpl<$Res>
 
 /// Create a copy of LotModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ticker = null,Object? buyDate = null,Object? sharesPurchased = null,Object? buyPricePerShare = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ticker = null,Object? buyDate = null,Object? sharesPurchased = null,Object? buyPricePerShare = null,Object? sales = null,}) {
   return _then(_LotModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
 as String,buyDate: null == buyDate ? _self.buyDate : buyDate // ignore: cast_nullable_to_non_nullable
 as DateTime,sharesPurchased: null == sharesPurchased ? _self.sharesPurchased : sharesPurchased // ignore: cast_nullable_to_non_nullable
 as int,buyPricePerShare: null == buyPricePerShare ? _self.buyPricePerShare : buyPricePerShare // ignore: cast_nullable_to_non_nullable
-as double,
+as double,sales: null == sales ? _self._sales : sales // ignore: cast_nullable_to_non_nullable
+as List<SaleModel>,
   ));
 }
 

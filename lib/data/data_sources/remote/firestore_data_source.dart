@@ -15,9 +15,11 @@ class FirestoreDataSource {
         .collection(FirestorePaths.lots(uid))
         .orderBy('buyDate', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => LotModel.fromJson(doc.data()..['id'] = doc.id))
-            .toList());
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return LotModel.fromJson(data);
+            }).toList());
   }
 
   Future<void> addLot(String uid, LotModel lot) async {
@@ -38,36 +40,57 @@ class FirestoreDataSource {
     await _firestore.collection(FirestorePaths.lots(uid)).doc(lotId).delete();
   }
 
-  // SALES
+  // SALES (Embedded in Lots)
   Stream<List<SaleModel>> watchAllSales(String uid, String lotId) {
     return _firestore
-        .collection(FirestorePaths.sales(uid, lotId))
-        .orderBy('sellDate', descending: true)
+        .collection(FirestorePaths.lots(uid))
+        .doc(lotId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SaleModel.fromJson(doc.data()..['id'] = doc.id))
-            .toList());
+        .map((doc) {
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        final lot = LotModel.fromJson(data);
+        return lot.sales;
+      }
+      return [];
+    });
   }
 
   Future<void> addSale(String uid, String lotId, SaleModel sale) async {
-    await _firestore
-        .collection(FirestorePaths.sales(uid, lotId))
-        .doc(sale.id)
-        .set(sale.toJson()..remove('id'));
+    final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
+    final doc = await docRef.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      data['id'] = doc.id;
+      final lot = LotModel.fromJson(data);
+      final updatedSales = List<SaleModel>.from(lot.sales)..add(sale);
+      await docRef.update({'sales': updatedSales.map((e) => e.toJson()..remove('id')).toList()});
+    }
   }
 
   Future<void> updateSale(String uid, String lotId, SaleModel sale) async {
-    await _firestore
-        .collection(FirestorePaths.sales(uid, lotId))
-        .doc(sale.id)
-        .update(sale.toJson()..remove('id'));
+    final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
+    final doc = await docRef.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      data['id'] = doc.id;
+      final lot = LotModel.fromJson(data);
+      final updatedSales = lot.sales.map((s) => s.id == sale.id ? sale : s).toList();
+      await docRef.update({'sales': updatedSales.map((e) => e.toJson()..remove('id')).toList()});
+    }
   }
 
   Future<void> deleteSale(String uid, String lotId, String saleId) async {
-    await _firestore
-        .collection(FirestorePaths.sales(uid, lotId))
-        .doc(saleId)
-        .delete();
+    final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
+    final doc = await docRef.get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      data['id'] = doc.id;
+      final lot = LotModel.fromJson(data);
+      final updatedSales = lot.sales.where((s) => s.id != saleId).toList();
+      await docRef.update({'sales': updatedSales.map((e) => e.toJson()..remove('id')).toList()});
+    }
   }
 
   // SETTINGS

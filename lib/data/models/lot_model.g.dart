@@ -12,6 +12,11 @@ _LotModel _$LotModelFromJson(Map<String, dynamic> json) => _LotModel(
   buyDate: const TimestampConverter().fromJson(json['buyDate'] as Timestamp),
   sharesPurchased: (json['sharesPurchased'] as num).toInt(),
   buyPricePerShare: (json['buyPricePerShare'] as num).toDouble(),
+  sales:
+      (json['sales'] as List<dynamic>?)
+          ?.map((e) => SaleModel.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$LotModelToJson(_LotModel instance) => <String, dynamic>{
@@ -20,4 +25,5 @@ Map<String, dynamic> _$LotModelToJson(_LotModel instance) => <String, dynamic>{
   'buyDate': const TimestampConverter().toJson(instance.buyDate),
   'sharesPurchased': instance.sharesPurchased,
   'buyPricePerShare': instance.buyPricePerShare,
+  'sales': instance.sales,
 };

@@ -7,6 +7,7 @@ class AppTextField extends StatelessWidget {
   final String? initialValue;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onFieldSubmitted;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
@@ -18,6 +19,7 @@ class AppTextField extends StatelessWidget {
     this.initialValue,
     this.controller,
     this.onChanged,
+    this.onFieldSubmitted,
     this.validator,
     this.keyboardType = TextInputType.text,
     this.inputFormatters,
@@ -29,6 +31,7 @@ class AppTextField extends StatelessWidget {
       controller: controller,
       initialValue: initialValue,
       onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
       validator: validator,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
@@ -47,6 +50,7 @@ class NumericInput extends StatelessWidget {
   final String? initialValue;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onFieldSubmitted;
   final String? Function(String?)? validator;
 
   const NumericInput({
@@ -56,6 +60,7 @@ class NumericInput extends StatelessWidget {
     this.initialValue,
     this.controller,
     this.onChanged,
+    this.onFieldSubmitted,
     this.validator,
   });
 
@@ -67,6 +72,7 @@ class NumericInput extends StatelessWidget {
       initialValue: initialValue,
       controller: controller,
       onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
       validator: validator,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [

@@ -17,20 +17,29 @@ abstract class LotModel with _$LotModel {
     @TimestampConverter() required DateTime buyDate,
     required int sharesPurchased,
     required double buyPricePerShare,
+    @Default([]) List<SaleModel> sales,
   }) = _LotModel;
 
   factory LotModel.fromJson(Map<String, dynamic> json) => _$LotModelFromJson(json);
 }
 
 extension LotModelExtension on LotModel {
-  Lot toEntity({
-    required double amountInvested,
-    List<Sale> sales = const [],
-    int sharesRemaining = 0,
-    double amountInvestedRemaining = 0.0,
-    double realizedProfitLoss = 0.0,
-    LotStatus status = LotStatus.open,
-  }) {
+  Lot toEntity() {
+    double amountInvested = sharesPurchased * buyPricePerShare;
+    int soldShares = 0;
+    double realizedPL = 0.0;
+    
+    final entitySales = sales.map((s) {
+       double saleValue = s.sharesSold * s.sellPricePerShare;
+       soldShares += s.sharesSold;
+       realizedPL += saleValue - (s.sharesSold * buyPricePerShare);
+       return s.toEntity(saleValue);
+    }).toList();
+
+    int remaining = sharesPurchased - soldShares;
+    double investedRemaining = remaining * buyPricePerShare;
+    LotStatus computedStatus = remaining <= 0 ? LotStatus.closed : LotStatus.open;
+
     return Lot(
       id: id,
       ticker: ticker,
@@ -38,11 +47,11 @@ extension LotModelExtension on LotModel {
       sharesPurchased: sharesPurchased,
       buyPricePerShare: buyPricePerShare,
       amountInvested: amountInvested,
-      sales: sales,
-      sharesRemaining: sharesRemaining,
-      amountInvestedRemaining: amountInvestedRemaining,
-      realizedProfitLoss: realizedProfitLoss,
-      status: status,
+      sales: entitySales,
+      sharesRemaining: remaining,
+      amountInvestedRemaining: investedRemaining,
+      realizedProfitLoss: realizedPL,
+      status: computedStatus,
     );
   }
 
@@ -53,6 +62,7 @@ extension LotModelExtension on LotModel {
       buyDate: entity.buyDate,
       sharesPurchased: entity.sharesPurchased,
       buyPricePerShare: entity.buyPricePerShare,
+      sales: entity.sales.map((s) => SaleModelExtension.fromEntity(s)).toList(),
     );
   }
 }

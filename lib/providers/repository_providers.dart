@@ -10,14 +10,13 @@ import 'package:stock_investment_tracker/domain/repositories/sale_repository.dar
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 
-import 'package:stock_investment_tracker/data/repositories/mock_lot_repository_impl.dart';
-
-final mockLotRepo = MockLotRepositoryImpl();
-
 final firebaseFirestoreProvider = Provider<FirebaseFirestore?>((ref) {
   try {
     final instance = FirebaseFirestore.instance;
-    instance.settings = const Settings(persistenceEnabled: true);
+    instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
     return instance;
   } catch (e) {
     // Firebase is not initialized yet in this environment
@@ -39,7 +38,7 @@ final lotRepositoryProvider = Provider<LotRepository?>((ref) {
   final uid = ref.watch(currentUserIdProvider);
   final dataSource = ref.watch(firestoreDataSourceProvider);
   if (uid == null || dataSource == null) {
-    return mockLotRepo; // Use mock if firebase/auth is missing
+    return null; // Return null if not authenticated
   }
   return LotRepositoryImpl(
     uid: uid,

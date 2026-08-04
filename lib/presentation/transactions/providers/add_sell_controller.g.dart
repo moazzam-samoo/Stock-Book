@@ -6,7 +6,7 @@ part of 'add_sell_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$addSellControllerHash() => r'425cf8897a893c6c35be307ed1817338f53f35da';
+String _$addSellControllerHash() => r'0f49a1efdf8c219a7f8b510e0259e7d30801048c';
 
 /// See also [AddSellController].
 @ProviderFor(AddSellController)

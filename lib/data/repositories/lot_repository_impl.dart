@@ -17,9 +17,7 @@ class LotRepositoryImpl implements LotRepository {
   Stream<List<Lot>> watchAllLots() {
     return _firestoreDataSource.watchAllLots(_uid).map((models) {
       return models.map((model) {
-        return model.toEntity(
-          amountInvested: model.sharesPurchased * model.buyPricePerShare,
-        );
+        return model.toEntity();
       }).toList();
     });
   }
