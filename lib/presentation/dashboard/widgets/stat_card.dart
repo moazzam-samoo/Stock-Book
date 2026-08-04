@@ -30,67 +30,79 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatNumber = NumberFormat.decimalPattern();
 
-    final displayValue = isCurrency 
-      ? AppCurrencyFormatter.format(value, decimalDigits: 0)
-      : formatNumber.format(value);
+    final displayValue = isCurrency
+        ? AppCurrencyFormatter.format(value, decimalDigits: 0)
+        : formatNumber.format(value);
 
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E2620) : AppColors.surfaceDark,
+          onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? AppColors.moneyGreen : const Color(0xFF242731),
-            width: isSelected ? 1.8 : 1.2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(
+              vertical: 16.0,
+              horizontal: 16.0,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? const Color(0xFF1E2620)
+                  : AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.moneyGreen
+                    : const Color(0xFF242731),
+                width: isSelected ? 1.8 : 1.2,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: Text(
-                    label.toUpperCase(),
-                    style: AppTypography.caption.copyWith(
-                      color: isSelected ? AppColors.moneyGreen : AppColors.neutral500,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      fontSize: 11,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        label.toUpperCase(),
+                        style: AppTypography.caption.copyWith(
+                          color: isSelected
+                              ? AppColors.moneyGreen
+                              : AppColors.neutral500,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                          fontSize: 9,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    if (isSelected)
+                      const Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: AppColors.moneyGreen,
+                      ),
+                  ],
                 ),
-                if (isSelected)
-                  const Icon(
-                    Icons.info_outline,
-                    size: 14,
-                    color: AppColors.moneyGreen,
+                const SizedBox(height: 6),
+                Text(
+                  displayValue,
+                  style: AppTypography.h2.copyWith(
+                    color: valueColor ?? AppColors.textPrimaryDark,
+                    fontFamily: 'JetBrains Mono',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              displayValue,
-              style: AppTypography.h2.copyWith(
-                color: valueColor ?? AppColors.textPrimaryDark,
-                fontFamily: 'JetBrains Mono',
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms, delay: animationDelayMs.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
+          ),
+        )
+        .animate()
+        .fadeIn(duration: 400.ms, delay: animationDelayMs.ms)
+        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 }

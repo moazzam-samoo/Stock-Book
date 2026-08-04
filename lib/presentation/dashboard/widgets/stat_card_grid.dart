@@ -4,7 +4,14 @@ import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card.dart';
 
-enum DashboardMetricType { totalInvested, currentlyInvested, realizedPL, totalFree, freeCash, openLots }
+enum DashboardMetricType {
+  totalInvested,
+  currentlyInvested,
+  realizedPL,
+  totalFree,
+  freeCash,
+  openLots,
+}
 
 class StatCardGrid extends StatelessWidget {
   final PortfolioSummary summary;
@@ -33,18 +40,21 @@ class StatCardGrid extends StatelessWidget {
                 isCurrency: true,
                 animationDelayMs: 100,
                 isSelected: selectedMetric == DashboardMetricType.totalInvested,
-                onTap: () => onSelectMetric?.call(DashboardMetricType.totalInvested),
+                onTap: () =>
+                    onSelectMetric?.call(DashboardMetricType.totalInvested),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'INVESTED',
+                label: 'TOTAL INVESTED IN STOCKS',
                 value: summary.currentlyInvested,
                 isCurrency: true,
                 animationDelayMs: 200,
-                isSelected: selectedMetric == DashboardMetricType.currentlyInvested,
-                onTap: () => onSelectMetric?.call(DashboardMetricType.currentlyInvested),
+                isSelected:
+                    selectedMetric == DashboardMetricType.currentlyInvested,
+                onTap: () =>
+                    onSelectMetric?.call(DashboardMetricType.currentlyInvested),
               ),
             ),
           ],
@@ -57,21 +67,25 @@ class StatCardGrid extends StatelessWidget {
                 label: 'REALIZED P/L',
                 value: summary.realizedPL,
                 isCurrency: true,
-                valueColor: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+                valueColor: summary.realizedPL >= 0
+                    ? AppColors.moneyGreen
+                    : AppColors.alertRed,
                 animationDelayMs: 300,
                 isSelected: selectedMetric == DashboardMetricType.realizedPL,
-                onTap: () => onSelectMetric?.call(DashboardMetricType.realizedPL),
+                onTap: () =>
+                    onSelectMetric?.call(DashboardMetricType.realizedPL),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: StatCard(
-                label: 'TOTAL FREE',
+                label: 'TOTAL FREE UN-INVESTED',
                 value: summary.freeCash,
                 isCurrency: true,
                 animationDelayMs: 400,
                 isSelected: selectedMetric == DashboardMetricType.totalFree,
-                onTap: () => onSelectMetric?.call(DashboardMetricType.totalFree),
+                onTap: () =>
+                    onSelectMetric?.call(DashboardMetricType.totalFree),
               ),
             ),
           ],
@@ -81,7 +95,7 @@ class StatCardGrid extends StatelessWidget {
           children: [
             Expanded(
               child: StatCard(
-                label: 'FREE CASH',
+                label: 'TOTAL FREE CASH',
                 value: liquidFreeCash,
                 isCurrency: true,
                 animationDelayMs: 500,

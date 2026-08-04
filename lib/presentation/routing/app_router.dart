@@ -55,7 +55,8 @@ GoRouter appRouter(AppRouterRef ref) {
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return AppScaffold(
+          return Scaffold(
+            backgroundColor: const Color(0xFF13151B),
             body: navigationShell,
             bottomNavigationBar: AppBottomNavBar(
               currentIndex: navigationShell.currentIndex,

@@ -11,6 +11,8 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/filte
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_transaction_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 
+import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
+
 class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
 
@@ -18,46 +20,43 @@ class TransactionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lots = ref.watch(filteredLotsProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  Text(
-                    'Transactions',
-                    style: AppTypography.h1.copyWith(
-                      color: AppColors.brandIndigo,
-                    ),
+    return AppScaffold(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Text(
+                  'Transactions',
+                  style: AppTypography.h1.copyWith(
+                    color: AppColors.brandIndigo,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const TransactionSearchBar(),
-            const FilterChipRow(),
-            Expanded(
-              child: lots.isEmpty
-                  ? EmptyStateView(
-                      icon: Icons.receipt_long_outlined,
-                      title: 'No transactions found',
-                      message: 'Add your first stock purchase to get started.',
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 100),
-                      itemCount: lots.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          child: LotCard(lot: lots[index]),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+          ),
+          const TransactionSearchBar(),
+          const FilterChipRow(),
+          Expanded(
+            child: lots.isEmpty
+                ? EmptyStateView(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'No transactions found',
+                    message: 'Add your first stock purchase to get started.',
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 100),
+                    itemCount: lots.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        child: LotCard(lot: lots[index]),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.brandIndigo,
