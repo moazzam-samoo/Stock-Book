@@ -40,8 +40,8 @@ class StockRow extends StatelessWidget {
     final isPositive = summary.realizedPL >= 0;
     final color = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
     
-    final displayAvgPrice = formatCurrency.format(summary.avgBuyPrice).replaceAll('PKR', 'Rs').trim();
-    final displayRealized = formatCurrency.format(summary.realizedPL.abs()).replaceAll('PKR', 'Rs').trim();
+    final displayAvgPrice = formatCurrency.format(summary.avgBuyPrice).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim();
+    final displayRealized = formatCurrency.format(summary.realizedPL.abs()).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim();
     
     return InkWell(
       onTap: onTap,

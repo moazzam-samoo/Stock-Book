@@ -17,71 +17,82 @@ class PortfolioHeader extends ConsumerWidget {
     required this.profitLossPercentage,
   });
 
-  String _getGreeting(String? userName) {
-    final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Good morning';
-    } else if (hour < 17) {
-      greeting = 'Good afternoon';
-    } else {
-      greeting = 'Good evening';
+  Widget _buildUserAvatar(String? photoUrl, String? displayName) {
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 22,
+        backgroundColor: AppColors.surfaceDark,
+        backgroundImage: NetworkImage(photoUrl),
+      );
     }
 
-    if (userName != null && userName.trim().isNotEmpty) {
-      final firstName = userName.trim().split(' ').first;
-      return '$greeting $firstName';
-    }
-    return greeting;
+    final initial = (displayName != null && displayName.trim().isNotEmpty)
+        ? displayName.trim().substring(0, 1).toUpperCase()
+        : 'U';
+
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: AppColors.brandIndigo,
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).valueOrNull;
-    final userName = user?.displayName;
+    final photoUrl = user?.photoUrl;
+    final displayName = user?.displayName;
 
     final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 0);
-    final displayValue = formatCurrency.format(totalValue).replaceAll('PKR', 'Rs').trim();
+    final displayValue = formatCurrency
+        .format(totalValue)
+        .replaceAll('PKR', 'Rs ')
+        .replaceAll('Rs  ', 'Rs ')
+        .trim();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          _getGreeting(userName),
-          style: AppTypography.body.copyWith(
-            color: AppColors.neutral400,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'TOTAL PORTFOLIO VALUE',
-          style: AppTypography.caption.copyWith(
-            color: AppColors.neutral500,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              displayValue,
-              style: AppTypography.display.copyWith(
-                color: AppColors.textPrimaryDark,
-                fontFamily: 'JetBrains Mono',
-                fontWeight: FontWeight.w700,
-                fontSize: 32,
+              'TOTAL PORTFOLIO VALUE',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.neutral500,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+                fontSize: 11,
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            TrendChip(percentage: profitLossPercentage),
+            const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  displayValue,
+                  style: AppTypography.display.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontFamily: 'JetBrains Mono',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 28,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                TrendChip(percentage: profitLossPercentage),
+              ],
+            ),
           ],
         ),
+        _buildUserAvatar(photoUrl, displayName),
       ],
     );
   }

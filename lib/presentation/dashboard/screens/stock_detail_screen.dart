@@ -101,10 +101,10 @@ class StockDetailScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               _buildStatColumn('Shares', formatNumber.format(summary.sharesHeld)),
-                              _buildStatColumn('Avg Price', formatCurrency.format(summary.avgBuyPrice).replaceAll('PKR', 'Rs').trim()),
+                              _buildStatColumn('Avg Price', formatCurrency.format(summary.avgBuyPrice).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim()),
                               _buildStatColumn(
                                 'Total P/L', 
-                                '${summary.realizedPL >= 0 ? '+' : ''}${formatCurrency.format(summary.realizedPL).replaceAll('PKR', 'Rs').trim()}',
+                                '${summary.realizedPL >= 0 ? '+' : ''}${formatCurrency.format(summary.realizedPL).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim()}',
                                 color: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
                               ),
                             ],

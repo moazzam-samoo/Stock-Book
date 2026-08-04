@@ -27,7 +27,7 @@ class StatCard extends StatelessWidget {
     final formatNumber = NumberFormat.decimalPattern();
 
     final displayValue = isCurrency 
-      ? formatCurrency.format(value).replaceAll('PKR', 'Rs').trim()
+      ? formatCurrency.format(value).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim()
       : formatNumber.format(value);
 
     return Container(

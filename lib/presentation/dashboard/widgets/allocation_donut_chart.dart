@@ -53,7 +53,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
     }
 
     final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 0);
-    final displayHoldings = formatCurrency.format(widget.totalHoldings).replaceAll('PKR', 'Rs').trim();
+    final displayHoldings = formatCurrency.format(widget.totalHoldings).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim();
 
     return Container(
       padding: const EdgeInsets.all(20),
