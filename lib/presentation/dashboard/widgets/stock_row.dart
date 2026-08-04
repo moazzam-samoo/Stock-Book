@@ -30,6 +30,7 @@ class StockRow extends StatelessWidget {
       case LotStatus.partiallySold:
         return TradeStatus.partial;
       case LotStatus.closed:
+        return TradeStatus.closed;
     }
   }
 
