@@ -128,7 +128,7 @@ class MetricDetailCard extends StatelessWidget {
     final totalShares = stockSummaries.fold(0, (sum, s) => sum + s.sharesHeld);
     StockSummary? topHolding;
     if (stockSummaries.isNotEmpty) {
-      topHolding = stockSummaries.reduce((a, b) => a.investedRemaining > b.investedRemaining ? a : b);
+      topHolding = stockSummaries.reduce((a, b) => a.amountInvestedOpen > b.amountInvestedOpen ? a : b);
     }
 
     return Column(
@@ -147,7 +147,7 @@ class MetricDetailCard extends StatelessWidget {
           children: [
             Expanded(child: _buildDetailStat('Active Stocks', '${stockSummaries.length}')),
             Expanded(child: _buildDetailStat('Total Shares', '$totalShares')),
-            Expanded(child: _buildDetailStat('Top Position', topHolding?.tickerSymbol ?? 'N/A')),
+            Expanded(child: _buildDetailStat('Top Position', topHolding?.ticker ?? 'N/A')),
           ],
         ),
       ],
@@ -187,7 +187,7 @@ class MetricDetailCard extends StatelessWidget {
   }
 
   Widget _buildFreeCashBody() {
-    final totalVal = summary.totalValue > 0 ? summary.totalValue : 1.0;
+    final totalVal = summary.portfolioValue > 0 ? summary.portfolioValue : 1.0;
     final cashPercent = (summary.freeCash / totalVal * 100).toStringAsFixed(1);
 
     return Column(
@@ -219,7 +219,7 @@ class MetricDetailCard extends StatelessWidget {
   }
 
   Widget _buildOpenLotsBody() {
-    final openLotsList = lots.where((l) => l.remainingShares > 0).toList();
+    final openLotsList = lots.where((l) => l.sharesRemaining > 0).toList();
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     return Column(
@@ -246,8 +246,8 @@ class MetricDetailCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          lot.tickerSymbol,
-                          style: AppTypography.bodyBold.copyWith(color: Colors.white, fontSize: 13),
+                          lot.ticker,
+                          style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -257,7 +257,7 @@ class MetricDetailCard extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '${lot.remainingShares} sh @ ${AppCurrencyFormatter.format(lot.buyPricePerShare, decimalDigits: 2)}',
+                      '${lot.sharesRemaining} sh @ ${AppCurrencyFormatter.format(lot.buyPricePerShare, decimalDigits: 2)}',
                       style: AppTypography.caption.copyWith(
                         color: AppColors.textSecondaryDark,
                         fontFamily: 'JetBrains Mono',
@@ -288,8 +288,9 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           value,
-          style: AppTypography.bodyBold.copyWith(
+          style: AppTypography.body.copyWith(
             color: color ?? AppColors.textPrimaryDark,
+            fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
           maxLines: 1,
