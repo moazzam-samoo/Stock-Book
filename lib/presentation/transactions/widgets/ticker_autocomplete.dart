@@ -7,15 +7,24 @@ import 'package:stock_investment_tracker/presentation/settings/providers/setting
 
 class TickerAutocomplete extends ConsumerWidget {
   final ValueChanged<String> onSelected;
+  final TextEditingController controller;
+  final FocusNode focusNode;
 
-  const TickerAutocomplete({super.key, required this.onSelected});
+  const TickerAutocomplete({
+    super.key, 
+    required this.onSelected,
+    required this.controller,
+    required this.focusNode,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final favorites = settings?.favorites ?? [];
 
-    return Autocomplete<String>(
+    return RawAutocomplete<String>(
+      textEditingController: controller,
+      focusNode: focusNode,
       optionsBuilder: (TextEditingValue textEditingValue) {
         if (textEditingValue.text.isEmpty) {
           return const Iterable<String>.empty();
@@ -25,9 +34,9 @@ class TickerAutocomplete extends ConsumerWidget {
         });
       },
       onSelected: onSelected,
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+      fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
         return TextField(
-          controller: controller,
+          controller: textController,
           focusNode: focusNode,
           textCapitalization: TextCapitalization.characters,
           style: AppTypography.body.copyWith(color: Colors.white),
@@ -36,7 +45,7 @@ class TickerAutocomplete extends ConsumerWidget {
             hintText: 'e.g. STPL',
             hintStyle: TextStyle(color: AppColors.neutral500),
             labelStyle: TextStyle(color: AppColors.neutral500),
-            enabledBorder: UnderlineInputBorder(
+            enabledBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.offBlack),
             ),
             focusedBorder: const UnderlineInputBorder(
@@ -56,7 +65,7 @@ class TickerAutocomplete extends ConsumerWidget {
             elevation: 4.0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: BorderSide(color: AppColors.offBlack),
+              side: const BorderSide(color: AppColors.offBlack),
             ),
             child: SizedBox(
               width: MediaQuery.of(context).size.width - 48,

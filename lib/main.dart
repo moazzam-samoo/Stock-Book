@@ -12,18 +12,13 @@ class StockTrackerApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final settingsAsync = ref.watch(settingsProvider);
-    
-    final themeMode = settingsAsync.maybeWhen(
-      data: (s) => s.themeMode == 'light' ? ThemeMode.light : ThemeMode.dark,
-      orElse: () => ThemeMode.dark,
-    );
 
     return MaterialApp.router(
       title: 'Stock Tracker',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }

@@ -1,32 +1,39 @@
 import 'package:flutter/material.dart';
 
 class StockColorUtils {
-  /// Generates a unique, vibrant, dark-mode optimized Color for any stock ticker string.
-  /// Uses Golden Ratio HSL distribution so every stock (1, 10, 100, 1000+) gets a unique color.
-  static Color getColorForTicker(String ticker) {
-    if (ticker.isEmpty) return const Color(0xFF00C853);
+  static const List<Color> _palette = [
+    Color(0xFF00E676), // Green A400
+    Color(0xFFFF1744), // Red A400
+    Color(0xFF2979FF), // Blue A400
+    Color(0xFFFF9100), // Orange A200
+    Color(0xFFD500F9), // Purple A400
+    Color(0xFF00B8D4), // Cyan A700
+    Color(0xFFFF4081), // Pink A200
+    Color(0xFFFFD600), // Yellow A700
+    Color(0xFF3D5AFE), // Indigo A400
+    Color(0xFF00E5FF), // Cyan A400
+    Color(0xFFF50057), // Pink A400
+    Color(0xFF651FFF), // Deep Purple A400
+    Color(0xFFFF3D00), // Deep Orange A400
+    Color(0xFF76FF03), // Light Green A400
+    Color(0xFF1DE9B6), // Teal A400
+    Color(0xFF00B0FF), // Light Blue A400
+  ];
 
-    // Compute stable string hash
+  /// Generates a highly distinct Color for any stock ticker string using a curated vibrant palette.
+  static Color getColorForTicker(String ticker) {
+    if (ticker.isEmpty) return _palette[0];
+
     int hash = 0;
     for (int i = 0; i < ticker.length; i++) {
       hash = ticker.codeUnitAt(i) + ((hash << 5) - hash);
     }
-
-    // Multiply hash by Golden Angle (137.508 degrees) to distribute colors evenly across 360° spectrum
-    final double hue = (hash.abs() * 137.508) % 360.0;
     
-    // High saturation (85%) and balanced lightness (52%) for high contrast on dark themes
-    const double saturation = 0.85;
-    const double lightness = 0.52;
-
-    return HSLColor.fromAHSL(1.0, hue, saturation, lightness).toColor();
+    return _palette[hash.abs() % _palette.length];
   }
 
-  /// Generates a unique color based on integer index using Golden Angle spacing.
+  /// Generates a distinct color based on integer index.
   static Color getColorForIndex(int index) {
-    final double hue = (index * 137.508) % 360.0;
-    const double saturation = 0.85;
-    const double lightness = 0.52;
-    return HSLColor.fromAHSL(1.0, hue, saturation, lightness).toColor();
+    return _palette[index.abs() % _palette.length];
   }
 }

@@ -9,6 +9,7 @@ import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/sparkline_chart.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class StockRow extends StatelessWidget {
@@ -39,7 +40,8 @@ class StockRow extends StatelessWidget {
     final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 2);
     final formatNumber = NumberFormat.decimalPattern();
     final isPositive = summary.realizedPL >= 0;
-    final color = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
+    final plColor = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
+    final sparklineColor = StockColorUtils.getColorForTicker(summary.ticker);
     
     final displayAvgPrice = AppCurrencyFormatter.format(summary.avgBuyPrice, decimalDigits: 2);
     final displayRealized = AppCurrencyFormatter.format(summary.realizedPL, decimalDigits: 2, showSign: true);
@@ -93,12 +95,12 @@ class StockRow extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    SparklineChart(isPositive: isPositive, color: color),
+                    SparklineChart(isPositive: isPositive, color: sparklineColor),
                     const SizedBox(height: 4),
                     Text(
                       summary.realizedPL != 0 ? displayRealized : '-',
                       style: AppTypography.caption.copyWith(
-                        color: summary.realizedPL != 0 ? color : AppColors.neutral500,
+                        color: summary.realizedPL != 0 ? plColor : AppColors.neutral500,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),

@@ -74,8 +74,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72.0),
+        padding: const EdgeInsets.only(bottom: 96.0),
         child: FloatingActionButton(
+          shape: const CircleBorder(),
           backgroundColor: const Color(0xFF584BF6),
           elevation: 4,
           onPressed: () {

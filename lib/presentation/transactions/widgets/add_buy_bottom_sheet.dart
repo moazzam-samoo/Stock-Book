@@ -34,12 +34,22 @@ class AddBuyBottomSheet extends ConsumerStatefulWidget {
 
 class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
   final _formKey = GlobalKey<FormState>();
+  final _tickerController = TextEditingController();
+  final _tickerFocusNode = FocusNode();
   String _ticker = '';
   DateTime? _buyDate = DateTime.now();
   double _sharesPurchased = 0.0;
   double _buyPrice = 0.0;
 
   double get _amountInvested => _sharesPurchased * _buyPrice;
+
+  @override
+  void dispose() {
+    _tickerController.dispose();
+    _tickerFocusNode.dispose();
+    super.dispose();
+  }
+
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _ticker.isEmpty || _buyDate == null) {
@@ -123,6 +133,8 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                 ),
                 const SizedBox(height: 20),
                 TickerAutocomplete(
+                  controller: _tickerController,
+                  focusNode: _tickerFocusNode,
                   onSelected: (val) {
                     setState(() {
                       _ticker = val;

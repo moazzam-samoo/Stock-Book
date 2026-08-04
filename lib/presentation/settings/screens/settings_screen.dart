@@ -42,10 +42,7 @@ class SettingsScreen extends ConsumerWidget {
                     _buildPortfolioPreferences(context, colors, ref, settings, isDark),
                     const SizedBox(height: 28),
                     
-                    _buildSectionTitle(context, 'APPEARANCE'),
-                    const SizedBox(height: 12),
-                    _buildAppearancePreferences(context, colors, ref, settings, isDark),
-                    const SizedBox(height: 28),
+
                     
                     _buildSectionTitle(context, 'ACCOUNT'),
                     const SizedBox(height: 12),
@@ -329,71 +326,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppearancePreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings, bool isDark) {
-    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
-    final toggleBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
-    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-              const SizedBox(height: 2),
-              Text('Dark is the default', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500)),
-            ],
-          ),
-          Container(
-            height: 40,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: toggleBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildThemeToggle(context, ref, 'dark', Icons.dark_mode, 'Dark', settings.themeMode == 'dark'),
-                _buildThemeToggle(context, ref, 'light', Icons.light_mode, 'Light', settings.themeMode == 'light'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildThemeToggle(BuildContext context, WidgetRef ref, String mode, IconData icon, String label, bool isSelected) {
-    return InkWell(
-      onTap: () => ref.read(settingsControllerProvider.notifier).updateThemeMode(mode),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF584BF6) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: isSelected ? Colors.white : AppColors.neutral500),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.neutral500, fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showAddTickerDialog(BuildContext context, WidgetRef ref) {
     String ticker = '';

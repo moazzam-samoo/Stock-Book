@@ -16,12 +16,12 @@ void main() {
       expect(colorSTPL, isNot(equals(colorBNL)));
     });
 
-    test('getColorForIndex generates distinct colors across 100 items', () {
+    test('getColorForIndex generates distinct colors up to palette size', () {
       final colors = <Color>{};
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < 16; i++) {
         colors.add(StockColorUtils.getColorForIndex(i));
       }
-      expect(colors.length, equals(100));
+      expect(colors.length, equals(16));
     });
   });
 }
