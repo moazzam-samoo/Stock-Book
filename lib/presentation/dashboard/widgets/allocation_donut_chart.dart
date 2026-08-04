@@ -150,16 +150,16 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
                       PieChartData(
                         pieTouchData: PieTouchData(
                           touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                            if (!event.isInterestedForInteractions ||
-                                pieTouchResponse == null ||
-                                pieTouchResponse.touchedSection == null) {
-                              return;
-                            }
-                            final index = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                            if (index >= 0 && index < widget.allocations.length) {
-                              setState(() {
-                                touchedIndex = (touchedIndex == index) ? -1 : index;
-                              });
+                            if (event is FlTapUpEvent) {
+                              if (pieTouchResponse != null &&
+                                  pieTouchResponse.touchedSection != null) {
+                                final index = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                if (index >= 0 && index < widget.allocations.length) {
+                                  setState(() {
+                                    touchedIndex = (touchedIndex == index) ? -1 : index;
+                                  });
+                                }
+                              }
                             }
                           },
                         ),
@@ -286,12 +286,14 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
   List<PieChartSectionData> showingSections() {
     return List.generate(widget.allocations.length, (i) {
       final isTouched = i == touchedIndex;
-      final radius = isTouched ? 24.0 : 18.0;
+      final radius = isTouched ? 26.0 : 18.0;
       final allocation = widget.allocations[i];
       final color = StockColorUtils.getColorForTicker(allocation.ticker);
 
       return PieChartSectionData(
-        color: color,
+        color: isTouched
+            ? color
+            : (touchedIndex == -1 ? color : color.withOpacity(0.35)),
         value: allocation.percentage,
         title: '',
         radius: radius,
