@@ -47,7 +47,7 @@ class PortfolioHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).valueOrNull;
-    final photoUrl = user?.photoUrl;
+    final photoUrl = user?.photoURL;
     final displayName = user?.displayName;
 
     final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 0);
