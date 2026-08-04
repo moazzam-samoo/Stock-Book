@@ -6,6 +6,7 @@ import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 
 class PortfolioHeader extends ConsumerWidget {
   final double totalValue;
@@ -50,12 +51,7 @@ class PortfolioHeader extends ConsumerWidget {
     final photoUrl = user?.photoURL;
     final displayName = user?.displayName;
 
-    final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 0);
-    final displayValue = formatCurrency
-        .format(totalValue)
-        .replaceAll('PKR', 'Rs ')
-        .replaceAll('Rs  ', 'Rs ')
-        .trim();
+    final displayValue = AppCurrencyFormatter.format(totalValue, decimalDigits: 0);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

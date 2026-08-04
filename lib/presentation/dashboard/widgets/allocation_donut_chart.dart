@@ -5,6 +5,7 @@ import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/domain/entities/allocation_segment.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class AllocationDonutChart extends StatefulWidget {
@@ -52,8 +53,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
       );
     }
 
-    final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 0);
-    final displayHoldings = formatCurrency.format(widget.totalHoldings).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim();
+    final displayHoldings = AppCurrencyFormatter.format(widget.totalHoldings, decimalDigits: 0);
 
     return Container(
       padding: const EdgeInsets.all(20),

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 
 class StatCard extends StatelessWidget {
   final String label;
@@ -27,7 +27,7 @@ class StatCard extends StatelessWidget {
     final formatNumber = NumberFormat.decimalPattern();
 
     final displayValue = isCurrency 
-      ? formatCurrency.format(value).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim()
+      ? AppCurrencyFormatter.format(value, decimalDigits: 0)
       : formatNumber.format(value);
 
     return Container(

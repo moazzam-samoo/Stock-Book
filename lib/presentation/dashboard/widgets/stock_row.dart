@@ -8,6 +8,7 @@ import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/sparkline_chart.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class StockRow extends StatelessWidget {
@@ -40,8 +41,8 @@ class StockRow extends StatelessWidget {
     final isPositive = summary.realizedPL >= 0;
     final color = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
     
-    final displayAvgPrice = formatCurrency.format(summary.avgBuyPrice).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim();
-    final displayRealized = formatCurrency.format(summary.realizedPL.abs()).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim();
+    final displayAvgPrice = AppCurrencyFormatter.format(summary.avgBuyPrice, decimalDigits: 2);
+    final displayRealized = AppCurrencyFormatter.format(summary.realizedPL, decimalDigits: 2, showSign: true);
     
     return InkWell(
       onTap: onTap,
@@ -92,7 +93,7 @@ class StockRow extends StatelessWidget {
                     SparklineChart(isPositive: isPositive, color: color),
                     const SizedBox(height: 4),
                     Text(
-                      summary.realizedPL != 0 ? '${isPositive ? '+' : '-'}$displayRealized' : '-',
+                      summary.realizedPL != 0 ? displayRealized : '-',
                       style: AppTypography.caption.copyWith(
                         color: summary.realizedPL != 0 ? color : AppColors.neutral500,
                         fontWeight: FontWeight.bold,

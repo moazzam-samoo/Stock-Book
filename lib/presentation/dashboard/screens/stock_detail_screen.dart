@@ -8,6 +8,7 @@ import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -101,10 +102,10 @@ class StockDetailScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               _buildStatColumn('Shares', formatNumber.format(summary.sharesHeld)),
-                              _buildStatColumn('Avg Price', formatCurrency.format(summary.avgBuyPrice).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim()),
+                              _buildStatColumn('Avg Price', AppCurrencyFormatter.format(summary.avgBuyPrice, decimalDigits: 2)),
                               _buildStatColumn(
                                 'Total P/L', 
-                                '${summary.realizedPL >= 0 ? '+' : ''}${formatCurrency.format(summary.realizedPL).replaceAll('PKR', 'Rs ').replaceAll('Rs  ', 'Rs ').trim()}',
+                                summary.realizedPL != 0 ? AppCurrencyFormatter.format(summary.realizedPL, decimalDigits: 2, showSign: true) : '-',
                                 color: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
                               ),
                             ],
