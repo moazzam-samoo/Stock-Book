@@ -11,14 +11,20 @@ class AuthController extends _$AuthController {
   Future<void> signInWithGoogle() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(authRepositoryProvider).signInWithGoogle();
+      await ref
+          .read(authRepositoryProvider)
+          .signInWithGoogle()
+          .timeout(const Duration(seconds: 15));
     });
   }
 
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(authRepositoryProvider).signOut();
+      await ref
+          .read(authRepositoryProvider)
+          .signOut()
+          .timeout(const Duration(seconds: 15));
     });
   }
 }

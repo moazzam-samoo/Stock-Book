@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/presentation/common/buttons.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/add_buy_controller.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
 
 class AddBuyBottomSheet extends ConsumerStatefulWidget {
@@ -40,29 +41,35 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
 
   double get _amountInvested => _sharesPurchased * _buyPrice;
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _ticker.isEmpty || _buyDate == null) {
-      // Show snackbar or error for missing fields
       return;
     }
     
-    ref.read(addBuyControllerProvider.notifier).submit(
+    final results = await Connectivity().checkConnectivity();
+    final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
+
+    await ref.read(addBuyControllerProvider.notifier).submit(
       ticker: _ticker,
       buyDate: _buyDate!,
       sharesPurchased: _sharesPurchased,
       buyPricePerShare: _buyPrice,
-    ).then((_) {
-      if (!mounted) return;
-      if (!ref.read(addBuyControllerProvider).hasError) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bought $_sharesPurchased shares of $_ticker successfully!'),
-            backgroundColor: AppColors.moneyGreen,
+    );
+
+    if (!mounted) return;
+    if (!ref.read(addBuyControllerProvider).hasError) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isOffline
+                ? "You're offline. Your purchase was saved locally and will sync when online."
+                : 'Bought ${_sharesPurchased.toInt()} shares of $_ticker successfully!',
           ),
-        );
-      }
-    });
+          backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+        ),
+      );
+    }
   }
 
   @override

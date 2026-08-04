@@ -26,24 +26,42 @@ class FirestoreDataSource {
     final json = lot.toJson()..remove('id');
     // Explicitly serialize nested sales to avoid _SaleModel instances
     json['sales'] = lot.sales.map((s) => s.toJson()).toList();
-    await _firestore
-        .collection(FirestorePaths.lots(uid))
-        .doc(lot.id)
-        .set(json);
+    try {
+      await _firestore
+          .collection(FirestorePaths.lots(uid))
+          .doc(lot.id)
+          .set(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
   }
 
   Future<void> updateLot(String uid, LotModel lot) async {
     final json = lot.toJson()..remove('id');
     // Explicitly serialize nested sales to avoid _SaleModel instances
     json['sales'] = lot.sales.map((s) => s.toJson()).toList();
-    await _firestore
-        .collection(FirestorePaths.lots(uid))
-        .doc(lot.id)
-        .update(json);
+    try {
+      await _firestore
+          .collection(FirestorePaths.lots(uid))
+          .doc(lot.id)
+          .update(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
   }
 
   Future<void> deleteLot(String uid, String lotId) async {
-    await _firestore.collection(FirestorePaths.lots(uid)).doc(lotId).delete();
+    try {
+      await _firestore
+          .collection(FirestorePaths.lots(uid))
+          .doc(lotId)
+          .delete()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
   }
 
   // SALES (Embedded in Lots)
@@ -113,8 +131,13 @@ class FirestoreDataSource {
   }
 
   Future<void> updateSettings(String uid, UserSettingsModel settings) async {
-    await _firestore
-        .doc(FirestorePaths.settings(uid))
-        .set(settings.toJson(), SetOptions(merge: true));
+    try {
+      await _firestore
+          .doc(FirestorePaths.settings(uid))
+          .set(settings.toJson(), SetOptions(merge: true))
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
   }
 }

@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/presentation/common/buttons.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/add_sell_controller.dart';
 
 class AddSellBottomSheet extends ConsumerStatefulWidget {
@@ -46,7 +47,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     return (_sellPrice - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100;
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _sellDate == null) {
       return;
     }
@@ -61,23 +62,30 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
       return;
     }
 
-    ref.read(addSellControllerProvider.notifier).submit(
+    final results = await Connectivity().checkConnectivity();
+    final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
+
+    await ref.read(addSellControllerProvider.notifier).submit(
       lot: widget.lot,
       sellDate: _sellDate!,
       sharesSold: _sharesSold,
       sellPricePerShare: _sellPrice,
-    ).then((_) {
-      if (!mounted) return;
-      if (!ref.read(addSellControllerProvider).hasError) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sold $_sharesSold shares of ${widget.lot.ticker} successfully!'),
-            backgroundColor: AppColors.moneyGreen,
+    );
+
+    if (!mounted) return;
+    if (!ref.read(addSellControllerProvider).hasError) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isOffline
+                ? "You're offline. Your sale was saved locally and will sync when online."
+                : 'Sold ${_sharesSold.toInt()} shares of ${widget.lot.ticker} successfully!',
           ),
-        );
-      }
-    });
+          backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+        ),
+      );
+    }
   }
 
   @override

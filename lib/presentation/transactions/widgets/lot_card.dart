@@ -11,6 +11,7 @@ import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/sale_event_row.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
 
 class LotCard extends ConsumerStatefulWidget {
@@ -68,7 +69,26 @@ class _LotCardState extends ConsumerState<LotCard> {
                 
                 if (confirm == true) {
                   HapticFeedback.mediumImpact();
-                  await ref.read(lotRepositoryProvider)!.deleteLot(widget.lot.id!);
+                  final results = await Connectivity().checkConnectivity();
+                  final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
+                  
+                  final repo = ref.read(lotRepositoryProvider);
+                  if (repo != null) {
+                    await repo.deleteLot(widget.lot.id);
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isOffline
+                              ? "You're offline. Lot deleted locally and will sync when online."
+                              : 'Lot deleted successfully',
+                        ),
+                        backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+                      ),
+                    );
+                  }
                 }
               },
               backgroundColor: AppColors.dangerRed,

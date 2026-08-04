@@ -36,8 +36,16 @@ class StockDetailScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => context.pop(),
         ),
-        title: Text(ticker, style: AppTypography.h3),
-        centerTitle: true,
+        title: Text(
+          ticker,
+          style: AppTypography.h2.copyWith(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: false,
+        titleSpacing: 0,
       ),
       body: lotsAsyncValue.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.brandIndigo)),

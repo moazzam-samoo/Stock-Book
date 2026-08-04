@@ -58,10 +58,12 @@ class AddSellController extends _$AddSellController {
       if (repo != null) {
         await repo.updateLot(updatedLot);
       }
-      
-      state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
+    } finally {
+      if (!state.hasError) {
+        state = const AsyncData(null);
+      }
     }
   }
 }
