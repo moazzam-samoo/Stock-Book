@@ -11,11 +11,13 @@ import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 class PortfolioHeader extends ConsumerWidget {
   final double totalValue;
   final double profitLossPercentage;
+  final DateTime? lastSyncTime;
 
   const PortfolioHeader({
     super.key,
     required this.totalValue,
     required this.profitLossPercentage,
+    this.lastSyncTime,
   });
 
   Widget _buildUserAvatar(String? photoUrl, String? displayName) {
@@ -88,7 +90,24 @@ class PortfolioHeader extends ConsumerWidget {
             ),
           ],
         ),
-        _buildUserAvatar(photoUrl, displayName),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildUserAvatar(photoUrl, displayName),
+            if (lastSyncTime != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Last Sync: ${DateFormat('h:mm a').format(lastSyncTime!)}',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.neutral500,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }

@@ -4,12 +4,18 @@ import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card.dart';
 
+enum DashboardMetricType { invested, realizedPL, freeCash, openLots }
+
 class StatCardGrid extends StatelessWidget {
   final PortfolioSummary summary;
+  final DashboardMetricType? selectedMetric;
+  final ValueChanged<DashboardMetricType>? onSelectMetric;
 
   const StatCardGrid({
     super.key,
     required this.summary,
+    this.selectedMetric,
+    this.onSelectMetric,
   });
 
   @override
@@ -24,6 +30,8 @@ class StatCardGrid extends StatelessWidget {
                 value: summary.currentlyInvested,
                 isCurrency: true,
                 animationDelayMs: 100,
+                isSelected: selectedMetric == DashboardMetricType.invested,
+                onTap: () => onSelectMetric?.call(DashboardMetricType.invested),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -34,6 +42,8 @@ class StatCardGrid extends StatelessWidget {
                 isCurrency: true,
                 valueColor: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
                 animationDelayMs: 200,
+                isSelected: selectedMetric == DashboardMetricType.realizedPL,
+                onTap: () => onSelectMetric?.call(DashboardMetricType.realizedPL),
               ),
             ),
           ],
@@ -47,6 +57,8 @@ class StatCardGrid extends StatelessWidget {
                 value: summary.freeCash,
                 isCurrency: true,
                 animationDelayMs: 300,
+                isSelected: selectedMetric == DashboardMetricType.freeCash,
+                onTap: () => onSelectMetric?.call(DashboardMetricType.freeCash),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -56,6 +68,8 @@ class StatCardGrid extends StatelessWidget {
                 value: summary.openLots,
                 isCurrency: false,
                 animationDelayMs: 400,
+                isSelected: selectedMetric == DashboardMetricType.openLots,
+                onTap: () => onSelectMetric?.call(DashboardMetricType.openLots),
               ),
             ),
           ],

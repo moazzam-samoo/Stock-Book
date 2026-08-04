@@ -15,11 +15,21 @@ import 'package:stock_investment_tracker/presentation/dashboard/widgets/stock_ro
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class DashboardScreen extends ConsumerWidget {
+import 'package:stock_investment_tracker/presentation/dashboard/widgets/metric_detail_card.dart';
+
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  DashboardMetricType? _selectedMetric;
+  DateTime _lastSyncTime = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
     final lotsAsyncValue = ref.watch(allLotsProvider);
     final portfolioSummary = ref.watch(portfolioSummaryProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
@@ -30,9 +40,9 @@ class DashboardScreen extends ConsumerWidget {
         data: (lots) {
           return RefreshIndicator(
             onRefresh: () async {
-              // Usually invalidating the provider re-fetches the stream
-              // But since it's a StreamProvider from Firestore, it updates automatically.
-              // We can simulate a slight delay for the UI feedback.
+              setState(() {
+                _lastSyncTime = DateTime.now();
+              });
               await Future.delayed(const Duration(milliseconds: 500));
             },
             color: AppColors.brandIndigo,
@@ -49,11 +59,39 @@ class DashboardScreen extends ConsumerWidget {
                         profitLossPercentage: portfolioSummary.currentlyInvested > 0 
                             ? (portfolioSummary.realizedPL / portfolioSummary.currentlyInvested) * 100 
                             : 0.0,
+                        lastSyncTime: _lastSyncTime,
                       ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
                       
                       const SizedBox(height: AppSpacing.xl),
                       
-                      StatCardGrid(summary: portfolioSummary),
+                      StatCardGrid(
+                        summary: portfolioSummary,
+                        selectedMetric: _selectedMetric,
+                        onSelectMetric: (metric) {
+                          setState(() {
+                            if (_selectedMetric == metric) {
+                              _selectedMetric = null;
+                            } else {
+                              _selectedMetric = metric;
+                            }
+                          });
+                        },
+                      ),
+                      
+                      if (_selectedMetric != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        MetricDetailCard(
+                          metricType: _selectedMetric!,
+                          summary: portfolioSummary,
+                          stockSummaries: stockSummaries,
+                          lots: lots,
+                          onClose: () {
+                            setState(() {
+                              _selectedMetric = null;
+                            });
+                          },
+                        ),
+                      ],
                       
                       const SizedBox(height: AppSpacing.xxl),
                       
