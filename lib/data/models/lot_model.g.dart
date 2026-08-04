@@ -25,5 +25,5 @@ Map<String, dynamic> _$LotModelToJson(_LotModel instance) => <String, dynamic>{
   'buyDate': const TimestampConverter().toJson(instance.buyDate),
   'sharesPurchased': instance.sharesPurchased,
   'buyPricePerShare': instance.buyPricePerShare,
-  'sales': instance.sales,
+  'sales': instance.sales.map((e) => e.toJson()).toList(),
 };

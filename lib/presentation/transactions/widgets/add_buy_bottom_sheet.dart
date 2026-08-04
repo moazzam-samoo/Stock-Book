@@ -73,9 +73,10 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -171,6 +172,7 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                 ),
               ],
             ],
+            ),
           ),
         ),
       ),

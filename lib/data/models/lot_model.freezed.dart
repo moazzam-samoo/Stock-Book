@@ -211,8 +211,8 @@ return $default(_that.id,_that.ticker,_that.buyDate,_that.sharesPurchased,_that.
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _LotModel implements LotModel {
   const _LotModel({required this.id, required this.ticker, @TimestampConverter() required this.buyDate, required this.sharesPurchased, required this.buyPricePerShare, final  List<SaleModel> sales = const []}): _sales = sales;
   factory _LotModel.fromJson(Map<String, dynamic> json) => _$LotModelFromJson(json);

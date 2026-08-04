@@ -11,6 +11,7 @@ import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/sale_event_row.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
 
 class LotCard extends ConsumerStatefulWidget {
   final Lot lot;
@@ -167,7 +168,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
-                      // TODO: Navigate to Add Sale with this lot pre-selected
+                      AddSellBottomSheet.show(context, widget.lot);
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.brandIndigo,

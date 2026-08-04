@@ -11,6 +11,7 @@ part 'lot_model.g.dart';
 
 @freezed
 abstract class LotModel with _$LotModel {
+  @JsonSerializable(explicitToJson: true)
   const factory LotModel({
     required String id,
     required String ticker,
