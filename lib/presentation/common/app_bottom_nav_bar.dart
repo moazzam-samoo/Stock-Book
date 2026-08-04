@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_typography.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -13,34 +14,54 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.deepSpaceBlack,
-        border: Border(top: BorderSide(color: AppColors.offBlack, width: 1)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 4),
+        child: Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(color: borderColor, width: 1.2),
+            boxShadow: isDark
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_filled,
+                icon: Icons.home_rounded,
                 label: 'Dashboard',
                 isSelected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                icon: Icons.receipt_long_outlined,
-                activeIcon: Icons.receipt_long,
+                icon: Icons.receipt_long_rounded,
                 label: 'Transactions',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _NavItem(
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings,
+                icon: Icons.settings_rounded,
                 label: 'Settings',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
@@ -55,14 +76,12 @@ class AppBottomNavBar extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
-  final IconData activeIcon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
-    required this.activeIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -70,31 +89,39 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedIconColor = isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: isSelected
+            ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
+            : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandIndigo.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? const Color(0xFF584BF6) : Colors.transparent,
+          borderRadius: BorderRadius.circular(28),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? AppColors.brandIndigo : AppColors.textSecondaryDark,
+              icon,
+              size: 22,
+              color: isSelected ? Colors.white : unselectedIconColor,
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.brandIndigo,
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: AppTypography.body.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
             ],
           ],

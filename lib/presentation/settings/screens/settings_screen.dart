@@ -8,8 +8,7 @@ import 'package:stock_investment_tracker/presentation/auth/controllers/auth_cont
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
-import 'package:stock_investment_tracker/presentation/common/buttons.dart';
-import 'package:stock_investment_tracker/presentation/common/inputs.dart';
+import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -20,51 +19,47 @@ class SettingsScreen extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppSemanticColors>() ?? AppSemanticColors.dark;
     final user = ref.watch(authStateProvider).valueOrNull;
     final settingsAsync = ref.watch(settingsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AppScaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            title: Text('Settings', style: AppTypography.h1.copyWith(color: Colors.white, fontSize: 32)),
-            backgroundColor: AppColors.deepSpaceBlack,
-            expandedHeight: 120,
-            pinned: true,
-          ),
-          settingsAsync.when(
-            data: (settings) => SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+      body: Column(
+        children: [
+          const CustomAppBar(title: 'Settings'),
+          Expanded(
+            child: settingsAsync.when(
+              data: (settings) => SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSectionTitle(context, 'FAVORITE STOCKS'),
                     const SizedBox(height: 12),
-                    _buildFavoriteStocks(context, colors, ref, settings),
-                    const SizedBox(height: 32),
+                    _buildFavoriteStocks(context, colors, ref, settings, isDark),
+                    const SizedBox(height: 28),
                     
                     _buildSectionTitle(context, 'PORTFOLIO'),
                     const SizedBox(height: 12),
-                    _buildPortfolioPreferences(context, colors, ref, settings),
-                    const SizedBox(height: 32),
+                    _buildPortfolioPreferences(context, colors, ref, settings, isDark),
+                    const SizedBox(height: 28),
                     
                     _buildSectionTitle(context, 'APPEARANCE'),
                     const SizedBox(height: 12),
-                    _buildAppearancePreferences(context, colors, ref, settings),
-                    const SizedBox(height: 32),
+                    _buildAppearancePreferences(context, colors, ref, settings, isDark),
+                    const SizedBox(height: 28),
                     
                     _buildSectionTitle(context, 'ACCOUNT'),
                     const SizedBox(height: 12),
-                    _buildAccountSection(context, user, colors, ref),
+                    _buildAccountSection(context, user, colors, ref, isDark),
                     const SizedBox(height: 100), // Bottom padding for navbar
                   ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuad),
                 ),
               ),
-            ),
-            loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.brandIndigo)),
-            ),
-            error: (err, stack) => const SliverFillRemaining(
-              child: Center(child: Text('Error loading settings')),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.brandIndigo),
+              ),
+              error: (err, stack) => const Center(
+                child: Text('Error loading settings'),
+              ),
             ),
           ),
         ],
@@ -87,12 +82,17 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildAccountSection(
-      BuildContext context, User? user, AppSemanticColors colors, WidgetRef ref) {
+      BuildContext context, User? user, AppSemanticColors colors, WidgetRef ref, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.offBlack,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.neutral500.withOpacity(0.1)),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
         children: [
@@ -120,7 +120,10 @@ class SettingsScreen extends ConsumerWidget {
                     children: [
                       Text(
                         user?.email ?? 'Guest User',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -133,7 +136,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          Divider(height: 1, color: AppColors.neutral500.withOpacity(0.1)),
+          Divider(height: 1, color: borderColor),
           InkWell(
             onTap: () => _confirmLogout(context, ref),
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
@@ -160,13 +163,19 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFavoriteStocks(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings) {
+  Widget _buildFavoriteStocks(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final chipBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.offBlack,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.neutral500.withOpacity(0.1)),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +187,7 @@ class SettingsScreen extends ConsumerWidget {
               ...((settings.favorites as List<String>).map((ticker) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.deepSpaceBlack,
+                      color: chipBg,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -188,7 +197,7 @@ class SettingsScreen extends ConsumerWidget {
                         const SizedBox(width: 4),
                         const Icon(Icons.star, size: 12, color: AppColors.warningYellow),
                         const SizedBox(width: 6),
-                        Text(ticker, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(ticker, style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
                         const SizedBox(width: 6),
                         InkWell(
                           onTap: () => ref.read(settingsControllerProvider.notifier).removeFavorite(ticker),
@@ -203,7 +212,7 @@ class SettingsScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.brandIndigo.withOpacity(0.2),
+                    color: AppColors.brandIndigo.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -228,12 +237,18 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPortfolioPreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings) {
+  Widget _buildPortfolioPreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final inputBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.offBlack,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.neutral500.withOpacity(0.1)),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,7 +262,7 @@ class SettingsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Starting Capital', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Starting Capital', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
                       const SizedBox(height: 2),
                       Text('Baseline for free cash', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500)),
                     ],
@@ -257,7 +272,7 @@ class SettingsScreen extends ConsumerWidget {
                   width: 140,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.deepSpaceBlack,
+                    color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -267,7 +282,7 @@ class SettingsScreen extends ConsumerWidget {
                         child: Text(settings.currency == 'PKR' ? 'Rs' : '\$', style: const TextStyle(color: AppColors.neutral500)),
                       ),
                       Expanded(
-                        child: _StartingCapitalInput(settings: settings, ref: ref),
+                        child: _StartingCapitalInput(settings: settings, ref: ref, isDark: isDark),
                       ),
                     ],
                   ),
@@ -275,25 +290,25 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          Divider(height: 1, color: AppColors.neutral500.withOpacity(0.1)),
+          Divider(height: 1, color: borderColor),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Currency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text('Currency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.deepSpaceBlack,
+                    color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: settings.currency,
                       icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.neutral500),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      dropdownColor: AppColors.deepSpaceBlack,
+                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                      dropdownColor: inputBg,
                       items: const [
                         DropdownMenuItem(value: 'PKR', child: Text('PKR')),
                         DropdownMenuItem(value: 'USD', child: Text('USD')),
@@ -314,13 +329,19 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppearancePreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings) {
+  Widget _buildAppearancePreferences(BuildContext context, AppSemanticColors colors, WidgetRef ref, UserSettings settings, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final toggleBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.offBlack,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.neutral500.withOpacity(0.1)),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -328,15 +349,16 @@ class SettingsScreen extends ConsumerWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
               const SizedBox(height: 2),
               Text('Dark is the default', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500)),
             ],
           ),
           Container(
             height: 40,
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.deepSpaceBlack,
+              color: toggleBg,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -357,16 +379,16 @@ class SettingsScreen extends ConsumerWidget {
       onTap: () => ref.read(settingsControllerProvider.notifier).updateThemeMode(mode),
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandIndigo : Colors.transparent,
+          color: isSelected ? const Color(0xFF584BF6) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : AppColors.neutral500),
+            Icon(icon, size: 14, color: isSelected ? Colors.white : AppColors.neutral500),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.neutral500, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: isSelected ? Colors.white : AppColors.neutral500, fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
       ),
@@ -435,8 +457,9 @@ class SettingsScreen extends ConsumerWidget {
 class _StartingCapitalInput extends StatefulWidget {
   final UserSettings settings;
   final WidgetRef ref;
+  final bool isDark;
 
-  const _StartingCapitalInput({required this.settings, required this.ref});
+  const _StartingCapitalInput({required this.settings, required this.ref, required this.isDark});
 
   @override
   State<_StartingCapitalInput> createState() => _StartingCapitalInputState();
@@ -476,12 +499,14 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = widget.isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Row(
       children: [
         Expanded(
           child: TextField(
             controller: _controller,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               border: InputBorder.none,

@@ -16,8 +16,12 @@ class SaleEventRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormat = NumberFormat('#,##0.00');
-    final dateFormat = DateFormat('MMM d, y');
+    final wholeFormat = NumberFormat('#,##0');
+    final dateFormat = DateFormat('MMM d');
+
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
     return Slidable(
       key: ValueKey(sale.id),
@@ -65,42 +69,47 @@ class SaleEventRow extends ConsumerWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              margin: const EdgeInsets.only(top: 6, right: 12),
+              margin: const EdgeInsets.only(right: 10),
               width: 8,
               height: 8,
               decoration: const BoxDecoration(
-                color: AppColors.moneyGreen,
+                color: Color(0xFFF97316), // Orange dot matching Transtions.png
                 shape: BoxShape.circle,
               ),
             ),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
                   Text(
-                    'Sold ${currencyFormat.format(sale.sharesSold)} @ Rs ${currencyFormat.format(sale.sellPricePerShare)}',
-                    style: AppTypography.body,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    dateFormat.format(sale.sellDate),
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.neutral500,
+                    'Sold ${wholeFormat.format(sale.sharesSold)} @ ${currencyFormat.format(sale.sellPricePerShare)}',
+                    style: AppTypography.body.copyWith(
+                      color: primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
             Text(
-              '+ Rs ${currencyFormat.format(sale.amountReceived)}',
+              dateFormat.format(sale.sellDate),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.neutral500,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              'Rs ${currencyFormat.format(sale.amountReceived)}',
               style: AppTypography.body.copyWith(
                 color: AppColors.moneyGreen,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
             ),
           ],

@@ -28,18 +28,19 @@ class MetricDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final title = _getTitle();
     final icon = _getIcon();
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: isDark ? const Color(0xFF13151B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.moneyGreen.withOpacity(0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

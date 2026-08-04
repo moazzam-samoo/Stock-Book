@@ -28,11 +28,26 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final formatNumber = NumberFormat.decimalPattern();
 
     final displayValue = isCurrency
         ? AppCurrencyFormatter.format(value, decimalDigits: 0)
         : formatNumber.format(value);
+
+    final cardBg = isSelected
+        ? (isDark ? const Color(0xFF1E2620) : const Color(0xFFE8F5E9))
+        : (isDark ? const Color(0xFF13151B) : Colors.white);
+
+    final borderColor = isSelected
+        ? AppColors.moneyGreen
+        : (isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0));
+
+    final labelColor = isSelected
+        ? AppColors.moneyGreen
+        : (isDark ? AppColors.neutral500 : const Color(0xFF64748B));
+
+    final defaultValColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
 
     return InkWell(
           onTap: onTap,
@@ -44,16 +59,21 @@ class StatCard extends StatelessWidget {
               horizontal: 16.0,
             ),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFF1E2620)
-                  : AppColors.surfaceDark,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.moneyGreen
-                    : const Color(0xFF242731),
+                color: borderColor,
                 width: isSelected ? 1.8 : 1.2,
               ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,9 +86,7 @@ class StatCard extends StatelessWidget {
                       child: Text(
                         label.toUpperCase(),
                         style: AppTypography.caption.copyWith(
-                          color: isSelected
-                              ? AppColors.moneyGreen
-                              : AppColors.neutral500,
+                          color: labelColor,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                           fontSize: 9,
@@ -89,7 +107,7 @@ class StatCard extends StatelessWidget {
                 Text(
                   displayValue,
                   style: AppTypography.h2.copyWith(
-                    color: valueColor ?? AppColors.textPrimaryDark,
+                    color: valueColor ?? defaultValColor,
                     fontFamily: 'JetBrains Mono',
                     fontWeight: FontWeight.w700,
                     fontSize: 20,

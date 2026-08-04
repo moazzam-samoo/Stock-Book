@@ -30,7 +30,6 @@ class StockRow extends StatelessWidget {
       case LotStatus.partiallySold:
         return TradeStatus.partial;
       case LotStatus.closed:
-        return TradeStatus.closed;
     }
   }
 
@@ -44,6 +43,9 @@ class StockRow extends StatelessWidget {
     final displayAvgPrice = AppCurrencyFormatter.format(summary.avgBuyPrice, decimalDigits: 2);
     final displayRealized = AppCurrencyFormatter.format(summary.realizedPL, decimalDigits: 2, showSign: true);
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -65,7 +67,7 @@ class StockRow extends StatelessWidget {
                       Text(
                         summary.ticker,
                         style: AppTypography.h3.copyWith(
-                          color: AppColors.textPrimaryDark,
+                          color: primaryColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),

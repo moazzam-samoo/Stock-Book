@@ -29,13 +29,18 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     if (widget.allocations.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: containerBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF242731), width: 1.2),
+          border: Border.all(color: borderColor, width: 1.2),
         ),
         child: const Center(
           child: Text(
@@ -63,9 +68,18 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: containerBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF242731), width: 1.2),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,7 +90,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
               Text(
                 'Allocation',
                 style: AppTypography.h3.copyWith(
-                  color: AppColors.textPrimaryDark,
+                  color: primaryTextColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
@@ -126,7 +140,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
                         Text(
                           centerValue,
                           style: AppTypography.body.copyWith(
-                            color: AppColors.textPrimaryDark,
+                            color: primaryTextColor,
                             fontFamily: 'JetBrains Mono',
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
@@ -218,7 +232,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
                                 Text(
                                   allocation.ticker,
                                   style: AppTypography.body.copyWith(
-                                    color: isTouched ? AppColors.moneyGreen : AppColors.textPrimaryDark,
+                                    color: isTouched ? AppColors.moneyGreen : primaryTextColor,
                                     fontWeight: isTouched ? FontWeight.w800 : FontWeight.w700,
                                     fontSize: 13,
                                   ),

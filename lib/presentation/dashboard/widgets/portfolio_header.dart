@@ -51,6 +51,7 @@ class PortfolioHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = ref.watch(authStateProvider).valueOrNull;
     final photoUrl = user?.photoURL;
     final displayName = user?.displayName;
@@ -67,7 +68,7 @@ class PortfolioHeader extends ConsumerWidget {
             Text(
               'TOTAL PORTFOLIO VALUE',
               style: AppTypography.caption.copyWith(
-                color: AppColors.neutral500,
+                color: isDark ? AppColors.neutral500 : const Color(0xFF64748B),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.8,
                 fontSize: 11,
@@ -80,7 +81,7 @@ class PortfolioHeader extends ConsumerWidget {
                 Text(
                   displayValue,
                   style: AppTypography.display.copyWith(
-                    color: AppColors.textPrimaryDark,
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
                     fontFamily: 'JetBrains Mono',
                     fontWeight: FontWeight.w700,
                     fontSize: 28,
