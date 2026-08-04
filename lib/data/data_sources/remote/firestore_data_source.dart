@@ -25,7 +25,7 @@ class FirestoreDataSource {
   Future<void> addLot(String uid, LotModel lot) async {
     final json = lot.toJson()..remove('id');
     // Explicitly serialize nested sales to avoid _SaleModel instances
-    json['sales'] = lot.sales.map((s) => s.toJson()..remove('id')).toList();
+    json['sales'] = lot.sales.map((s) => s.toJson()).toList();
     await _firestore
         .collection(FirestorePaths.lots(uid))
         .doc(lot.id)
@@ -35,7 +35,7 @@ class FirestoreDataSource {
   Future<void> updateLot(String uid, LotModel lot) async {
     final json = lot.toJson()..remove('id');
     // Explicitly serialize nested sales to avoid _SaleModel instances
-    json['sales'] = lot.sales.map((s) => s.toJson()..remove('id')).toList();
+    json['sales'] = lot.sales.map((s) => s.toJson()).toList();
     await _firestore
         .collection(FirestorePaths.lots(uid))
         .doc(lot.id)
@@ -71,7 +71,7 @@ class FirestoreDataSource {
       data['id'] = doc.id;
       final lot = LotModel.fromJson(data);
       final updatedSales = List<SaleModel>.from(lot.sales)..add(sale);
-      await docRef.update({'sales': updatedSales.map((e) => e.toJson()..remove('id')).toList()});
+      await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
     }
   }
 
@@ -83,7 +83,7 @@ class FirestoreDataSource {
       data['id'] = doc.id;
       final lot = LotModel.fromJson(data);
       final updatedSales = lot.sales.map((s) => s.id == sale.id ? sale : s).toList();
-      await docRef.update({'sales': updatedSales.map((e) => e.toJson()..remove('id')).toList()});
+      await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
     }
   }
 
@@ -95,7 +95,7 @@ class FirestoreDataSource {
       data['id'] = doc.id;
       final lot = LotModel.fromJson(data);
       final updatedSales = lot.sales.where((s) => s.id != saleId).toList();
-      await docRef.update({'sales': updatedSales.map((e) => e.toJson()..remove('id')).toList()});
+      await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
     }
   }
 

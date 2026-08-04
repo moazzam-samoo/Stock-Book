@@ -16,7 +16,23 @@ abstract class SaleModel with _$SaleModel {
     required double sellPricePerShare,
   }) = _SaleModel;
 
-  factory SaleModel.fromJson(Map<String, dynamic> json) => _$SaleModelFromJson(json);
+  factory SaleModel.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    if (json['sellDate'] is Timestamp) {
+      parsedDate = (json['sellDate'] as Timestamp).toDate();
+    } else if (json['sellDate'] is String) {
+      parsedDate = DateTime.tryParse(json['sellDate'] as String) ?? DateTime.now();
+    } else {
+      parsedDate = DateTime.now();
+    }
+
+    return SaleModel(
+      id: (json['id'] as String?) ?? '',
+      sellDate: parsedDate,
+      sharesSold: (json['sharesSold'] as num).toInt(),
+      sellPricePerShare: (json['sellPricePerShare'] as num).toDouble(),
+    );
+  }
 }
 
 extension SaleModelExtension on SaleModel {

@@ -39,7 +39,14 @@ extension LotModelExtension on LotModel {
 
     int remaining = sharesPurchased - soldShares;
     double investedRemaining = remaining * buyPricePerShare;
-    LotStatus computedStatus = remaining <= 0 ? LotStatus.closed : LotStatus.open;
+    LotStatus computedStatus;
+    if (remaining <= 0) {
+      computedStatus = LotStatus.closed;
+    } else if (soldShares > 0) {
+      computedStatus = LotStatus.partiallySold;
+    } else {
+      computedStatus = LotStatus.open;
+    }
 
     return Lot(
       id: id,
