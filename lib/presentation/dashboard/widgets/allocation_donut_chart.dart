@@ -7,6 +7,8 @@ import 'package:stock_investment_tracker/domain/entities/allocation_segment.dart
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
+
 class AllocationDonutChart extends StatefulWidget {
   final List<AllocationSegment> allocations;
   final double totalHoldings;
@@ -24,17 +26,6 @@ class AllocationDonutChart extends StatefulWidget {
 class _AllocationDonutChartState extends State<AllocationDonutChart> {
   int touchedIndex = -1;
   bool _isExpanded = false;
-
-  final List<Color> chartColors = [
-    const Color(0xFF00C853), // Vibrant Green (BNL)
-    const Color(0xFF3B82F6), // Vibrant Blue (STPL)
-    const Color(0xFF8B5CF6), // Purple
-    const Color(0xFFF97316), // Orange
-    const Color(0xFF14B8A6), // Teal
-    const Color(0xFFEC4899), // Pink
-    const Color(0xFFEAB308), // Yellow
-    const Color(0xFF06B6D4), // Cyan
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +182,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(visibleCount, (i) {
                       final allocation = widget.allocations[i];
-                      final color = chartColors[i % chartColors.length];
+                      final color = StockColorUtils.getColorForTicker(allocation.ticker);
                       final isTouched = i == touchedIndex;
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3.0),
@@ -297,7 +288,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
       final isTouched = i == touchedIndex;
       final radius = isTouched ? 24.0 : 18.0;
       final allocation = widget.allocations[i];
-      final color = chartColors[i % chartColors.length];
+      final color = StockColorUtils.getColorForTicker(allocation.ticker);
 
       return PieChartSectionData(
         color: color,
