@@ -17,7 +17,9 @@ class AppBottomNavBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDark ? const Color(0xFF13151B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
 
     return SafeArea(
       child: Padding(
@@ -90,7 +92,9 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unselectedIconColor = isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+    final unselectedIconColor = isDark
+        ? const Color(0xFF64748B)
+        : const Color(0xFF9CA3AF);
 
     return GestureDetector(
       onTap: onTap,

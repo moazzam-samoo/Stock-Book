@@ -11,6 +11,8 @@ import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 
+import 'package:go_router/go_router.dart';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -21,7 +23,14 @@ class SettingsScreen extends ConsumerWidget {
     final settingsAsync = ref.watch(settingsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return AppScaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/');
+        }
+      },
+      child: AppScaffold(
       body: Column(
         children: [
           const CustomAppBar(title: 'Settings'),
@@ -61,6 +70,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

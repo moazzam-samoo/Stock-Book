@@ -10,19 +10,19 @@ class AppColors {
   static const Color deepSpaceBlack = Color(0xFF121212);
   static const Color offBlack = Color(0xFF1E1E1E);
   static const Color darkGray = Color(0xFF2C2C2C);
-  
+
   static const Color textPrimaryDark = Color(0xFFFFFFFF);
   static const Color textSecondaryDark = Color(0xFFB3B3B3);
-  
+
   // Light Mode
   static const Color backgroundLight = Color(0xFFF5F5F5);
   static const Color surfaceLight = Color(0xFFFFFFFF);
-  
+
   static const Color textPrimaryLight = Color(0xFF121212);
   static const Color textSecondaryLight = Color(0xFF757575);
 
   // Additional Tokens & Aliases
-  static const Color brandIndigo = Color(0xFF6366F1);
+  static const Color brandIndigo = Color.fromARGB(210, 13, 237, 91);
   static const Color backgroundDark = deepSpaceBlack;
   static const Color dangerRed = alertRed;
   static const Color surfaceDark = offBlack;
@@ -38,16 +38,16 @@ class AppColors {
   static const Color textPrimary = textPrimaryDark;
   static const Color textSecondary = textSecondaryDark;
   static const Color textTertiary = Color(0xFF888888);
-  
+
   static const Color success = moneyGreen;
   static const Color danger = alertRed;
   static const Color warning = warningYellow;
-  
+
   // Chart Colors
   static const Color chartGreen = moneyGreen;
   static const Color chartBlue = Color(0xFF2196F3);
   static const Color chartOrange = Color(0xFFFF9800);
-  static const Color chartPurple = Color(0xFF9C27B0);
+  static const Color chartPurple = Color.fromARGB(255, 39, 71, 176);
 }
 
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
@@ -83,7 +83,10 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   }
 
   @override
-  ThemeExtension<AppSemanticColors> lerp(ThemeExtension<AppSemanticColors>? other, double t) {
+  ThemeExtension<AppSemanticColors> lerp(
+    ThemeExtension<AppSemanticColors>? other,
+    double t,
+  ) {
     if (other is! AppSemanticColors) return this;
     return AppSemanticColors(
       success: Color.lerp(success, other.success, t)!,

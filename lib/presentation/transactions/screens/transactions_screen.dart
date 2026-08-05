@@ -8,8 +8,12 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/trans
 import 'package:stock_investment_tracker/presentation/transactions/widgets/filter_chip_row.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_transaction_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
+import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
+
+import 'package:go_router/go_router.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -27,12 +31,34 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-    return AppScaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/');
+        }
+      },
+      child: AppScaffold(
       body: Column(
         children: [
           CustomAppBar(
             title: 'Transactions',
             actions: [
+              IconButton(
+                icon: Icon(Icons.picture_as_pdf_outlined, color: iconColor, size: 22),
+                tooltip: 'Export Portfolio PDF Report',
+                onPressed: () async {
+                  HapticFeedback.lightImpact();
+                  final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
+                  final summary = ref.read(portfolioSummaryProvider);
+                  final stockSummaries = ref.read(stockSummariesProvider);
+                  await PdfReportService.exportOverallPortfolioPdf(
+                    lots: allLots,
+                    summary: summary,
+                    stockSummaries: stockSummaries,
+                  );
+                },
+              ),
               IconButton(
                 icon: Icon(_showSearch ? Icons.close : Icons.search, color: iconColor, size: 22),
                 onPressed: () {
@@ -86,6 +112,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),
+    ),
     );
   }
 }

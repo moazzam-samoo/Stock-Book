@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'core/config/environment_config.dart';
 import 'core/theme/app_theme.dart';
+import 'data/local/local_storage.dart';
 import 'presentation/routing/app_router.dart';
+import 'presentation/settings/providers/settings_provider.dart';
 
-import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  EnvironmentConfig.environment = Environment.dev;
+
+  await LocalStorage.init();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(const ProviderScope(child: StockTrackerApp()));
+}
 
 class StockTrackerApp extends ConsumerWidget {
   const StockTrackerApp({super.key});
@@ -14,7 +30,7 @@ class StockTrackerApp extends ConsumerWidget {
     final settingsAsync = ref.watch(settingsProvider);
 
     return MaterialApp.router(
-      title: 'Stock Tracker',
+      title: 'Stocks Investment Records',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -23,3 +39,4 @@ class StockTrackerApp extends ConsumerWidget {
     );
   }
 }
+

@@ -12,7 +12,7 @@ class SignInScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    
+
     // Listen for auth errors
     ref.listen<AsyncValue>(
       authControllerProvider,
@@ -27,84 +27,104 @@ class SignInScreen extends ConsumerWidget {
         }
       },
     );
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
           const AnimatedStockChart(),
           const StockTickerRain(),
-          
+
           SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo Placeholder
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.show_chart, color: Colors.white, size: 40),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 48),
+                  // App Logo
+                  Image.asset(
+                    'assets/icon/app_logo.png',
+                    width: 100,
+                    height: 100,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Stocks Investment Records',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Stock Investment Tracker',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Track. Analyze. Profit.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Track. Analyze. Profit.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    
-                    // Google Sign In Button Placeholder
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        minimumSize: const Size(double.infinity, 56),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: AppColors.surfaceVariant),
+                  ),
+
+                  const Spacer(),
+
+                  // Google Sign In Button
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 56),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(
+                          color: Color(0xFFE2E8F0),
                         ),
                       ),
-                      onPressed: () {
-                        ref.read(authControllerProvider.notifier).signInWithGoogle();
-                      },
-                      child: authState.isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text(
-                              'Continue with Google',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
                     ),
-                    
-                    const SizedBox(height: 16),
-                    const Text(
-                      'By signing in, you agree to our Terms & Privacy Policy',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textTertiary,
-                      ),
-                      textAlign: TextAlign.center,
+                    onPressed: () {
+                      ref
+                          .read(authControllerProvider.notifier)
+                          .signInWithGoogle();
+                    },
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/icon/google.png',
+                                width: 24,
+                                height: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Continue with Google',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  const Text(
+                    'By signing in, you agree to our Terms & Privacy Policy',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
                     ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
           ),
@@ -113,3 +133,5 @@ class SignInScreen extends ConsumerWidget {
     );
   }
 }
+
+

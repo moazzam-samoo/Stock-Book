@@ -55,15 +55,23 @@ GoRouter appRouter(AppRouterRef ref) {
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return Scaffold(
-            extendBody: true,
-            backgroundColor: const Color(0xFF13151B),
-            body: navigationShell,
-            bottomNavigationBar: AppBottomNavBar(
-              currentIndex: navigationShell.currentIndex,
-              onTap: (index) => navigationShell.goBranch(
-                index,
-                initialLocation: index == navigationShell.currentIndex,
+          return PopScope(
+            canPop: navigationShell.currentIndex == 0,
+            onPopInvokedWithResult: (didPop, result) {
+              if (!didPop && navigationShell.currentIndex != 0) {
+                navigationShell.goBranch(0);
+              }
+            },
+            child: Scaffold(
+              extendBody: true,
+              backgroundColor: const Color(0xFF13151B),
+              body: navigationShell,
+              bottomNavigationBar: AppBottomNavBar(
+                currentIndex: navigationShell.currentIndex,
+                onTap: (index) => navigationShell.goBranch(
+                  index,
+                  initialLocation: index == navigationShell.currentIndex,
+                ),
               ),
             ),
           );

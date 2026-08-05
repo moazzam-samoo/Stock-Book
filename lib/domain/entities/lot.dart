@@ -60,6 +60,15 @@ class Lot extends Equatable {
     );
   }
 
+  int get holdingDays {
+    DateTime endDate = DateTime.now();
+    if (status == LotStatus.closed && sales.isNotEmpty) {
+      endDate = sales.map((s) => s.sellDate).reduce((a, b) => a.isAfter(b) ? a : b);
+    }
+    final diff = endDate.difference(buyDate).inDays;
+    return diff < 0 ? 0 : diff;
+  }
+
   @override
   List<Object?> get props => [
         id,
