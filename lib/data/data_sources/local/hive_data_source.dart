@@ -14,9 +14,27 @@ class HiveDataSource {
     final box = await Hive.openBox(settingsBoxName);
     final data = box.get('user_settings');
     if (data != null) {
-      final Map<String, dynamic> jsonMap = Map<String, dynamic>.from(data as Map);
-      return UserSettingsModel.fromJson(jsonMap);
+      try {
+        // Sanitize the map to ensure all nested maps are Map<String, dynamic>
+        // Hive stores nested maps as Map<dynamic, dynamic> which crashes generated fromJson
+        final sanitized = _sanitizeMap(Map<String, dynamic>.from(data as Map));
+        return UserSettingsModel.fromJson(sanitized);
+      } catch (e) {
+        return null;
+      }
     }
     return null;
+  }
+
+  Map<String, dynamic> _sanitizeMap(Map<String, dynamic> map) {
+    final sanitized = <String, dynamic>{};
+    map.forEach((key, value) {
+      if (value is Map) {
+        sanitized[key] = value.map((k, v) => MapEntry(k.toString(), v));
+      } else {
+        sanitized[key] = value;
+      }
+    });
+    return sanitized;
   }
 }

@@ -11,7 +11,6 @@ part of 'sale_model.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$SaleModel {
 
@@ -22,8 +21,6 @@ mixin _$SaleModel {
 @pragma('vm:prefer-inline')
 $SaleModelCopyWith<SaleModel> get copyWith => _$SaleModelCopyWithImpl<SaleModel>(this as SaleModel, _$identity);
 
-  /// Serializes this SaleModel to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
@@ -31,7 +28,7 @@ bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is SaleModel&&(identical(other.id, id) || other.id == id)&&(identical(other.sellDate, sellDate) || other.sellDate == sellDate)&&(identical(other.sharesSold, sharesSold) || other.sharesSold == sharesSold)&&(identical(other.sellPricePerShare, sellPricePerShare) || other.sellPricePerShare == sellPricePerShare));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,sellDate,sharesSold,sellPricePerShare);
 
@@ -209,11 +206,11 @@ return $default(_that.id,_that.sellDate,_that.sharesSold,_that.sellPricePerShare
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _SaleModel implements SaleModel {
   const _SaleModel({required this.id, @TimestampConverter() required this.sellDate, required this.sharesSold, required this.sellPricePerShare});
-  factory _SaleModel.fromJson(Map<String, dynamic> json) => _$SaleModelFromJson(json);
+  
 
 @override final  String id;
 @override@TimestampConverter() final  DateTime sellDate;
@@ -226,17 +223,14 @@ class _SaleModel implements SaleModel {
 @pragma('vm:prefer-inline')
 _$SaleModelCopyWith<_SaleModel> get copyWith => __$SaleModelCopyWithImpl<_SaleModel>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$SaleModelToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is _SaleModel&&(identical(other.id, id) || other.id == id)&&(identical(other.sellDate, sellDate) || other.sellDate == sellDate)&&(identical(other.sharesSold, sharesSold) || other.sharesSold == sharesSold)&&(identical(other.sellPricePerShare, sellPricePerShare) || other.sellPricePerShare == sellPricePerShare));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,sellDate,sharesSold,sellPricePerShare);
 

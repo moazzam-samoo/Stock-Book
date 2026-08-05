@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
@@ -122,8 +122,6 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat('#,##0.00');
-
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final boxBorderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
     final boxBgColor = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
@@ -237,7 +235,7 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                         ),
                       ),
                       Text(
-                        _amountInvested > 0 ? 'Rs ${currencyFormat.format(_amountInvested)}' : 'Rs —',
+                        _amountInvested > 0 ? AppCurrencyFormatter.format(_amountInvested) : 'Rs —',
                         style: AppTypography.h2.copyWith(
                           color: primaryTextColor,
                           fontFamily: 'JetBrains Mono',

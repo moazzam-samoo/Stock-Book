@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/sale.dart';
@@ -17,7 +18,6 @@ class SaleEventRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat('#,##0.00');
     final wholeFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM d');
 
@@ -86,7 +86,7 @@ class SaleEventRow extends ConsumerWidget {
               child: Row(
                 children: [
                   Text(
-                    'Sold ${wholeFormat.format(sale.sharesSold)} @ ${currencyFormat.format(sale.sellPricePerShare)}',
+                    'Sold ${wholeFormat.format(sale.sharesSold)} @ ${AppCurrencyFormatter.format(sale.sellPricePerShare)}',
                     style: AppTypography.body.copyWith(
                       color: primaryTextColor,
                       fontWeight: FontWeight.w700,
@@ -105,7 +105,7 @@ class SaleEventRow extends ConsumerWidget {
             ),
             const SizedBox(width: 16),
             Text(
-              'Rs ${currencyFormat.format(sale.amountReceived)}',
+              AppCurrencyFormatter.format(sale.amountReceived),
               style: AppTypography.body.copyWith(
                 color: AppColors.moneyGreen,
                 fontWeight: FontWeight.w700,

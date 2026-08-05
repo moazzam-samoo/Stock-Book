@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../core/error/app_exception.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/constants/firestore_paths.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
   final FirebaseAuth _firebaseAuth;
@@ -33,7 +35,23 @@ class FirebaseAuthRepository implements AuthRepository {
         idToken: googleAuth.idToken,
       );
 
-      return await _firebaseAuth.signInWithCredential(credential);
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final user = userCredential.user;
+      
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .doc(FirestorePaths.user(user.uid))
+            .set({
+              'uid': user.uid,
+              'email': user.email,
+              'username': user.displayName ?? '',
+              'createdAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true))
+            .timeout(const Duration(seconds: 5))
+            .catchError((_) => null); // Ignore timeout/offline errors, local caching handles it
+      }
+
+      return userCredential;
     } catch (e) {
       throw AuthException('Failed to sign in with Google: $e');
     }

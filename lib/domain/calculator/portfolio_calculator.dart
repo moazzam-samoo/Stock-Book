@@ -61,10 +61,12 @@ class PortfolioCalculator {
       map.putIfAbsent(lot.ticker, () => []).add(lot);
     }
 
-    final totalPortfolioInvested = _round(allLots.fold(
-      0.0,
-      (sum, lot) => sum + calculateAmountInvestedRemaining(lot),
-    ));
+    final totalPortfolioInvested = _round(
+      allLots.fold(
+        0.0,
+        (sum, lot) => sum + calculateAmountInvestedRemaining(lot),
+      ),
+    );
 
     final summaries = <StockSummary>[];
     for (final entry in map.entries) {
@@ -89,8 +91,12 @@ class PortfolioCalculator {
       LotStatus status = LotStatus.closed;
       if (sharesHeld > 0) {
         final anySales = lots.any((lot) => lot.sales.isNotEmpty);
-        final anyPartial = lots.any((lot) => calculateLotStatus(lot) == LotStatus.partiallySold);
-        if (anyPartial || (sharesHeld < lots.fold(0, (sum, lot) => sum + lot.sharesPurchased))) {
+        final anyPartial = lots.any(
+          (lot) => calculateLotStatus(lot) == LotStatus.partiallySold,
+        );
+        if (anyPartial ||
+            (sharesHeld <
+                lots.fold(0, (sum, lot) => sum + lot.sharesPurchased))) {
           status = LotStatus.partiallySold;
         } else {
           status = LotStatus.open;
@@ -102,18 +108,22 @@ class PortfolioCalculator {
         allocationPercent = (amountInvestedOpen / totalPortfolioInvested) * 100;
       }
 
-      summaries.add(StockSummary(
-        ticker: ticker,
-        sharesHeld: sharesHeld,
-        amountInvestedOpen: _round(amountInvestedOpen),
-        realizedPL: _round(realizedPL),
-        avgBuyPrice: _round(avgBuyPrice),
-        status: status,
-        allocationPercent: _round(allocationPercent),
-      ));
+      summaries.add(
+        StockSummary(
+          ticker: ticker,
+          sharesHeld: sharesHeld,
+          amountInvestedOpen: _round(amountInvestedOpen),
+          realizedPL: _round(realizedPL),
+          avgBuyPrice: _round(avgBuyPrice),
+          status: status,
+          allocationPercent: _round(allocationPercent),
+        ),
+      );
     }
 
-    summaries.sort((a, b) => b.amountInvestedOpen.compareTo(a.amountInvestedOpen));
+    summaries.sort(
+      (a, b) => b.amountInvestedOpen.compareTo(a.amountInvestedOpen),
+    );
     return summaries;
   }
 
@@ -133,28 +143,42 @@ class PortfolioCalculator {
       }
     }
 
-    final freeCash = startingCapital - currentlyInvested;
-    final portfolioValue = startingCapital + realizedPL;
+    final bool hasStartingCapital = startingCapital > 0;
+    final totalInvested = hasStartingCapital
+        ? startingCapital
+        : currentlyInvested;
+    final freeCash = startingCapital;
+    final portfolioValue = hasStartingCapital
+        ? (startingCapital + realizedPL)
+        : (currentlyInvested + realizedPL);
+    final totalCash = hasStartingCapital
+        ? (startingCapital - currentlyInvested + realizedPL)
+        : realizedPL;
 
     return PortfolioSummary(
       startingCapital: _round(startingCapital),
-      totalInvested: _round(startingCapital),
+      totalInvested: _round(totalInvested),
       currentlyInvested: _round(currentlyInvested),
       realizedPL: _round(realizedPL),
       freeCash: _round(freeCash),
+      totalCash: _round(totalCash),
       openLots: openLots,
       portfolioValue: _round(portfolioValue),
     );
   }
 
-  static List<AllocationSegment> calculateAllocation(List<StockSummary> summaries) {
+  static List<AllocationSegment> calculateAllocation(
+    List<StockSummary> summaries,
+  ) {
     return summaries
         .where((s) => s.sharesHeld > 0)
-        .map((s) => AllocationSegment(
-              ticker: s.ticker,
-              amount: s.amountInvestedOpen,
-              percentage: s.allocationPercent,
-            ))
+        .map(
+          (s) => AllocationSegment(
+            ticker: s.ticker,
+            amount: s.amountInvestedOpen,
+            percentage: s.allocationPercent,
+          ),
+        )
         .toList();
   }
 }

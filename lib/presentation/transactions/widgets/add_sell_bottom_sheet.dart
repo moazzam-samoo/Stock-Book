@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
@@ -25,7 +26,9 @@ class AddSellBottomSheet extends ConsumerStatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: AddSellBottomSheet(lot: lot),
       ),
     );
@@ -42,10 +45,13 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
   double _sellPrice = 0.0;
 
   double get _amountReceived => _sharesSold * _sellPrice;
-  double get _profitLoss => (_sellPrice - widget.lot.buyPricePerShare) * _sharesSold;
+  double get _profitLoss =>
+      (_sellPrice - widget.lot.buyPricePerShare) * _sharesSold;
   double get _profitLossPercent {
     if (widget.lot.buyPricePerShare == 0) return 0;
-    return (_sellPrice - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100;
+    return (_sellPrice - widget.lot.buyPricePerShare) /
+        widget.lot.buyPricePerShare *
+        100;
   }
 
   Future<void> _submit() async {
@@ -56,7 +62,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     if (_sharesSold > widget.lot.sharesRemaining) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cannot sell more than available (${widget.lot.sharesRemaining})'),
+          content: Text(
+            'Cannot sell more than available (${widget.lot.sharesRemaining})',
+          ),
           backgroundColor: AppColors.dangerRed,
         ),
       );
@@ -64,14 +72,17 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     }
 
     final results = await Connectivity().checkConnectivity();
-    final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    final isOffline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
 
-    await ref.read(addSellControllerProvider.notifier).submit(
-      lot: widget.lot,
-      sellDate: _sellDate!,
-      sharesSold: _sharesSold,
-      sellPricePerShare: _sellPrice,
-    );
+    await ref
+        .read(addSellControllerProvider.notifier)
+        .submit(
+          lot: widget.lot,
+          sellDate: _sellDate!,
+          sharesSold: _sharesSold,
+          sellPricePerShare: _sellPrice,
+        );
 
     if (!mounted) return;
     if (!ref.read(addSellControllerProvider).hasError) {
@@ -83,7 +94,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                 ? "You're offline. Your sale was saved locally and will sync when online."
                 : 'Sold ${_sharesSold.toInt()} shares of ${widget.lot.ticker} successfully!',
           ),
-          backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     }
@@ -92,7 +105,6 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat('#,##0.00');
     final wholeFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM d, y');
     final asyncState = ref.watch(addSellControllerProvider);
@@ -100,9 +112,15 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final bannerBgColor = isDark ? const Color(0xFF1E2235) : const Color(0xFFEEF2FF);
-    final boxBgColor = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final bannerBgColor = isDark
+        ? const Color(0xFF1E2235)
+        : const Color(0xFFEEF2FF);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     return SafeArea(
       child: Padding(
@@ -119,7 +137,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF333A4A) : const Color(0xFFCBD5E1),
+                      color: isDark
+                          ? const Color(0xFF333A4A)
+                          : const Color(0xFFCBD5E1),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -129,7 +149,11 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.neutral500, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.neutral500,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
@@ -150,7 +174,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                   decoration: BoxDecoration(
                     color: bannerBgColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF584BF6).withOpacity(0.3)),
+                    border: Border.all(
+                      color: const Color(0xFF584BF6).withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -196,18 +222,6 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                   children: [
                     Expanded(
                       child: NumericInput(
-                        label: 'Sell Price / Share',
-                        onChanged: (val) {
-                          setState(() {
-                            _sellPrice = double.tryParse(val) ?? 0.0;
-                          });
-                        },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: NumericInput(
                         label: 'Shares Sold',
                         onChanged: (val) {
                           setState(() {
@@ -217,9 +231,23 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                         validator: (val) {
                           if (val == null || val.isEmpty) return 'Required';
                           final parsed = double.tryParse(val) ?? 0.0;
-                          if (parsed > widget.lot.sharesRemaining) return 'Max: ${widget.lot.sharesRemaining}';
+                          if (parsed > widget.lot.sharesRemaining)
+                            return 'Max: ${widget.lot.sharesRemaining}';
                           return null;
                         },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: NumericInput(
+                        label: 'Sell Price / Share',
+                        onChanged: (val) {
+                          setState(() {
+                            _sellPrice = double.tryParse(val) ?? 0.0;
+                          });
+                        },
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                   ],
@@ -227,7 +255,10 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                 const SizedBox(height: 20),
                 // Amount Received Box (Matches Add Sale form LOT.png)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: boxBgColor,
                     borderRadius: BorderRadius.circular(14),
@@ -249,7 +280,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _amountReceived > 0 ? 'Rs ${currencyFormat.format(_amountReceived)}' : 'Rs —',
+                            _amountReceived > 0
+                                ? AppCurrencyFormatter.format(_amountReceived)
+                                : 'Rs —',
                             style: AppTypography.h2.copyWith(
                               color: primaryTextColor,
                               fontFamily: 'JetBrains Mono',
@@ -274,12 +307,16 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                             Row(
                               children: [
                                 Icon(
-                                  isProfit ? Icons.arrow_upward : Icons.arrow_downward,
+                                  isProfit
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
                                   color: plColor,
                                   size: 14,
                                 ),
                                 Text(
-                                  'Rs ${currencyFormat.format(_profitLoss.abs())}',
+                                  AppCurrencyFormatter.format(
+                                    _profitLoss.abs(),
+                                  ),
                                   style: AppTypography.body.copyWith(
                                     color: plColor,
                                     fontWeight: FontWeight.bold,
@@ -302,13 +339,18 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                       backgroundColor: const Color(0xFF584BF6),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: asyncState.isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
                           )
                         : const Text(
                             'Save Sale',

@@ -26,8 +26,8 @@ PortfolioSummary portfolioSummary(PortfolioSummaryRef ref) {
   final lots = ref.watch(allLotsProvider).valueOrNull ?? [];
   final settings = ref.watch(settingsProvider).valueOrNull;
   
-  // Starting capital from settings, default to 500,000 PKR if not loaded
-  final startingCapital = settings?.startingCapital ?? 500000.0;
+  // Starting capital from settings, default to 0.0 PKR if not loaded
+  final startingCapital = settings?.startingCapital ?? 0.0;
 
   return PortfolioCalculator.calculatePortfolioSummary(
     lots,

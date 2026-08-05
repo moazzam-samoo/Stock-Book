@@ -24,7 +24,7 @@ final settingsProvider = AutoDisposeStreamProvider<UserSettings>.internal(
 // ignore: unused_element
 typedef SettingsRef = AutoDisposeStreamProviderRef<UserSettings>;
 String _$settingsControllerHash() =>
-    r'f6afa1c7a1e01e390e2c32c060302509dadc84fa';
+    r'b2c38a26ddd256d086d53add327c5b0673654570';
 
 /// See also [SettingsController].
 @ProviderFor(SettingsController)

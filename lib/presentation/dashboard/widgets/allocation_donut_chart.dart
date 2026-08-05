@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
@@ -8,8 +9,10 @@ import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
+import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
+import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 
-class AllocationDonutChart extends StatefulWidget {
+class AllocationDonutChart extends ConsumerStatefulWidget {
   final List<AllocationSegment> allocations;
   final double totalHoldings;
 
@@ -20,15 +23,24 @@ class AllocationDonutChart extends StatefulWidget {
   });
 
   @override
-  State<AllocationDonutChart> createState() => _AllocationDonutChartState();
+  ConsumerState<AllocationDonutChart> createState() => _AllocationDonutChartState();
 }
 
-class _AllocationDonutChartState extends State<AllocationDonutChart> {
+class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
   int touchedIndex = -1;
   bool _isExpanded = false;
 
+  Color _getColorForTicker(String ticker, UserSettings? settings) {
+    final customColor = settings?.stockColors[ticker.toUpperCase().trim()];
+    if (customColor != null) {
+      return Color(customColor);
+    }
+    return StockColorUtils.getColorForTicker(ticker);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider).valueOrNull;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
     final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
@@ -180,7 +192,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
                         borderData: FlBorderData(show: false),
                         sectionsSpace: 3,
                         centerSpaceRadius: 45,
-                        sections: showingSections(),
+                        sections: showingSections(settings),
                       ),
                     ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
                   ],
@@ -196,7 +208,7 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(visibleCount, (i) {
                       final allocation = widget.allocations[i];
-                      final color = StockColorUtils.getColorForTicker(allocation.ticker);
+                      final color = _getColorForTicker(allocation.ticker, settings);
                       final isTouched = i == touchedIndex;
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3.0),
@@ -297,12 +309,12 @@ class _AllocationDonutChartState extends State<AllocationDonutChart> {
     );
   }
 
-  List<PieChartSectionData> showingSections() {
+  List<PieChartSectionData> showingSections(UserSettings? settings) {
     return List.generate(widget.allocations.length, (i) {
       final isTouched = i == touchedIndex;
       final radius = isTouched ? 26.0 : 18.0;
       final allocation = widget.allocations[i];
-      final color = StockColorUtils.getColorForTicker(allocation.ticker);
+      final color = _getColorForTicker(allocation.ticker, settings);
 
       return PieChartSectionData(
         color: isTouched

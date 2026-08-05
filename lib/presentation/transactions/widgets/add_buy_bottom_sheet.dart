@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
@@ -85,7 +85,6 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat('#,##0.00');
     final asyncState = ref.watch(addBuyControllerProvider);
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
@@ -200,7 +199,7 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                         ),
                       ),
                       Text(
-                        _amountInvested > 0 ? 'Rs ${currencyFormat.format(_amountInvested)}' : 'Rs —',
+                        _amountInvested > 0 ? AppCurrencyFormatter.format(_amountInvested) : 'Rs —',
                         style: AppTypography.h2.copyWith(
                           color: primaryTextColor,
                           fontFamily: 'JetBrains Mono',

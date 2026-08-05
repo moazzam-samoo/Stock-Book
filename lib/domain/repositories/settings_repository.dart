@@ -8,4 +8,5 @@ abstract class SettingsRepository {
   Future<void> updateStartingCapital(double capital);
   Future<void> updateCurrency(String currency);
   Future<void> updateThemeMode(String themeMode);
+  Future<void> updateStockColor(String ticker, int colorValue);
 }

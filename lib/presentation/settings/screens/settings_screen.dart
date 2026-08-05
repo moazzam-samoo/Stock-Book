@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/presentation/auth/controllers/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
+import 'package:stock_investment_tracker/presentation/common/stock_color_picker_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
-
 import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _launchURL(String urlString) async {
+    final Uri uri = Uri.parse(urlString);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      // Could not launch URL
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,46 +40,54 @@ class SettingsScreen extends ConsumerWidget {
         }
       },
       child: AppScaffold(
-      body: Column(
-        children: [
-          const CustomAppBar(title: 'Settings'),
-          Expanded(
-            child: settingsAsync.when(
-              data: (settings) => SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle(context, 'FAVORITE STOCKS'),
-                    const SizedBox(height: 12),
-                    _buildFavoriteStocks(context, colors, ref, settings, isDark),
-                    const SizedBox(height: 28),
-                    
-                    _buildSectionTitle(context, 'PORTFOLIO'),
-                    const SizedBox(height: 12),
-                    _buildPortfolioPreferences(context, colors, ref, settings, isDark),
-                    const SizedBox(height: 28),
-                    
+        body: Column(
+          children: [
+            const CustomAppBar(title: 'Settings'),
+            Expanded(
+              child: settingsAsync.when(
+                data: (settings) => SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle(context, 'FAVORITE STOCKS'),
+                      const SizedBox(height: 12),
+                      _buildFavoriteStocks(context, colors, ref, settings, isDark),
+                      const SizedBox(height: 28),
 
-                    
-                    _buildSectionTitle(context, 'ACCOUNT'),
-                    const SizedBox(height: 12),
-                    _buildAccountSection(context, user, colors, ref, isDark),
-                    const SizedBox(height: 100), // Bottom padding for navbar
-                  ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuad),
+                      _buildSectionTitle(context, 'PORTFOLIO'),
+                      const SizedBox(height: 12),
+                      _buildPortfolioPreferences(context, colors, ref, settings, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'COMPANY INFO'),
+                      const SizedBox(height: 12),
+                      _buildCompanySection(context, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'DEVELOPER INFO'),
+                      const SizedBox(height: 12),
+                      _buildDeveloperSection(context, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'ACCOUNT'),
+                      const SizedBox(height: 12),
+                      _buildAccountSection(context, user, colors, ref, isDark),
+                      const SizedBox(height: 100), // Bottom padding for navbar
+                    ].animate(interval: 50.ms).fade(duration: 400.ms).slideY(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuad),
+                  ),
+                ),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.brandIndigo),
+                ),
+                error: (err, stack) => const Center(
+                  child: Text('Error loading settings'),
                 ),
               ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.brandIndigo),
-              ),
-              error: (err, stack) => const Center(
-                child: Text('Error loading settings'),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -84,88 +101,6 @@ class SettingsScreen extends ConsumerWidget {
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
             ),
-      ),
-    );
-  }
-
-  Widget _buildAccountSection(
-      BuildContext context, User? user, AppSemanticColors colors, WidgetRef ref, bool isDark) {
-    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                user?.photoURL != null
-                    ? CircleAvatar(
-                        radius: 24,
-                        backgroundImage: NetworkImage(user!.photoURL!),
-                      )
-                    : CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.brandIndigo,
-                        child: Text(
-                          user?.email?.isNotEmpty == true ? user!.email![0].toUpperCase() : 'U',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                      ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user?.email ?? 'Guest User',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Synced across all devices',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: borderColor),
-          InkWell(
-            onTap: () => _confirmLogout(context, ref),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.logout, color: AppColors.alertRed, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Log Out',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.alertRed,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -191,28 +126,46 @@ class SettingsScreen extends ConsumerWidget {
             spacing: 8,
             runSpacing: 12,
             children: [
-              ...((settings.favorites as List<String>).map((ticker) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: chipBg,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.circle, size: 8, color: AppColors.moneyGreen),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.star, size: 12, color: AppColors.warningYellow),
-                        const SizedBox(width: 6),
-                        Text(ticker, style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
-                        const SizedBox(width: 6),
-                        InkWell(
-                          onTap: () => ref.read(settingsControllerProvider.notifier).removeFavorite(ticker),
-                          child: const Icon(Icons.close, size: 14, color: AppColors.neutral500),
+              ...((settings.favorites as List<String>).map((ticker) {
+                final customColorVal = settings.stockColors[ticker];
+                final avatarColor = customColorVal != null ? Color(customColorVal) : StockColorUtils.getColorForTicker(ticker);
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: chipBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => StockColorPickerBottomSheet.show(context, ticker),
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: avatarColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
+                          ),
+                          child: const Icon(Icons.palette_outlined, size: 10, color: Colors.white),
                         ),
-                      ],
-                    ),
-                  ).animate(key: ValueKey(ticker)).fade(duration: 200.ms).scale(duration: 200.ms, begin: const Offset(0.8, 0.8)))),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(ticker, style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () async {
+                          await ref.read(settingsControllerProvider.notifier).removeFavorite(ticker);
+                          ref.invalidate(settingsProvider);
+                        },
+                        child: const Icon(Icons.close, size: 14, color: AppColors.neutral500),
+                      ),
+                    ],
+                  ),
+                ).animate(key: ValueKey(ticker)).fade(duration: 200.ms).scale(duration: 200.ms, begin: const Offset(0.8, 0.8));
+              })),
               InkWell(
                 onTap: () => _showAddTickerDialog(context, ref),
                 borderRadius: BorderRadius.circular(20),
@@ -236,7 +189,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Favorites feed the ticker picker in every Add Buy and Add Sell form — type once, select forever after.',
+            'Tap the color dot on any stock chip (or long-press any avatar) to customize its display color.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500, height: 1.5),
           ),
         ],
@@ -336,7 +289,287 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildCompanySection(BuildContext context, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/icon/android-chrome-192x192.png',
+                    width: 48,
+                    height: 48,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.brandIndigo,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.business_rounded, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Coding District',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Software Engineering & AI Solutions',
+                        style: TextStyle(fontSize: 12, color: AppColors.neutral500),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+          _buildLinkTile(
+            context,
+            icon: Icons.language_rounded,
+            title: 'Company Website',
+            subtitle: 'codingdistrict.com',
+            onTap: () => _launchURL('https://codingdistrict.com'),
+            isDark: isDark,
+            borderColor: borderColor,
+          ),
+          Divider(height: 1, color: borderColor),
+          _buildLinkTile(
+            context,
+            icon: Icons.business_center_rounded,
+            title: 'LinkedIn Company Page',
+            subtitle: 'linkedin.com/company/codingdistrict',
+            onTap: () => _launchURL('https://www.linkedin.com/company/codingdistrict/'),
+            isDark: isDark,
+            borderColor: borderColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperSection(BuildContext context, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.brandIndigo,
+                  child: const Text(
+                    'MS',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Moazzam Samoo',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Lead Developer & Architect',
+                        style: TextStyle(fontSize: 12, color: AppColors.neutral500),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+          _buildLinkTile(
+            context,
+            icon: Icons.person_pin_rounded,
+            title: 'Developer Portfolio',
+            subtitle: 'moazzam-samoo.web.app',
+            onTap: () => _launchURL('https://moazzam-samoo.web.app/'),
+            isDark: isDark,
+            borderColor: borderColor,
+          ),
+          Divider(height: 1, color: borderColor),
+          _buildLinkTile(
+            context,
+            icon: Icons.link_rounded,
+            title: 'LinkedIn Profile',
+            subtitle: 'linkedin.com/in/moazzam-samoo',
+            onTap: () => _launchURL('https://www.linkedin.com/in/moazzam-samoo?utm_source=share_via&utm_content=profile&utm_medium=member_android'),
+            isDark: isDark,
+            borderColor: borderColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLinkTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color borderColor,
+  }) {
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.brandIndigo),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.neutral500),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountSection(
+      BuildContext context, User? user, AppSemanticColors colors, WidgetRef ref, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                user?.photoURL != null
+                    ? CircleAvatar(
+                        radius: 24,
+                        backgroundImage: NetworkImage(user!.photoURL!),
+                      )
+                    : CircleAvatar(
+                        radius: 24,
+                        backgroundColor: AppColors.brandIndigo,
+                        child: Text(
+                          user?.email?.isNotEmpty == true ? user!.email![0].toUpperCase() : 'U',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                      ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.email ?? 'Guest User',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Synced across all devices',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+          InkWell(
+            onTap: () => _confirmLogout(context, ref),
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.logout, color: AppColors.alertRed, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Log Out',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.alertRed,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showAddTickerDialog(BuildContext context, WidgetRef ref) {
     String ticker = '';
@@ -358,10 +591,12 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (ticker.trim().isNotEmpty) {
-                ref.read(settingsControllerProvider.notifier).addFavorite(ticker.trim().toUpperCase());
-                Navigator.pop(context);
+                final navigator = Navigator.of(context);
+                await ref.read(settingsControllerProvider.notifier).addFavorite(ticker.trim().toUpperCase());
+                ref.invalidate(settingsProvider);
+                navigator.pop();
               }
             },
             child: const Text('Add'),
@@ -415,14 +650,14 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.settings.startingCapital.toString());
+    _controller = TextEditingController(text: widget.settings.startingCapital.toInt().toString());
   }
 
   @override
   void didUpdateWidget(_StartingCapitalInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.settings.startingCapital != widget.settings.startingCapital && !_isDirty) {
-      _controller.text = widget.settings.startingCapital.toString();
+      _controller.text = widget.settings.startingCapital.toInt().toString();
     }
   }
 
@@ -434,9 +669,18 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
 
   void _save() {
     final parsed = double.tryParse(_controller.text) ?? 0.0;
-    if (parsed > 0) {
+    if (parsed >= 0) {
       widget.ref.read(settingsControllerProvider.notifier).updateStartingCapital(parsed);
+      widget.ref.invalidate(settingsProvider);
       setState(() => _isDirty = false);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Starting capital updated successfully'),
+          backgroundColor: AppColors.moneyGreen,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -450,7 +694,7 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
           child: TextField(
             controller: _controller,
             style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: false),
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 12),

@@ -14,6 +14,7 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_c
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
+import 'package:stock_investment_tracker/presentation/common/animated_pdf_button.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 
@@ -43,22 +44,24 @@ class StockDetailScreen extends ConsumerWidget {
             showBackButton: true,
             onBackPressed: () => context.pop(),
             actions: [
-              IconButton(
-                icon: Icon(Icons.picture_as_pdf_outlined, color: primaryTextColor, size: 22),
-                tooltip: 'Export $ticker PDF Report',
-                onPressed: () async {
-                  final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
-                  final stockLots = allLots.where((l) => l.ticker == ticker).toList();
-                  final stockSummaries = ref.read(stockSummariesProvider);
-                  final stockSummary = stockSummaries.where((s) => s.ticker == ticker).firstOrNull;
-                  await PdfReportService.exportStockPdf(
-                    ticker: ticker,
-                    stockLots: stockLots,
-                    summary: stockSummary,
-                  );
-                },
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: AnimatedPdfButton(
+                  label: 'Export $ticker PDF',
+                  onPressed: () async {
+                    final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
+                    final stockLots = allLots.where((l) => l.ticker == ticker).toList();
+                    final stockSummaries = ref.read(stockSummariesProvider);
+                    final stockSummary = stockSummaries.where((s) => s.ticker == ticker).firstOrNull;
+                    await PdfReportService.exportStockPdf(
+                      ticker: ticker,
+                      stockLots: stockLots,
+                      summary: stockSummary,
+                    );
+                  },
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
             ],
           ),
           Expanded(

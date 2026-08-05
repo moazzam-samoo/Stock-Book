@@ -8,8 +8,8 @@ part 'settings_provider.g.dart';
 Stream<UserSettings> settings(SettingsRef ref) async* {
   final repo = ref.watch(settingsRepositoryProvider);
   const defaultSettings = UserSettings(
-    favorites: ['SYS', 'TRG', 'OGDC', 'LUCK'],
-    startingCapital: 500000.0,
+    favorites: [],
+    startingCapital: 0.0,
     currency: 'PKR',
     themeMode: 'dark',
   );
@@ -37,16 +37,23 @@ class SettingsController extends _$SettingsController {
     final repo = ref.read(settingsRepositoryProvider);
     if (repo == null) return;
 
+    final cleanTicker = ticker.toUpperCase().trim();
+    if (cleanTicker.isEmpty) return;
+
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => repo.addFavorite(ticker));
+    state = await AsyncValue.guard(() => repo.addFavorite(cleanTicker));
+    ref.invalidate(settingsProvider);
   }
 
   Future<void> removeFavorite(String ticker) async {
     final repo = ref.read(settingsRepositoryProvider);
     if (repo == null) return;
 
+    final cleanTicker = ticker.toUpperCase().trim();
+
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => repo.removeFavorite(ticker));
+    state = await AsyncValue.guard(() => repo.removeFavorite(cleanTicker));
+    ref.invalidate(settingsProvider);
   }
 
   Future<void> updateStartingCapital(double capital) async {
@@ -55,6 +62,7 @@ class SettingsController extends _$SettingsController {
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => repo.updateStartingCapital(capital));
+    ref.invalidate(settingsProvider);
   }
 
   Future<void> updateCurrency(String currency) async {
@@ -63,6 +71,7 @@ class SettingsController extends _$SettingsController {
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => repo.updateCurrency(currency));
+    ref.invalidate(settingsProvider);
   }
 
   Future<void> updateThemeMode(String themeMode) async {
@@ -71,5 +80,15 @@ class SettingsController extends _$SettingsController {
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => repo.updateThemeMode(themeMode));
+    ref.invalidate(settingsProvider);
+  }
+
+  Future<void> updateStockColor(String ticker, int colorValue) async {
+    final repo = ref.read(settingsRepositoryProvider);
+    if (repo == null) return;
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => repo.updateStockColor(ticker, colorValue));
+    ref.invalidate(settingsProvider);
   }
 }

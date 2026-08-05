@@ -134,7 +134,7 @@ class FirestoreDataSource {
     try {
       await _firestore
           .doc(FirestorePaths.settings(uid))
-          .set(settings.toJson(), SetOptions(merge: true))
+          .set(settings.toJson())
           .timeout(const Duration(seconds: 4));
     } catch (_) {
       // Timeout or offline write persisted locally

@@ -26,7 +26,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
     } else {
       yield const UserSettings(
         favorites: [],
-        startingCapital: 10000.0,
+        startingCapital: 0.0,
         currency: 'PKR',
         themeMode: 'dark',
       );
@@ -40,7 +40,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       }
       return const UserSettings(
         favorites: [],
-        startingCapital: 10000.0,
+        startingCapital: 0.0,
         currency: 'PKR',
         themeMode: 'dark',
       );
@@ -56,10 +56,12 @@ class SettingsRepositoryImpl implements SettingsRepository {
 
   @override
   Future<void> addFavorite(String ticker) async {
+    final clean = ticker.toUpperCase().trim();
+    if (clean.isEmpty) return;
     final current = await _getCurrentSettings();
-    if (!current.favorites.contains(ticker)) {
+    if (!current.favorites.contains(clean)) {
       final updated = current.copyWith(
-        favorites: [...current.favorites, ticker],
+        favorites: [...current.favorites, clean],
       );
       await updateSettings(updated);
     }
@@ -67,8 +69,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
 
   @override
   Future<void> removeFavorite(String ticker) async {
+    final clean = ticker.toUpperCase().trim();
     final current = await _getCurrentSettings();
-    final updatedFavorites = current.favorites.where((t) => t != ticker).toList();
+    final updatedFavorites = current.favorites.where((t) => t.toUpperCase().trim() != clean).toList();
     final updated = current.copyWith(favorites: updatedFavorites);
     await updateSettings(updated);
   }
@@ -91,12 +94,25 @@ class SettingsRepositoryImpl implements SettingsRepository {
     await updateSettings(current.copyWith(themeMode: themeMode));
   }
 
+  @override
+  Future<void> updateStockColor(String ticker, int colorValue) async {
+    final clean = ticker.toUpperCase().trim();
+    final current = await _getCurrentSettings();
+    final newColors = Map<String, int>.from(current.stockColors);
+    if (colorValue == 0) {
+      newColors.remove(clean);
+    } else {
+      newColors[clean] = colorValue;
+    }
+    await updateSettings(current.copyWith(stockColors: newColors));
+  }
+
   Future<UserSettings> _getCurrentSettings() async {
     final local = await _hiveDataSource.getSettings();
     if (local != null) return local.toEntity();
     return const UserSettings(
       favorites: [],
-      startingCapital: 10000.0,
+      startingCapital: 0.0,
       currency: 'PKR',
       themeMode: 'dark',
     );

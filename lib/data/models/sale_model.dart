@@ -4,8 +4,6 @@ import 'package:stock_investment_tracker/domain/entities/sale.dart';
 import 'package:stock_investment_tracker/core/utils/timestamp_converter.dart';
 
 part 'sale_model.freezed.dart';
-part 'sale_model.g.dart';
-
 
 @freezed
 abstract class SaleModel with _$SaleModel {
@@ -36,6 +34,16 @@ abstract class SaleModel with _$SaleModel {
 }
 
 extension SaleModelExtension on SaleModel {
+  /// Manual toJson since we use a custom fromJson (no .g.dart generated).
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'sellDate': Timestamp.fromDate(sellDate),
+      'sharesSold': sharesSold,
+      'sellPricePerShare': sellPricePerShare,
+    };
+  }
+
   Sale toEntity(double amountReceived) {
     return Sale(
       id: id,

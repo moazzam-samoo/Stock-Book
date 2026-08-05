@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
@@ -97,7 +98,10 @@ class PortfolioHeader extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildUserAvatar(photoUrl, displayName),
+            GestureDetector(
+              onTap: () => context.go('/settings'),
+              child: _buildUserAvatar(photoUrl, displayName),
+            ),
             if (lastSyncTime != null) ...[
               const SizedBox(height: 6),
               Row(

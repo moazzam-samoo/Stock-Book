@@ -35,8 +35,8 @@ class StatCardGrid extends StatelessWidget {
           children: [
             Expanded(
               child: StatCard(
-                label: 'TOTAL CASH',
-                value: summary.totalInvested,
+                label: 'TOTAL CAPITAL',
+                value: summary.startingCapital,
                 isCurrency: true,
                 animationDelayMs: 100,
                 isSelected: selectedMetric == DashboardMetricType.totalInvested,

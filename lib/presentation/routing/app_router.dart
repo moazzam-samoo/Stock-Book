@@ -12,6 +12,8 @@ import '../dashboard/screens/stock_detail_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../transactions/screens/transactions_screen.dart';
 
+import '../common/swipeable_navigation_shell.dart';
+
 part 'app_router.g.dart';
 
 @riverpod
@@ -53,7 +55,7 @@ GoRouter appRouter(AppRouterRef ref) {
         path: '/sign-in',
         builder: (context, state) => const SignInScreen(),
       ),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (context, state, navigationShell) {
           return PopScope(
             canPop: navigationShell.currentIndex == 0,
@@ -74,6 +76,12 @@ GoRouter appRouter(AppRouterRef ref) {
                 ),
               ),
             ),
+          );
+        },
+        navigatorContainerBuilder: (context, navigationShell, children) {
+          return SwipeableNavigationShell(
+            navigationShell: navigationShell,
+            children: children,
           );
         },
         branches: [

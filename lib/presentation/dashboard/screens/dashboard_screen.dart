@@ -41,11 +41,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final results = await Connectivity().checkConnectivity();
     _updateConnectivityStatus(results);
 
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(_updateConnectivityStatus);
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      _updateConnectivityStatus,
+    );
   }
 
   void _updateConnectivityStatus(List<ConnectivityResult> results) {
-    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    final offline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
     if (_isOffline != offline && mounted) {
       setState(() {
         _isOffline = offline;
@@ -82,20 +85,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.lg,
+                  ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       PortfolioHeader(
-                        totalValue: portfolioSummary.portfolioValue,
-                        profitLossPercentage: portfolioSummary.startingCapital > 0 
-                            ? ((portfolioSummary.portfolioValue - portfolioSummary.startingCapital) / portfolioSummary.startingCapital) * 100 
-                            : 0.0,
-                        lastSyncTime: _lastSyncTime,
-                        isOffline: _isOffline,
-                      ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
-                      
+                            totalValue: portfolioSummary.portfolioValue,
+                            profitLossPercentage: portfolioSummary.startingCapital > 0
+                                ? ((portfolioSummary.portfolioValue - portfolioSummary.startingCapital) / portfolioSummary.startingCapital) * 100
+                                : (portfolioSummary.currentlyInvested > 0
+                                    ? (portfolioSummary.realizedPL / portfolioSummary.currentlyInvested) * 100
+                                    : 0.0),
+                            lastSyncTime: _lastSyncTime,
+                            isOffline: _isOffline,
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms)
+                          .slideY(begin: -0.1, end: 0),
+
                       const SizedBox(height: AppSpacing.xl),
-                      
+
                       StatCardGrid(
                         summary: portfolioSummary,
                         selectedMetric: _selectedMetric,
@@ -109,7 +120,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           });
                         },
                       ),
-                      
+
                       if (_selectedMetric != null) ...[
                         const SizedBox(height: AppSpacing.md),
                         MetricDetailCard(
@@ -124,9 +135,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           },
                         ),
                       ],
-                      
+
                       const SizedBox(height: AppSpacing.xxl),
-                      
+
                       if (allocationData.isNotEmpty) ...[
                         AllocationDonutChart(
                           allocations: allocationData,
@@ -134,7 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                         const SizedBox(height: AppSpacing.xl),
                       ],
-                      
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -149,12 +160,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           GestureDetector(
                             onTap: () => context.go('/transactions'),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4.0,
+                                horizontal: 8.0,
+                              ),
                               child: Text(
                                 'View all',
                                 style: AppTypography.body.copyWith(
-                                  color: const Color(0xFF4361EE),
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
                                   fontSize: 14,
                                 ),
                               ),
@@ -163,12 +178,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      
+
                       if (stockSummaries.isEmpty)
                         EmptyStateView(
                           icon: Icons.show_chart,
                           title: 'No stocks yet',
-                          message: 'Add your first stock purchase to track your portfolio.',
+                          message:
+                              'Add your first stock purchase to track your portfolio.',
                           buttonLabel: 'Add your first stock',
                           onButtonPressed: () {
                             context.go('/transactions');
@@ -179,7 +195,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.surfaceDark,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF242731), width: 1.2),
+                            border: Border.all(
+                              color: const Color(0xFF242731),
+                              width: 1.2,
+                            ),
                           ),
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -204,7 +223,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             },
                           ),
                         ),
-                      const SizedBox(height: 100), // Bottom padding for floating navigation bar
+                      const SizedBox(
+                        height: 100,
+                      ), // Bottom padding for floating navigation bar
                     ]),
                   ),
                 ),
@@ -222,16 +243,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: AppColors.alertRed),
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppColors.alertRed,
+                ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Something went wrong',
-                  style: AppTypography.h3.copyWith(color: AppColors.textPrimaryDark),
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimaryDark,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   error.toString(),
-                  style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.neutral500,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.lg),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
@@ -16,6 +18,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_lot_bottom_sheet.dart';
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
+import 'package:stock_investment_tracker/presentation/common/animated_pdf_button.dart';
 
 class LotCard extends ConsumerStatefulWidget {
   final Lot lot;
@@ -33,6 +36,7 @@ class LotCard extends ConsumerStatefulWidget {
 
 class _LotCardState extends ConsumerState<LotCard> {
   bool _isExpanded = false;
+  Offset? _tapDownPosition;
 
   void _toggleExpand() {
     HapticFeedback.lightImpact();
@@ -44,7 +48,6 @@ class _LotCardState extends ConsumerState<LotCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final NumberFormat currencyFormat = NumberFormat('#,##0.00');
     final NumberFormat wholeFormat = NumberFormat('#,##0');
     final DateFormat dateFormat = DateFormat('MMM d, y');
 
@@ -62,114 +65,33 @@ class _LotCardState extends ConsumerState<LotCard> {
         : '${widget.lot.holdingDays} days';
 
     return GestureDetector(
+      onTapDown: (details) => _tapDownPosition = details.globalPosition,
       onTap: _toggleExpand,
+      onLongPress: () => _showContextMenu(context),
       behavior: HitTestBehavior.opaque,
-      child: Slidable(
-        key: ValueKey(widget.lot.id),
-        endActionPane: ActionPane(
-          motion: const ScrollMotion(),
-          extentRatio: 0.6,
-          children: [
-            SlidableAction(
-              onPressed: (context) {
-                PdfReportService.exportLotPdf(widget.lot);
-              },
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              icon: Icons.picture_as_pdf_outlined,
-              label: 'PDF',
-            ),
-            SlidableAction(
-              onPressed: (context) {
-                EditLotBottomSheet.show(context, widget.lot);
-              },
-              backgroundColor: const Color(0xFF584BF6),
-              foregroundColor: Colors.white,
-              icon: Icons.edit_outlined,
-              label: 'Edit',
-            ),
-            SlidableAction(
-              onPressed: (context) async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Delete Lot?'),
-                    content: const Text(
-                      'This will permanently delete this lot and all its sales. This action cannot be undone.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          'Delete',
-                          style: TextStyle(color: AppColors.dangerRed),
-                        ),
-                      ),
-                    ],
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        margin: const EdgeInsets.only(bottom: 12),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 1.2),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
                   ),
-                );
-
-                if (confirm == true) {
-                  HapticFeedback.mediumImpact();
-                  final results = await Connectivity().checkConnectivity();
-                  final isOffline =
-                      results.contains(ConnectivityResult.none) ||
-                      results.isEmpty;
-
-                  final repo = ref.read(lotRepositoryProvider);
-                  if (repo != null) {
-                    await repo.deleteLot(widget.lot.id);
-                  }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          isOffline
-                              ? "You're offline. Lot deleted locally and will sync when online."
-                              : 'Lot deleted successfully',
-                        ),
-                        backgroundColor: isOffline
-                            ? AppColors.warningYellow
-                            : AppColors.moneyGreen,
-                      ),
-                    );
-                  }
-                }
-              },
-              backgroundColor: AppColors.dangerRed,
-              foregroundColor: Colors.white,
-              icon: Icons.delete_outline,
-              label: 'Delete',
-            ),
-          ],
+                ],
         ),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor, width: 1.2),
-            boxShadow: isDark
-                ? null
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
               Row(
                 children: [
                   GestureDetector(
@@ -212,7 +134,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Bought ${dateFormat.format(widget.lot.buyDate)} @ Rs ${currencyFormat.format(widget.lot.buyPricePerShare)}',
+                          'Bought ${dateFormat.format(widget.lot.buyDate)} @ ${AppCurrencyFormatter.format(widget.lot.buyPricePerShare)}',
                           style: AppTypography.caption.copyWith(
                             color: AppColors.neutral500,
                             fontSize: 13,
@@ -247,9 +169,9 @@ class _LotCardState extends ConsumerState<LotCard> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: plColor.withOpacity(0.1),
+                    color: plColor.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: plColor.withOpacity(0.25)),
+                    border: Border.all(color: plColor.withOpacity(0.12)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -275,7 +197,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                         ],
                       ),
                       Text(
-                        '${isProfit ? "+" : "-"}Rs ${currencyFormat.format(widget.lot.realizedProfitLoss.abs())}',
+                        '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(widget.lot.realizedProfitLoss.abs())}',
                         style: AppTypography.body.copyWith(
                           color: plColor,
                           fontWeight: FontWeight.w800,
@@ -365,9 +287,9 @@ class _LotCardState extends ConsumerState<LotCard> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark
-                            ? const Color(0xFF1D1E38)
-                            : const Color(0xFFEEF2FF),
-                        foregroundColor: const Color(0xFF635BFF),
+                            ? const Color(0xFF132B1A)
+                            : const Color(0xFFECFDF5),
+                        foregroundColor: AppColors.moneyGreen,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -376,12 +298,12 @@ class _LotCardState extends ConsumerState<LotCard> {
                       icon: const Icon(
                         Icons.south_west_rounded,
                         size: 18,
-                        color: Color(0xFF635BFF),
+                        color: AppColors.moneyGreen,
                       ),
                       label: const Text(
                         'Add Sale from this lot',
                         style: TextStyle(
-                          color: Color(0xFF635BFF),
+                          color: AppColors.moneyGreen,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -391,32 +313,10 @@ class _LotCardState extends ConsumerState<LotCard> {
                 ],
 
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: OutlinedButton.icon(
-                    onPressed: () => PdfReportService.exportLotPdf(widget.lot),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: borderColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      foregroundColor: primaryTextColor,
-                    ),
-                    icon: Icon(
-                      Icons.picture_as_pdf_outlined,
-                      size: 18,
-                      color: primaryTextColor,
-                    ),
-                    label: Text(
-                      'Download Lot PDF Report',
-                      style: TextStyle(
-                        color: primaryTextColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
+                AnimatedPdfButton(
+                  isCompact: false,
+                  label: 'Download Lot PDF Report',
+                  onPressed: () => PdfReportService.exportLotPdf(widget.lot),
                 ),
                 if (widget.showStockDetailNavigation) ...[
                   const SizedBox(height: 12),
@@ -453,7 +353,121 @@ class _LotCardState extends ConsumerState<LotCard> {
             ],
           ),
         ),
+      );
+  }
+
+  void _showContextMenu(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    if (_tapDownPosition == null) return;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        _tapDownPosition! & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      color: cardBg,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      items: [
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              const Icon(Icons.edit_outlined, color: Color(0xFF584BF6), size: 20),
+              const SizedBox(width: 12),
+              Text('Edit Lot', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'pdf',
+          child: Row(
+            children: [
+              const Icon(Icons.picture_as_pdf_outlined, color: Color(0xFF2563EB), size: 20),
+              const SizedBox(width: 12),
+              Text('Export Lot PDF', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline, color: AppColors.alertRed, size: 20),
+              const SizedBox(width: 12),
+              const Text('Delete Lot', style: TextStyle(color: AppColors.alertRed, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (result == 'edit' && context.mounted) {
+      EditLotBottomSheet.show(context, widget.lot);
+    } else if (result == 'pdf') {
+      PdfReportService.exportLotPdf(widget.lot);
+    } else if (result == 'delete' && context.mounted) {
+      _confirmDelete(context);
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Delete Lot?'),
+        content: const Text(
+          'This will permanently delete this lot and all its sales. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.alertRed),
+            ),
+          ),
+        ],
       ),
     );
+
+    if (confirm == true) {
+      HapticFeedback.mediumImpact();
+      final results = await Connectivity().checkConnectivity();
+      final isOffline =
+          results.contains(ConnectivityResult.none) ||
+          results.isEmpty;
+
+      final repo = ref.read(lotRepositoryProvider);
+      if (repo != null) {
+        await repo.deleteLot(widget.lot.id);
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isOffline
+                  ? "You're offline. Lot deleted locally and will sync when online."
+                  : 'Lot deleted successfully',
+            ),
+            backgroundColor: isOffline
+                ? AppColors.warningYellow
+                : AppColors.moneyGreen,
+          ),
+        );
+      }
+    }
   }
 }

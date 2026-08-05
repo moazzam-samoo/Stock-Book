@@ -13,9 +13,14 @@ _UserSettingsModel _$UserSettingsModelFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      startingCapital: (json['startingCapital'] as num?)?.toDouble() ?? 10000.0,
+      startingCapital: (json['startingCapital'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'PKR',
       themeMode: json['themeMode'] as String? ?? 'dark',
+      stockColors:
+          (json['stockColors'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, (e as num).toInt()),
+          ) ??
+          const {},
     );
 
 Map<String, dynamic> _$UserSettingsModelToJson(_UserSettingsModel instance) =>
@@ -24,4 +29,5 @@ Map<String, dynamic> _$UserSettingsModelToJson(_UserSettingsModel instance) =>
       'startingCapital': instance.startingCapital,
       'currency': instance.currency,
       'themeMode': instance.themeMode,
+      'stockColors': instance.stockColors,
     };

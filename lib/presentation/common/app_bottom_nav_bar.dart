@@ -106,7 +106,7 @@ class _NavItem extends StatelessWidget {
             ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
             : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF584BF6) : Colors.transparent,
+          color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Row(

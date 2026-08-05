@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
@@ -29,7 +30,7 @@ class SelectLotBottomSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lots = ref.watch(allLotsProvider).valueOrNull ?? [];
     final availableLots = lots.where((l) => l.status != LotStatus.closed).toList();
-    final currencyFormat = NumberFormat('#,##0.00');
+    final wholeFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM d, y');
 
     return SafeArea(
@@ -114,14 +115,14 @@ class SelectLotBottomSheet extends ConsumerWidget {
                                         style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
                                       ),
                                       Text(
-                                        '${currencyFormat.format(lot.sharesRemaining)} left',
+                                        '${wholeFormat.format(lot.sharesRemaining)} left',
                                         style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Bought ${dateFormat.format(lot.buyDate)} @ ${currencyFormat.format(lot.buyPricePerShare)}',
+                                    'Bought ${dateFormat.format(lot.buyDate)} @ ${AppCurrencyFormatter.format(lot.buyPricePerShare)}',
                                     style: AppTypography.caption.copyWith(color: AppColors.neutral500),
                                   ),
                                 ],

@@ -8,9 +8,10 @@ part 'user_settings_model.g.dart';
 abstract class UserSettingsModel with _$UserSettingsModel {
   const factory UserSettingsModel({
     @Default([]) List<String> favorites,
-    @Default(10000.0) double startingCapital,
+    @Default(0.0) double startingCapital,
     @Default('PKR') String currency,
     @Default('dark') String themeMode,
+    @Default({}) Map<String, int> stockColors,
   }) = _UserSettingsModel;
 
   factory UserSettingsModel.fromJson(Map<String, dynamic> json) => _$UserSettingsModelFromJson(json);
@@ -23,6 +24,7 @@ extension UserSettingsModelExtension on UserSettingsModel {
       startingCapital: startingCapital,
       currency: currency,
       themeMode: themeMode,
+      stockColors: stockColors,
     );
   }
 
@@ -32,6 +34,7 @@ extension UserSettingsModelExtension on UserSettingsModel {
       startingCapital: entity.startingCapital,
       currency: entity.currency,
       themeMode: entity.themeMode,
+      stockColors: entity.stockColors,
     );
   }
 }

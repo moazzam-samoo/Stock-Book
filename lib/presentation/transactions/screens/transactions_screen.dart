@@ -12,6 +12,7 @@ import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
+import 'package:stock_investment_tracker/presentation/common/animated_pdf_button.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -44,21 +45,24 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           CustomAppBar(
             title: 'Transactions',
             actions: [
-              IconButton(
-                icon: Icon(Icons.picture_as_pdf_outlined, color: iconColor, size: 22),
-                tooltip: 'Export Portfolio PDF Report',
-                onPressed: () async {
-                  HapticFeedback.lightImpact();
-                  final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
-                  final summary = ref.read(portfolioSummaryProvider);
-                  final stockSummaries = ref.read(stockSummariesProvider);
-                  await PdfReportService.exportOverallPortfolioPdf(
-                    lots: allLots,
-                    summary: summary,
-                    stockSummaries: stockSummaries,
-                  );
-                },
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: AnimatedPdfButton(
+                  label: 'Export PDF',
+                  onPressed: () async {
+                    HapticFeedback.lightImpact();
+                    final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
+                    final summary = ref.read(portfolioSummaryProvider);
+                    final stockSummaries = ref.read(stockSummariesProvider);
+                    await PdfReportService.exportOverallPortfolioPdf(
+                      lots: allLots,
+                      summary: summary,
+                      stockSummaries: stockSummaries,
+                    );
+                  },
+                ),
               ),
+              const SizedBox(width: 8),
               IconButton(
                 icon: Icon(_showSearch ? Icons.close : Icons.search, color: iconColor, size: 22),
                 onPressed: () {
@@ -67,14 +71,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   });
                 },
               ),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: Icon(Icons.tune_rounded, color: iconColor, size: 22),
-                onPressed: () {
-                  // Toggle filter chip row focus or reset
-                },
-              ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
             ],
           ),
           if (_showSearch) const TransactionSearchBar(),
@@ -103,7 +100,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         padding: const EdgeInsets.only(bottom: 96.0),
         child: FloatingActionButton(
           shape: const CircleBorder(),
-          backgroundColor: const Color(0xFF584BF6),
+          backgroundColor: AppColors.moneyGreen,
           elevation: 4,
           onPressed: () {
             HapticFeedback.lightImpact();

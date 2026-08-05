@@ -22,7 +22,7 @@ class AppColors {
   static const Color textSecondaryLight = Color(0xFF757575);
 
   // Additional Tokens & Aliases
-  static const Color brandIndigo = Color.fromARGB(210, 13, 237, 91);
+  static const Color brandIndigo = Color(0xFF4CAF50);
   static const Color backgroundDark = deepSpaceBlack;
   static const Color dangerRed = alertRed;
   static const Color surfaceDark = offBlack;
