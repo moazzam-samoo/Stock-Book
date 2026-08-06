@@ -52,7 +52,9 @@ class SignInScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                          color: const Color(
+                            0xFF00E676,
+                          ).withValues(alpha: 0.15),
                           blurRadius: 24,
                           spreadRadius: 2,
                         ),
@@ -69,26 +71,15 @@ class SignInScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [
-                        Color(0xFF00E676),
-                        Color(0xFFE4C581),
-                        Color(0xFF3B82F6),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ).createShader(bounds),
-                    child: Text(
-                      'Stock Book',
-                      style: GoogleFonts.outfit(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 0.8,
-                      ),
-                      textAlign: TextAlign.center,
+                  Text(
+                    'Stock Book',
+                    style: GoogleFonts.outfit(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.8,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   const Text(

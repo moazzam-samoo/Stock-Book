@@ -2,7 +2,7 @@
 
   <img src="assets/icon/Stockk.png" width="160" alt="Stock Book Logo" />
 
-  # 📈 Stock Book
+  # Stock Book
   **The Next-Gen, Offline-First Stock Investment & Portfolio Tracking App**
 
   [![Flutter](https://img.shields.io/badge/Flutter-3.12+-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
@@ -31,9 +31,9 @@
 
 <div align="center">
 
-| 📊 Portfolio Dashboard | 🎯 Target Selling Price & Lots | 📝 Add & Edit Buy Transactions | 📄 PDF Statement Export |
+| 📊 Portfolio Dashboard | 🎯 Transactions | 📝 Settings | 📄 PDF |
 | :---: | :---: | :---: | :---: |
-| <img src="assets/screenshots/dashboard.png" width="220" alt="Dashboard"> | <img src="assets/screenshots/target_price.png" width="220" alt="Target Price"> | <img src="assets/screenshots/add_buy.png" width="220" alt="Add Transaction"> | <img src="assets/screenshots/pdf_report_mockup_1785873419567.png" width="220" alt="PDF Export"> |
+| <img src="assets/screenshots/dashboard.jpg" width="220" alt="Dashboard"> | <img src="assets/screenshots/transations.jpg" width="220" alt="Target Price"> | <img src="assets/screenshots/settings.jpg" width="220" alt="Add Transaction"> | <img src="assets/screenshots/pdf.jpg" width="220" alt="PDF Export"> |
 
 </div>
 

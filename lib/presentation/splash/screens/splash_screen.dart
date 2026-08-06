@@ -78,24 +78,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             const SizedBox(height: 28),
 
             // Styled App Title "Stock Book"
-            ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [
-                      Color(0xFF00E676), // Emerald
-                      Color(0xFFE4C581), // Gold
-                      Color(0xFF3B82F6), // Sky Blue
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ).createShader(bounds),
-                  child: Text(
-                    'Stock Book',
-                    style: GoogleFonts.outfit(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 0.8,
-                    ),
+            Text(
+                  'Stock Book',
+                  style: GoogleFonts.outfit(
+                    fontSize: 38,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.8,
                   ),
                 )
                 .animate()

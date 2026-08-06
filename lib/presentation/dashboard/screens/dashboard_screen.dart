@@ -93,11 +93,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     delegate: SliverChildListDelegate([
                       PortfolioHeader(
                             totalValue: portfolioSummary.portfolioValue,
-                            profitLossPercentage: portfolioSummary.startingCapital > 0
-                                ? ((portfolioSummary.portfolioValue - portfolioSummary.startingCapital) / portfolioSummary.startingCapital) * 100
+                            profitLossPercentage:
+                                portfolioSummary.startingCapital > 0
+                                ? ((portfolioSummary.portfolioValue -
+                                              portfolioSummary
+                                                  .startingCapital) /
+                                          portfolioSummary.startingCapital) *
+                                      100
                                 : (portfolioSummary.currentlyInvested > 0
-                                    ? (portfolioSummary.realizedPL / portfolioSummary.currentlyInvested) * 100
-                                    : 0.0),
+                                      ? (portfolioSummary.realizedPL /
+                                                portfolioSummary
+                                                    .currentlyInvested) *
+                                            100
+                                      : 0.0),
                             lastSyncTime: _lastSyncTime,
                             isOffline: _isOffline,
                           )
@@ -180,15 +188,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(height: 12),
 
                       if (stockSummaries.isEmpty)
-                        EmptyStateView(
-                          icon: Icons.show_chart,
-                          title: 'No stocks yet',
-                          message:
-                              'Add your first stock purchase to track your portfolio.',
-                          buttonLabel: 'Add your first stock',
-                          onButtonPressed: () {
-                            context.go('/transactions');
-                          },
+                        Column(
+                          children: [
+                            EmptyStateView(
+                              icon: Icons.show_chart,
+                              title: 'No stocks yet',
+                              message:
+                                  'Add your first stock purchase to track your portfolio.',
+                              buttonLabel: 'Add your first stock',
+                              onButtonPressed: () {
+                                context.go('/transactions');
+                              },
+                            ),
+                          ],
                         )
                       else
                         Container(
