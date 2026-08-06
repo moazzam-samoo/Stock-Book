@@ -1,112 +1,175 @@
-# 📈 Stock Book
-
 <p align="center">
-  <img src="assets/icon/Stockk.png" width="150" alt="Stock Book Logo">
+  <a href="#">
+    <img src="assets/icon/Stockk.png" width="160" alt="Stock Book Logo" style="border-radius: 20%; shadow: 0 4px 12px rgba(0,0,0,0.3);">
+  </a>
 </p>
 
-**Stock Book** is a premium, beautifully crafted, offline-first stock portfolio tracking application. Built with Flutter, it empowers investors to track their portfolio value, visualize asset allocation, and set target selling prices with an elegant and fast user experience.
+<h1 align="center">📈 Stock Book</h1>
+
+<p align="center">
+  <b>A Premium, Offline-First Stock Investment & Portfolio Tracking Mobile Application</b>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter">
+  <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
+  <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase">
+  <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
+  <img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License">
+</p>
+
+<p align="center">
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-tech-stack--libraries">Tech Stack</a> •
+  <a href="#-architecture--data-flow">Architecture</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-project-structure">Project Structure</a>
+</p>
 
 ---
 
-## ✨ Features
+## 🌟 Overview
 
-- **📊 Comprehensive Dashboard**
-  - Track **Total Portfolio Value**, **Starting Capital**, **Currently Invested**, **Free Cash**, and **Realized Profit/Loss**.
-  - Interactive portfolio distribution charts and detailed asset breakdown.
-- **💼 Offline-First Architecture**
-  - Add, edit, and manage stock transactions seamlessly even without an internet connection.
-  - Powered by **Hive** for instant local data persistence and **Firebase Firestore** for background cloud synchronization.
-- **🎯 Target Price Tracking**
-  - Set an optional Target Selling Price for your lots.
-  - Automatically calculates and displays the estimated profit percentage (+%) to help you stick to your investment strategy.
-- **🎨 Premium UI/UX**
-  - Gorgeous **Dark Theme** utilizing deep navy backgrounds and glassmorphism.
-  - **Outfit** Google Font for sleek, modern typography.
-  - Stunning animated **Splash Screen** with gradient text and seamless transitions.
-- **📱 Adaptive Launcher Icons**
-  - Fully optimized for Android and iOS with crisp, adaptive white backgrounds for perfect system launcher blending.
+**Stock Book** is a state-of-the-art mobile application engineered for investors who demand real-time portfolio insights with **zero latency** and **uncompromising offline access**. Designed with Flutter and Riverpod following **Clean Architecture (DDD)**, Stock Book bridges local Hive storage with cloud-backed Firebase Firestore synchronization.
 
-## 🛠 Tech Stack & Architecture
+---
 
-- **Framework**: [Flutter](https://flutter.dev/) (Dart)
-- **State Management**: [Riverpod](https://riverpod.dev/) (`riverpod_annotation`, `hooks_riverpod`)
-- **Architecture**: **Domain-Driven Design (DDD)** & **Clean Architecture** principles
-  - `lib/domain`: Entities, Core Business Logic, and Calculators
-  - `lib/data`: Models, Repositories, Hive Data Sources, and Firebase syncing
-  - `lib/presentation`: Screens, Widgets, and Riverpod Controllers
-- **Local Database**: [Hive](https://pub.dev/packages/hive) (TypeAdapters for complex entities)
-- **Cloud Database**: [Firebase Cloud Firestore](https://firebase.google.com/docs/firestore)
-- **Authentication**: [Firebase Auth](https://firebase.google.com/docs/auth) (Anonymous Login for friction-free onboarding)
-- **Routing**: [GoRouter](https://pub.dev/packages/go_router)
-- **Animations & Visuals**: `flutter_animate`, `fl_chart`, `google_fonts`
+## ⚡ Key Features
+
+| Feature | Description | Tech Highlight |
+| :--- | :--- | :--- |
+| **📊 Real-Time Dashboard** | Monitor Portfolio Value, Starting Capital, Currently Invested, Free Cash, and Realized P/L at a glance. | `fl_chart`, `riverpod` |
+| **💼 Offline-First Engine** | Instant UI updates written to Hive local DB first, then synced to Firestore when online. | `hive_flutter`, `cloud_firestore` |
+| **🎯 Target Selling Price** | Set target profit goals per lot and get live gain estimations (`+XX.X%`). | Domain Portfolio Calculator |
+| **🎨 Premium Dark Theme** | Curated palette with `#0F172A` deep navy backgrounds, glassmorphism, and Outfit typography. | `google_fonts`, `flutter_animate` |
+| **📱 Native Launcher Mask** | Adaptive Android launcher icon blending seamlessly into all launcher shapes. | `flutter_launcher_icons` |
+| **🔐 Frictionless Auth** | Anonymous & Google authentication backed by Firebase Security Rules. | `firebase_auth`, `google_sign_in` |
+
+---
+
+## 🛠 Tech Stack & Libraries
+
+### **Core Stack**
+- ![Flutter](https://img.shields.io/badge/Flutter-3.12+-02569B?logo=flutter&logoColor=white) **Framework**: Cross-platform UI toolkit.
+- ![Dart](https://img.shields.io/badge/Dart-3.0+-0175C2?logo=dart&logoColor=white) **Language**: Type-safe, high-performance runtime.
+
+### **State & Architecture**
+- ![Riverpod](https://img.shields.io/badge/Riverpod-2.6.1-00599C?logo=flutter&logoColor=white) **State Management**: Reactive, compile-safe dependency injection.
+- **Freezed & JSON Serializable**: Immutable models with pattern matching and serialization.
+
+### **Storage & Cloud Backend**
+- ![Hive](https://img.shields.io/badge/Hive-2.2.3-FF6F00?logo=hive&logoColor=white) **Local Database**: Ultra-fast key-value NoSQL database.
+- ![Firebase](https://img.shields.io/badge/Firestore-Cloud_Sync-FFCA28?logo=firebase&logoColor=black) **Cloud Database**: Real-time Firestore sync & backup.
+
+---
+
+## 🏗 Architecture & Data Flow
+
+Stock Book strictly adheres to **Domain-Driven Design (DDD)** and **Clean Architecture**, separating concerns into clear layers:
+
+```mermaid
+graph TD
+    A[UI / Presentation Layer] -->|Consumes States| B[Riverpod Controllers & Providers]
+    B -->|Calls UseCases / Repos| C[Domain Layer: Entities & PortfolioCalculator]
+    B -->|Reads / Writes| D[Data Layer: Repository Impl]
+    D -->|Instant Write| E[(Hive Local DB)]
+    D -->|Background Sync| F[(Firebase Firestore)]
+```
+
+### **Data Flow Principles**
+1. **User Action**: User creates/edits a stock lot.
+2. **Immediate UI Update**: Data is updated in local Hive storage instantly (0ms latency).
+3. **Background Sync**: If connected to internet, changes sync asynchronously to Firestore without blocking the UI.
+
+---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (version ^3.12.0 or higher)
-- Dart SDK
-- IDE (VS Code, Android Studio, etc.)
+### **Prerequisites**
+Ensure you have the following installed on your developer machine:
+- **Flutter SDK**: `>= 3.12.0`
+- **Dart SDK**: `>= 3.0.0`
+- **Android Studio** / **Xcode** (for iOS builds)
 
-### Installation
+### **1. Clone the Repository**
+```bash
+git clone https://github.com/yourusername/stock_investment_tracker.git
+cd stock_investment_tracker
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/stock_investment_tracker.git
-   cd stock_investment_tracker
-   ```
+### **2. Install Dependencies**
+```bash
+flutter pub get
+```
 
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
+### **3. Generate Code Artifacts**
+Run `build_runner` to generate Riverpod providers, Freezed models, and Hive adapters:
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
 
-3. **Generate code (for Riverpod, Freezed, and JSON Serializable)**
-   ```bash
-   dart run build_runner build --delete-conflicting-outputs
-   ```
+### **4. Launch the Application**
+```bash
+# Run on connected Android or iOS device / emulator
+flutter run
+```
 
-4. **Run the app**
-   ```bash
-   flutter run
-   ```
+---
 
-## 📸 Screenshots
-
-*(Replace with actual GitHub hosted image links when uploading to your repository)*
-
-| Dashboard | Add Transaction | Lot Details |
-| --- | --- | --- |
-| `<img src="path/to/dashboard_screenshot.png" width="250">` | `<img src="path/to/add_screenshot.png" width="250">` | `<img src="path/to/details_screenshot.png" width="250">` |
-
-## 🏗 Project Structure
+## 📁 Project Structure
 
 ```text
-lib/
-├── core/               # Theme, constants, formatting utilities, enums
-├── data/               # API clients, DTOs (Models), Hive Adapters, Repositories
-├── domain/             # Entities, Use Cases, Core Portfolio Calculators
-├── presentation/       # UI layer (Screens, Widgets, Providers)
-│   ├── auth/           # Sign-In / Onboarding screens
-│   ├── dashboard/      # Main portfolio dashboard
-│   ├── splash/         # Animated Splash screen
-│   ├── transactions/   # Add/Edit lot flows and list views
-│   └── routing/        # GoRouter configuration
-└── main.dart           # App entry point
+stock_investment_tracker/
+├── assets/
+│   └── icon/                 # PNG & SVG Logo assets and app icons
+├── lib/
+│   ├── core/                 # App Colors, Constants, Theme & Utilities
+│   ├── data/                 # Models, DTOs, Hive Adapters & Repositories
+│   ├── domain/               # Core Entities, Calculators & Business Logic
+│   │   ├── calculator/       # PortfolioCalculator & Summary logic
+│   │   └── entities/         # Stock, Lot, Sale entities
+│   ├── presentation/         # UI Screen & Widgets
+│   │   ├── auth/             # Sign In & Authentication Screens
+│   │   ├── dashboard/        # Main Portfolio Summary & Asset Allocation Cards
+│   │   ├── splash/           # Animated Splash Screen
+│   │   ├── transactions/     # Add Buy / Edit Lot Bottom Sheets & Cards
+│   │   └── routing/          # GoRouter Navigation Setup
+│   └── main.dart             # App Entry point & Initialization
+├── pubspec.yaml              # App configuration & package dependencies
+└── README.md                 # Project Documentation
 ```
+
+---
+
+## 🖼 App Branding & Splash
+
+<p align="center">
+  <img src="assets/icon/Stockk.png" width="220" alt="Stock Book App Icon">
+</p>
+
+The app features a custom-crafted high-resolution icon (`Stockk.png`) with an adaptive background (`#FFFFFF`) designed for modern Android 13+ thematic icons and iOS squircle standards.
+
+---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome!
+Contributions are what make the open-source community an amazing place to learn, inspire, and create.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+3. Commit your Changes (`git commit -m 'feat: Add AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 🛡 License
+---
 
-Distributed under the MIT License. See `LICENSE` for more information.
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more details.
 
 ---
-*Powered by Coding District*
+
+<p align="center">
+  <b>Powered by Coding District</b>
+</p>
