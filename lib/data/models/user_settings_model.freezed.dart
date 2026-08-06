@@ -213,7 +213,7 @@ return $default(_that.favorites,_that.startingCapital,_that.currency,_that.theme
 @JsonSerializable()
 
 class _UserSettingsModel implements UserSettingsModel {
-  const _UserSettingsModel({final  List<String> favorites = const [], this.startingCapital = 10000.0, this.currency = 'PKR', this.themeMode = 'dark', final  Map<String, int> stockColors = const {}}): _favorites = favorites,_stockColors = stockColors;
+  const _UserSettingsModel({final  List<String> favorites = const [], this.startingCapital = 0.0, this.currency = 'PKR', this.themeMode = 'dark', final  Map<String, int> stockColors = const {}}): _favorites = favorites,_stockColors = stockColors;
   factory _UserSettingsModel.fromJson(Map<String, dynamic> json) => _$UserSettingsModelFromJson(json);
 
  final  List<String> _favorites;

@@ -30,7 +30,7 @@ class StockTrackerApp extends ConsumerWidget {
     final settingsAsync = ref.watch(settingsProvider);
 
     return MaterialApp.router(
-      title: 'Stocks Investment Records',
+      title: 'Stock Book',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

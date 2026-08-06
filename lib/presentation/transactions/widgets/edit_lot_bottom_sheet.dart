@@ -43,6 +43,7 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   late DateTime? _buyDate;
   late double _sharesPurchased;
   late double _buyPrice;
+  late double? _targetPrice;
   bool _isSaving = false;
 
   double get _amountInvested => _sharesPurchased * _buyPrice;
@@ -55,6 +56,7 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
     _buyDate = widget.lot.buyDate;
     _sharesPurchased = widget.lot.sharesPurchased.toDouble();
     _buyPrice = widget.lot.buyPricePerShare;
+    _targetPrice = widget.lot.targetPrice;
   }
 
   @override
@@ -83,6 +85,7 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
         sharesPurchased: _sharesPurchased.toInt(),
         buyPricePerShare: _buyPrice,
         amountInvested: _amountInvested,
+        targetPrice: _targetPrice,
       );
 
       final repo = ref.read(lotRepositoryProvider);
@@ -214,6 +217,16 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                NumericInput(
+                  label: 'Target Selling Price / Share (Optional)',
+                  initialValue: widget.lot.targetPrice?.toString() ?? '',
+                  onChanged: (val) {
+                    setState(() {
+                      _targetPrice = double.tryParse(val);
+                    });
+                  },
                 ),
                 const SizedBox(height: 20),
                 Container(

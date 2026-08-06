@@ -25,7 +25,7 @@ class LotCard extends ConsumerStatefulWidget {
   final bool showStockDetailNavigation;
 
   const LotCard({
-    super.key, 
+    super.key,
     required this.lot,
     this.showStockDetailNavigation = true,
   });
@@ -92,280 +92,292 @@ class _LotCardState extends ConsumerState<LotCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Row
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: widget.showStockDetailNavigation
-                        ? () => context.push('/stock/${widget.lot.ticker}')
-                        : null,
-                    child: TickerAvatar(ticker: widget.lot.ticker, size: 42),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: widget.showStockDetailNavigation
-                                  ? () => context.push('/stock/${widget.lot.ticker}')
-                                  : null,
-                              child: Text(
-                                '${widget.lot.ticker} · ',
-                                style: AppTypography.body.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: primaryTextColor,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '${wholeFormat.format(widget.lot.sharesPurchased)} sh',
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: widget.showStockDetailNavigation
+                      ? () => context.push('/stock/${widget.lot.ticker}')
+                      : null,
+                  child: TickerAvatar(ticker: widget.lot.ticker, size: 42),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: widget.showStockDetailNavigation
+                                ? () => context.push(
+                                    '/stock/${widget.lot.ticker}',
+                                  )
+                                : null,
+                            child: Text(
+                              '${widget.lot.ticker} · ',
                               style: AppTypography.body.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: primaryTextColor,
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            StatusBadge(status: widget.lot.status),
-                          ],
+                          ),
+                          Text(
+                            '${wholeFormat.format(widget.lot.sharesPurchased)} sh',
+                            style: AppTypography.body.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: primaryTextColor,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          StatusBadge(status: widget.lot.status),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Bought ${dateFormat.format(widget.lot.buyDate)} @ ${AppCurrencyFormatter.format(widget.lot.buyPricePerShare)}',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.neutral500,
+                          fontSize: 13,
                         ),
-                        const SizedBox(height: 4),
+                      ),
+                      Text(
+                        'Holding Period : ${holdingDaysText}',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.chartBlue,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (widget.lot.targetPrice != null &&
+                          widget.lot.targetPrice! > 0) ...[
+                        const SizedBox(height: 2),
                         Text(
-                          'Bought ${dateFormat.format(widget.lot.buyDate)} @ ${AppCurrencyFormatter.format(widget.lot.buyPricePerShare)}',
+                          'Target: ${AppCurrencyFormatter.format(widget.lot.targetPrice!)} (${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100) >= 0 ? "+" : ""}${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100).toStringAsFixed(1)}% Est.)',
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.neutral500,
+                            color: AppColors.moneyGreen.withOpacity(0.8),
+                            fontWeight: FontWeight.normal,
                             fontSize: 13,
                           ),
                         ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: AppColors.neutral500,
+                  size: 22,
+                ),
+              ],
+            ),
+
+            // Closed Profit Banner (Summary row when closed)
+            if (widget.lot.status == LotStatus.closed) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: plColor.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: plColor.withOpacity(0.12)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          isProfit ? Icons.arrow_upward : Icons.arrow_downward,
+                          size: 16,
+                          color: plColor,
+                        ),
+                        const SizedBox(width: 4),
                         Text(
-                          'Holding Period : ${holdingDaysText}',
+                          isProfit ? 'Realized Profit' : 'Realized Loss',
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.chartBlue,
+                            color: plColor,
+                            fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
                         ),
                       ],
                     ),
+                    Text(
+                      '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(widget.lot.realizedProfitLoss.abs())}',
+                      style: AppTypography.body.copyWith(
+                        color: plColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Expanded content
+            if (_isExpanded) ...[
+              const SizedBox(height: 16),
+              Divider(color: borderColor, height: 1),
+              const SizedBox(height: 16),
+              Text(
+                'SALE HISTORY',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.neutral500,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (widget.lot.sales == null || widget.lot.sales!.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text(
+                    'No sales recorded yet.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                  Icon(
-                    _isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: AppColors.neutral500,
-                    size: 22,
-                  ),
-                ],
+                )
+              else
+                ...widget.lot.sales!
+                    .map(
+                      (sale) => SaleEventRow(sale: sale, lotId: widget.lot.id!),
+                    )
+                    .toList(),
+
+              const SizedBox(height: 16),
+              // Remaining shares pill container
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: pillBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Remaining',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.neutral500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      '${wholeFormat.format(widget.lot.sharesRemaining)} shares',
+                      style: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: primaryTextColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
-              // Closed Profit Banner (Summary row when closed)
-              if (widget.lot.status == LotStatus.closed) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: plColor.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: plColor.withOpacity(0.12)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            isProfit
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            size: 16,
-                            color: plColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isProfit ? 'Realized Profit' : 'Realized Loss',
-                            style: AppTypography.caption.copyWith(
-                              color: plColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+              if (widget.lot.status != LotStatus.closed) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      AddSellBottomSheet.show(context, widget.lot);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark
+                          ? const Color(0xFF132B1A)
+                          : const Color(0xFFECFDF5),
+                      foregroundColor: AppColors.moneyGreen,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(widget.lot.realizedProfitLoss.abs())}',
-                        style: AppTypography.body.copyWith(
-                          color: plColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
+                    ),
+                    icon: const Icon(
+                      Icons.south_west_rounded,
+                      size: 18,
+                      color: AppColors.moneyGreen,
+                    ),
+                    label: const Text(
+                      'Add Sale from this lot',
+                      style: TextStyle(
+                        color: AppColors.moneyGreen,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
 
-              // Expanded content
-              if (_isExpanded) ...[
-                const SizedBox(height: 16),
-                Divider(color: borderColor, height: 1),
-                const SizedBox(height: 16),
-                Text(
-                  'SALE HISTORY',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.neutral500,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                    fontSize: 11,
-                  ),
-                ),
+              const SizedBox(height: 12),
+              AnimatedPdfButton(
+                isCompact: false,
+                label: 'Download Lot PDF Report',
+                onPressed: () => PdfReportService.exportLotPdf(widget.lot),
+              ),
+              if (widget.showStockDetailNavigation) ...[
                 const SizedBox(height: 12),
-                if (widget.lot.sales == null || widget.lot.sales!.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: Text(
-                      'No sales recorded yet.',
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.neutral500,
-                        fontStyle: FontStyle.italic,
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push('/stock/${widget.lot.ticker}'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: borderColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      foregroundColor: primaryTextColor,
                     ),
-                  )
-                else
-                  ...widget.lot.sales!
-                      .map(
-                        (sale) =>
-                            SaleEventRow(sale: sale, lotId: widget.lot.id!),
-                      )
-                      .toList(),
-
-                const SizedBox(height: 16),
-                // Remaining shares pill container
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: pillBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Remaining',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.neutral500,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        '${wholeFormat.format(widget.lot.sharesRemaining)} shares',
-                        style: AppTypography.body.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: primaryTextColor,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                if (widget.lot.status != LotStatus.closed) ...[
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        AddSellBottomSheet.show(context, widget.lot);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? const Color(0xFF132B1A)
-                            : const Color(0xFFECFDF5),
-                        foregroundColor: AppColors.moneyGreen,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.south_west_rounded,
-                        size: 18,
-                        color: AppColors.moneyGreen,
-                      ),
-                      label: const Text(
-                        'Add Sale from this lot',
-                        style: TextStyle(
-                          color: AppColors.moneyGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
+                    icon: Icon(
+                      Icons.analytics_outlined,
+                      size: 18,
+                      color: primaryTextColor,
                     ),
-                  ),
-                ],
-
-                const SizedBox(height: 12),
-                AnimatedPdfButton(
-                  isCompact: false,
-                  label: 'Download Lot PDF Report',
-                  onPressed: () => PdfReportService.exportLotPdf(widget.lot),
-                ),
-                if (widget.showStockDetailNavigation) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          context.push('/stock/${widget.lot.ticker}'),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: borderColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        foregroundColor: primaryTextColor,
-                      ),
-                      icon: Icon(
-                        Icons.analytics_outlined,
-                        size: 18,
+                    label: Text(
+                      'View Full Stock Details',
+                      style: TextStyle(
                         color: primaryTextColor,
-                      ),
-                      label: Text(
-                        'View Full Stock Details',
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ],
-          ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   void _showContextMenu(BuildContext context) async {
     HapticFeedback.mediumImpact();
     if (_tapDownPosition == null) return;
-    
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    
+
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(
@@ -380,9 +392,19 @@ class _LotCardState extends ConsumerState<LotCard> {
           value: 'edit',
           child: Row(
             children: [
-              const Icon(Icons.edit_outlined, color: Color(0xFF584BF6), size: 20),
+              const Icon(
+                Icons.edit_outlined,
+                color: Color(0xFF584BF6),
+                size: 20,
+              ),
               const SizedBox(width: 12),
-              Text('Edit Lot', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+              Text(
+                'Edit Lot',
+                style: TextStyle(
+                  color: primaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -390,9 +412,19 @@ class _LotCardState extends ConsumerState<LotCard> {
           value: 'pdf',
           child: Row(
             children: [
-              const Icon(Icons.picture_as_pdf_outlined, color: Color(0xFF2563EB), size: 20),
+              const Icon(
+                Icons.picture_as_pdf_outlined,
+                color: Color(0xFF2563EB),
+                size: 20,
+              ),
               const SizedBox(width: 12),
-              Text('Export Lot PDF', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+              Text(
+                'Export Lot PDF',
+                style: TextStyle(
+                  color: primaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -400,9 +432,19 @@ class _LotCardState extends ConsumerState<LotCard> {
           value: 'delete',
           child: Row(
             children: [
-              const Icon(Icons.delete_outline, color: AppColors.alertRed, size: 20),
+              const Icon(
+                Icons.delete_outline,
+                color: AppColors.alertRed,
+                size: 20,
+              ),
               const SizedBox(width: 12),
-              const Text('Delete Lot', style: TextStyle(color: AppColors.alertRed, fontWeight: FontWeight.w600)),
+              const Text(
+                'Delete Lot',
+                style: TextStyle(
+                  color: AppColors.alertRed,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -446,8 +488,7 @@ class _LotCardState extends ConsumerState<LotCard> {
       HapticFeedback.mediumImpact();
       final results = await Connectivity().checkConnectivity();
       final isOffline =
-          results.contains(ConnectivityResult.none) ||
-          results.isEmpty;
+          results.contains(ConnectivityResult.none) || results.isEmpty;
 
       final repo = ref.read(lotRepositoryProvider);
       if (repo != null) {

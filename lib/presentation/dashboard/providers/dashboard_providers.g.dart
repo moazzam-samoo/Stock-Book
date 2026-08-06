@@ -23,7 +23,7 @@ final allLotsProvider = AutoDisposeStreamProvider<List<Lot>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllLotsRef = AutoDisposeStreamProviderRef<List<Lot>>;
-String _$portfolioSummaryHash() => r'fa092a692e2d4a998982e23902d9b8fdf4077461';
+String _$portfolioSummaryHash() => r'8e0d5eb1ff38a04278a56169331339e1348b2d7e';
 
 /// See also [portfolioSummary].
 @ProviderFor(portfolioSummary)

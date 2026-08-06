@@ -11,18 +11,25 @@ part 'lot_model.g.dart';
 
 @freezed
 abstract class LotModel with _$LotModel {
-  @JsonSerializable(explicitToJson: true)
   const factory LotModel({
     required String id,
     required String ticker,
     @TimestampConverter() required DateTime buyDate,
     required int sharesPurchased,
     required double buyPricePerShare,
+    double? targetPrice,
+    @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)
     @Default([]) List<SaleModel> sales,
   }) = _LotModel;
 
   factory LotModel.fromJson(Map<String, dynamic> json) => _$LotModelFromJson(json);
 }
+
+List<Map<String, dynamic>> _salesToJson(List<SaleModel> sales) =>
+    sales.map((s) => s.toJson()).toList();
+
+List<SaleModel> _salesFromJson(List<dynamic>? list) =>
+    list == null ? [] : list.map((e) => SaleModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
 
 extension LotModelExtension on LotModel {
   Lot toEntity() {
@@ -55,6 +62,7 @@ extension LotModelExtension on LotModel {
       sharesPurchased: sharesPurchased,
       buyPricePerShare: buyPricePerShare,
       amountInvested: amountInvested,
+      targetPrice: targetPrice,
       sales: entitySales,
       sharesRemaining: remaining,
       amountInvestedRemaining: investedRemaining,
@@ -70,6 +78,7 @@ extension LotModelExtension on LotModel {
       buyDate: entity.buyDate,
       sharesPurchased: entity.sharesPurchased,
       buyPricePerShare: entity.buyPricePerShare,
+      targetPrice: entity.targetPrice,
       sales: entity.sales.map((s) => SaleModelExtension.fromEntity(s)).toList(),
     );
   }

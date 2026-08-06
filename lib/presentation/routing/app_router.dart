@@ -11,6 +11,7 @@ import '../dashboard/screens/dashboard_screen.dart';
 import '../dashboard/screens/stock_detail_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../transactions/screens/transactions_screen.dart';
+import '../splash/screens/splash_screen.dart';
 
 import '../common/swipeable_navigation_shell.dart';
 
@@ -22,9 +23,12 @@ GoRouter appRouter(AppRouterRef ref) {
   final onboardingSeen = ref.watch(onboardingControllerProvider);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     redirect: (context, state) {
+      if (state.matchedLocation == '/splash') {
+        return null;
+      }
       final isLoggedIn = authState.valueOrNull != null;
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
       final isGoingToSignIn = state.matchedLocation == '/sign-in';
@@ -47,6 +51,10 @@ GoRouter appRouter(AppRouterRef ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),

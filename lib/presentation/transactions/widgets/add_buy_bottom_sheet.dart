@@ -40,6 +40,7 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
   DateTime? _buyDate = DateTime.now();
   double _sharesPurchased = 0.0;
   double _buyPrice = 0.0;
+  double? _targetPrice;
 
   double get _amountInvested => _sharesPurchased * _buyPrice;
 
@@ -64,6 +65,7 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
       buyDate: _buyDate!,
       sharesPurchased: _sharesPurchased,
       buyPricePerShare: _buyPrice,
+      targetPrice: _targetPrice,
     );
 
     if (!mounted) return;
@@ -177,6 +179,15 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                NumericInput(
+                  label: 'Target Selling Price / Share (Optional)',
+                  onChanged: (val) {
+                    setState(() {
+                      _targetPrice = double.tryParse(val);
+                    });
+                  },
                 ),
                 const SizedBox(height: 20),
                 // Amount Invested Box (Matches Add Buy.png)

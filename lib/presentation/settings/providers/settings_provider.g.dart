@@ -6,7 +6,7 @@ part of 'settings_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$settingsHash() => r'c11aa51eaa5c9a3d472038e4a60456cb29e07884';
+String _$settingsHash() => r'f8e8dbadbdc9e1a751a937aa2b9ae3e7b0921a50';
 
 /// See also [settings].
 @ProviderFor(settings)
@@ -24,7 +24,7 @@ final settingsProvider = AutoDisposeStreamProvider<UserSettings>.internal(
 // ignore: unused_element
 typedef SettingsRef = AutoDisposeStreamProviderRef<UserSettings>;
 String _$settingsControllerHash() =>
-    r'b2c38a26ddd256d086d53add327c5b0673654570';
+    r'dbddcb17fcd3d6dbc69ee82c5908abe486d54523';
 
 /// See also [SettingsController].
 @ProviderFor(SettingsController)

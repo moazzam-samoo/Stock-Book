@@ -10,6 +10,7 @@ class Lot extends Equatable {
   final int sharesPurchased;
   final double buyPricePerShare;
   final double amountInvested;
+  final double? targetPrice;
   final List<Sale> sales;
   
   // Derived fields that can be attached to the entity after calculation
@@ -25,6 +26,7 @@ class Lot extends Equatable {
     required this.sharesPurchased,
     required this.buyPricePerShare,
     required this.amountInvested,
+    this.targetPrice,
     this.sales = const [],
     this.sharesRemaining = 0,
     this.amountInvestedRemaining = 0.0,
@@ -39,6 +41,7 @@ class Lot extends Equatable {
     int? sharesPurchased,
     double? buyPricePerShare,
     double? amountInvested,
+    double? targetPrice,
     List<Sale>? sales,
     int? sharesRemaining,
     double? amountInvestedRemaining,
@@ -52,6 +55,7 @@ class Lot extends Equatable {
       sharesPurchased: sharesPurchased ?? this.sharesPurchased,
       buyPricePerShare: buyPricePerShare ?? this.buyPricePerShare,
       amountInvested: amountInvested ?? this.amountInvested,
+      targetPrice: targetPrice ?? this.targetPrice,
       sales: sales ?? this.sales,
       sharesRemaining: sharesRemaining ?? this.sharesRemaining,
       amountInvestedRemaining: amountInvestedRemaining ?? this.amountInvestedRemaining,
@@ -77,6 +81,7 @@ class Lot extends Equatable {
         sharesPurchased,
         buyPricePerShare,
         amountInvested,
+        targetPrice,
         sales,
         sharesRemaining,
         amountInvestedRemaining,

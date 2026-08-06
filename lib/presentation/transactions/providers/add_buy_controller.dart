@@ -18,6 +18,7 @@ class AddBuyController extends _$AddBuyController {
     required DateTime buyDate,
     required double sharesPurchased,
     required double buyPricePerShare,
+    double? targetPrice,
   }) async {
     state = const AsyncLoading();
     try {
@@ -30,6 +31,7 @@ class AddBuyController extends _$AddBuyController {
         sharesPurchased: sharesPurchased.toInt(),
         buyPricePerShare: buyPricePerShare,
         amountInvested: amountInvested,
+        targetPrice: targetPrice,
         sharesRemaining: sharesPurchased.toInt(),
         amountInvestedRemaining: amountInvested,
         realizedProfitLoss: 0.0,

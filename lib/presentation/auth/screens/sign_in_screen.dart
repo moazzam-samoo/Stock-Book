@@ -5,6 +5,8 @@ import 'package:stock_investment_tracker/presentation/auth/controllers/auth_cont
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/auth/widgets/animated_stock_chart.dart';
 import 'package:stock_investment_tracker/presentation/auth/widgets/stock_ticker_rain.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
@@ -44,21 +46,49 @@ class SignInScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 48),
-                  // App Logo
-                  Image.asset(
-                    'assets/icon/app_logo.png',
-                    width: 100,
-                    height: 100,
+                  // App High-Resolution Logo Card
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/icon/Stockk.png',
+                        width: 110,
+                        height: 110,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Stocks Investment Records',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [
+                        Color(0xFF00E676),
+                        Color(0xFFE4C581),
+                        Color(0xFF3B82F6),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: Text(
+                      'Stock Book',
+                      style: GoogleFonts.outfit(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.8,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   const Text(
