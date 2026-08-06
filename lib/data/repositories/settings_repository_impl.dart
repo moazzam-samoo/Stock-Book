@@ -51,7 +51,11 @@ class SettingsRepositoryImpl implements SettingsRepository {
   Future<void> updateSettings(UserSettings settings) async {
     final model = UserSettingsModelExtension.fromEntity(settings);
     await _hiveDataSource.saveSettings(model);
-    await _firestoreDataSource.updateSettings(_uid, model);
+    try {
+      await _firestoreDataSource.updateSettings(_uid, model);
+    } catch (_) {
+      // Local Hive storage updated successfully; Firestore will sync when re-connected
+    }
   }
 
   @override

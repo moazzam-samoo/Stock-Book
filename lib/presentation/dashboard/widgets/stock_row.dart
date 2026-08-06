@@ -45,7 +45,7 @@ class StockRow extends ConsumerWidget {
     final plColor = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
     
     final settings = ref.watch(settingsProvider).valueOrNull;
-    final customColor = settings?.stockColors[summary.ticker];
+    final customColor = settings?.stockColors[summary.ticker.toUpperCase().trim()];
     final sparklineColor = customColor != null 
         ? Color(customColor) 
         : StockColorUtils.getColorForTicker(summary.ticker);

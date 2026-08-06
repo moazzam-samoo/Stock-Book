@@ -30,7 +30,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget build(BuildContext context) {
     final lots = ref.watch(filteredLotsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final iconColor = isDark
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF64748B);
 
     return PopScope(
       canPop: false,
@@ -40,76 +42,84 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         }
       },
       child: AppScaffold(
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: 'Transactions',
-            actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: AnimatedPdfButton(
-                  label: 'Export PDF',
-                  onPressed: () async {
-                    HapticFeedback.lightImpact();
-                    final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
-                    final summary = ref.read(portfolioSummaryProvider);
-                    final stockSummaries = ref.read(stockSummariesProvider);
-                    await PdfReportService.exportOverallPortfolioPdf(
-                      lots: allLots,
-                      summary: summary,
-                      stockSummaries: stockSummaries,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(_showSearch ? Icons.close : Icons.search, color: iconColor, size: 22),
-                onPressed: () {
-                  setState(() {
-                    _showSearch = !_showSearch;
-                  });
-                },
-              ),
-              const SizedBox(width: 12),
-            ],
-          ),
-          if (_showSearch) const TransactionSearchBar(),
-          const FilterChipRow(),
-          Expanded(
-            child: lots.isEmpty
-                ? const EmptyStateView(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'No transactions found',
-                    message: 'Add your first stock purchase to get started.',
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 110),
-                    itemCount: lots.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        child: LotCard(lot: lots[index]),
+        body: Column(
+          children: [
+            CustomAppBar(
+              title: 'Transactions',
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: AnimatedPdfButton(
+                    label: 'Export PDF',
+                    onPressed: () async {
+                      HapticFeedback.lightImpact();
+                      final allLots =
+                          ref.read(allLotsProvider).valueOrNull ?? [];
+                      final summary = ref.read(portfolioSummaryProvider);
+                      final stockSummaries = ref.read(stockSummariesProvider);
+                      await PdfReportService.exportOverallPortfolioPdf(
+                        lots: allLots,
+                        summary: summary,
+                        stockSummaries: stockSummaries,
                       );
                     },
                   ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(
+                    _showSearch ? Icons.close : Icons.search,
+                    color: iconColor,
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showSearch = !_showSearch;
+                    });
+                  },
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+            if (_showSearch) const TransactionSearchBar(),
+            const FilterChipRow(),
+            Expanded(
+              child: lots.isEmpty
+                  ? const EmptyStateView(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'No transactions found',
+                      message: 'Add your first stock purchase to get started.',
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 110),
+                      itemCount: lots.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          child: LotCard(lot: lots[index]),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 96.0),
+          child: FloatingActionButton(
+            shape: const CircleBorder(),
+            backgroundColor: AppColors.moneyGreen.withOpacity(0.7),
+            elevation: 4,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              AddTransactionBottomSheet.show(context);
+            },
+            child: const Icon(Icons.add, color: Colors.white, size: 28),
           ),
-        ],
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 96.0),
-        child: FloatingActionButton(
-          shape: const CircleBorder(),
-          backgroundColor: AppColors.moneyGreen,
-          elevation: 4,
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            AddTransactionBottomSheet.show(context);
-          },
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),
-    ),
     );
   }
 }

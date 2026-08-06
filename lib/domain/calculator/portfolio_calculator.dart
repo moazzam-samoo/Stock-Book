@@ -147,7 +147,9 @@ class PortfolioCalculator {
     final totalInvested = hasStartingCapital
         ? startingCapital
         : currentlyInvested;
-    final freeCash = startingCapital;
+    final freeCash = hasStartingCapital
+        ? (startingCapital - currentlyInvested)
+        : 0.0;
     final portfolioValue = hasStartingCapital
         ? (startingCapital + realizedPL)
         : (currentlyInvested + realizedPL);

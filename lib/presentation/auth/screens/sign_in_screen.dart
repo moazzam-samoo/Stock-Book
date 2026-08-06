@@ -37,7 +37,10 @@ class SignInScreen extends ConsumerWidget {
 
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 24.0,
+              ),
               child: Column(
                 children: [
                   const SizedBox(height: 48),
@@ -133,5 +136,3 @@ class SignInScreen extends ConsumerWidget {
     );
   }
 }
-
-

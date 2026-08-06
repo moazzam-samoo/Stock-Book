@@ -126,8 +126,8 @@ class SettingsScreen extends ConsumerWidget {
             spacing: 8,
             runSpacing: 12,
             children: [
-              ...((settings.favorites as List<String>).map((ticker) {
-                final customColorVal = settings.stockColors[ticker];
+              ...(settings.favorites.map((ticker) {
+                final customColorVal = settings.stockColors[ticker.toUpperCase().trim()];
                 final avatarColor = customColorVal != null ? Color(customColorVal) : StockColorUtils.getColorForTicker(ticker);
 
                 return Container(
@@ -592,11 +592,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              if (ticker.trim().isNotEmpty) {
-                final navigator = Navigator.of(context);
-                await ref.read(settingsControllerProvider.notifier).addFavorite(ticker.trim().toUpperCase());
+              final cleanTicker = ticker.trim().toUpperCase();
+              if (cleanTicker.isNotEmpty) {
+                Navigator.pop(context);
+                await ref.read(settingsControllerProvider.notifier).addFavorite(cleanTicker);
                 ref.invalidate(settingsProvider);
-                navigator.pop();
               }
             },
             child: const Text('Add'),

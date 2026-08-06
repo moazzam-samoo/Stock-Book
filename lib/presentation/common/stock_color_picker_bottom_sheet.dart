@@ -121,8 +121,10 @@ class StockColorPickerBottomSheet extends ConsumerWidget {
                 final isSelected = currentColorValue == color.value;
                 return GestureDetector(
                   onTap: () async {
-                    await ref.read(settingsControllerProvider.notifier).updateStockColor(ticker.toUpperCase().trim(), color.value);
-                    if (context.mounted) Navigator.pop(context);
+                    final cleanTicker = ticker.toUpperCase().trim();
+                    Navigator.pop(context);
+                    await ref.read(settingsControllerProvider.notifier).updateStockColor(cleanTicker, color.value);
+                    ref.invalidate(settingsProvider);
                   },
                   child: Container(
                     width: 44,

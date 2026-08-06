@@ -51,19 +51,19 @@ class AppBottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NavItem(
-                icon: Icons.home_rounded,
+                icon: Icons.home_outlined,
                 label: 'Dashboard',
                 isSelected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                icon: Icons.receipt_long_rounded,
+                icon: Icons.receipt_long,
                 label: 'Transactions',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _NavItem(
-                icon: Icons.settings_rounded,
+                icon: Icons.settings,
                 label: 'Settings',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
@@ -106,7 +106,9 @@ class _NavItem extends StatelessWidget {
             ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
             : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
+          color: isSelected
+              ? AppColors.chartGreen.withOpacity(0.6)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Row(
