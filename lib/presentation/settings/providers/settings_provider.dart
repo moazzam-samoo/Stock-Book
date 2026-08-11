@@ -28,7 +28,11 @@ Stream<UserSettings> settings(SettingsRef ref) async* {
   }
 }
 
-@riverpod
+// keepAlive: this notifier is only ever reached via ref.read(...notifier),
+// never ref.watch, so a plain autoDispose instance can be torn down mid-write
+// and throw "Bad state: Future already completed" when it tries to finalize
+// its state afterwards. Same fix as WithdrawalController.
+@Riverpod(keepAlive: true)
 class SettingsController extends _$SettingsController {
   @override
   FutureOr<void> build() {}

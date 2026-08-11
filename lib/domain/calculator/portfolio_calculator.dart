@@ -3,6 +3,7 @@ import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/sale.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
+import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 
 class PortfolioCalculator {
@@ -127,21 +128,37 @@ class PortfolioCalculator {
     return summaries;
   }
 
+  static double calculateTotalWithdrawn(List<Withdrawal> withdrawals) {
+    if (withdrawals.isEmpty) return 0.0;
+    return _round(withdrawals.fold(0.0, (sum, w) => sum + w.amount));
+  }
+
+  /// Aggregates the dashboard figures.
+  ///
+  /// [totalWithdrawn] is cash taken out of profit. It is subtracted from the
+  /// realized P/L, which in turn pulls down the portfolio value and the liquid
+  /// capital. Starting capital, currently-invested and free cash are
+  /// deliberately left untouched — withdrawing profit does not change how much
+  /// capital you started with or how much is sitting in stocks.
   static PortfolioSummary calculatePortfolioSummary(
     List<Lot> allLots,
-    double startingCapital,
-  ) {
+    double startingCapital, [
+    double totalWithdrawn = 0.0,
+  ]) {
     double currentlyInvested = 0.0;
-    double realizedPL = 0.0;
+    double grossRealizedPL = 0.0;
     int openLots = 0;
 
     for (final lot in allLots) {
       currentlyInvested += calculateAmountInvestedRemaining(lot);
-      realizedPL += calculateRealizedProfitLoss(lot);
+      grossRealizedPL += calculateRealizedProfitLoss(lot);
       if (calculateLotStatus(lot) != LotStatus.closed) {
         openLots++;
       }
     }
+
+    // Net of withdrawals: everything downstream inherits the reduction.
+    final realizedPL = grossRealizedPL - totalWithdrawn;
 
     final bool hasStartingCapital = startingCapital > 0;
     final totalInvested = hasStartingCapital
@@ -162,6 +179,8 @@ class PortfolioCalculator {
       totalInvested: _round(totalInvested),
       currentlyInvested: _round(currentlyInvested),
       realizedPL: _round(realizedPL),
+      grossRealizedPL: _round(grossRealizedPL),
+      totalWithdrawn: _round(totalWithdrawn),
       freeCash: _round(freeCash),
       totalCash: _round(totalCash),
       openLots: openLots,

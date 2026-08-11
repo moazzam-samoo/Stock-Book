@@ -15,6 +15,10 @@ class StatCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isSelected;
 
+  /// Optional footnote under the value, e.g. "Rs 5,000 withdrawn".
+  final String? tag;
+  final Color? tagColor;
+
   const StatCard({
     super.key,
     required this.label,
@@ -24,6 +28,8 @@ class StatCard extends StatelessWidget {
     this.animationDelayMs = 0,
     this.onTap,
     this.isSelected = false,
+    this.tag,
+    this.tagColor,
   });
 
   @override
@@ -115,6 +121,31 @@ class StatCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (tag != null) ...[
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.north_east_rounded,
+                        size: 10,
+                        color: tagColor ?? AppColors.warningYellow,
+                      ),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          tag!,
+                          style: AppTypography.caption.copyWith(
+                            color: tagColor ?? AppColors.warningYellow,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

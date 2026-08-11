@@ -24,12 +24,12 @@ final settingsProvider = AutoDisposeStreamProvider<UserSettings>.internal(
 // ignore: unused_element
 typedef SettingsRef = AutoDisposeStreamProviderRef<UserSettings>;
 String _$settingsControllerHash() =>
-    r'dbddcb17fcd3d6dbc69ee82c5908abe486d54523';
+    r'69b5e45e457169c3d12f164c1d621f05fdc01873';
 
 /// See also [SettingsController].
 @ProviderFor(SettingsController)
 final settingsControllerProvider =
-    AutoDisposeAsyncNotifierProvider<SettingsController, void>.internal(
+    AsyncNotifierProvider<SettingsController, void>.internal(
       SettingsController.new,
       name: r'settingsControllerProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -39,6 +39,6 @@ final settingsControllerProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$SettingsController = AutoDisposeAsyncNotifier<void>;
+typedef _$SettingsController = AsyncNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

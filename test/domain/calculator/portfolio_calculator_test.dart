@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_investment_tracker/domain/calculator/portfolio_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/entities/sale.dart';
+import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 
 void main() {
@@ -196,6 +197,81 @@ void main() {
       expect(summary.freeCash, 9000.0);
       expect(summary.openLots, 1);
       expect(summary.portfolioValue, 11000.0);
+      expect(summary.grossRealizedPL, 1000.0);
+      expect(summary.totalWithdrawn, 0.0);
+    });
+
+    test('withdrawals reduce realized P/L, portfolio value and liquid capital only', () {
+      final lot1 = Lot(
+        id: '1',
+        ticker: 'AAPL',
+        buyDate: DateTime.now(),
+        sharesPurchased: 10,
+        buyPricePerShare: 100.0,
+        amountInvested: 1000.0,
+      );
+
+      final lot2 = Lot(
+        id: '2',
+        ticker: 'MSFT',
+        buyDate: DateTime.now(),
+        sharesPurchased: 10,
+        buyPricePerShare: 200.0,
+        amountInvested: 2000.0,
+        sales: [
+          Sale(id: 's1', sellDate: DateTime.now(), sharesSold: 10, sellPricePerShare: 300.0, amountReceived: 3000.0)
+        ],
+      );
+
+      final summary = PortfolioCalculator.calculatePortfolioSummary(
+        [lot1, lot2],
+        10000.0,
+        400.0, // withdrew 400 of the 1000 profit
+      );
+
+      // Untouched by the withdrawal:
+      expect(summary.startingCapital, 10000.0);
+      expect(summary.totalInvested, 10000.0);
+      expect(summary.currentlyInvested, 1000.0);
+      expect(summary.freeCash, 9000.0);
+
+      // Reduced by the withdrawal:
+      expect(summary.grossRealizedPL, 1000.0);
+      expect(summary.totalWithdrawn, 400.0);
+      expect(summary.realizedPL, 600.0); // 1000 - 400
+      expect(summary.portfolioValue, 10600.0); // 10000 + 600
+      expect(summary.freeCash + summary.realizedPL, 9600.0); // liquid capital
+    });
+
+    test('withdrawing more than earned profit yields a negative realized P/L', () {
+      final lot = Lot(
+        id: '1',
+        ticker: 'AAPL',
+        buyDate: DateTime.now(),
+        sharesPurchased: 10,
+        buyPricePerShare: 100.0,
+        amountInvested: 1000.0,
+        sales: [
+          Sale(id: 's1', sellDate: DateTime.now(), sharesSold: 10, sellPricePerShare: 120.0, amountReceived: 1200.0)
+        ],
+      );
+
+      final summary = PortfolioCalculator.calculatePortfolioSummary([lot], 5000.0, 500.0);
+
+      expect(summary.grossRealizedPL, 200.0);
+      expect(summary.realizedPL, -300.0);
+      expect(summary.portfolioValue, 4700.0);
+    });
+
+    test('calculateTotalWithdrawn sums the withdrawal list', () {
+      expect(PortfolioCalculator.calculateTotalWithdrawn([]), 0.0);
+      expect(
+        PortfolioCalculator.calculateTotalWithdrawn([
+          Withdrawal(id: 'w1', date: DateTime.now(), amount: 3000.0, note: 'Bills'),
+          Withdrawal(id: 'w2', date: DateTime.now(), amount: 2000.0),
+        ]),
+        5000.0,
+      );
     });
   });
 }

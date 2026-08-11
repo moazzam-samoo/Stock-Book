@@ -6,16 +6,23 @@ class SparklineChart extends StatelessWidget {
   final bool isPositive;
   final Color color;
 
+  /// Seeds the generated shape. Defaults to the colour, which is what the
+  /// dashboard stock list wants (one distinct shape per ticker colour). Pass a
+  /// per-item value where the colour is shared — e.g. lot cards, where every
+  /// profitable lot is the same green and would otherwise draw the same line.
+  final int? seed;
+
   const SparklineChart({
     super.key,
     required this.isPositive,
     required this.color,
+    this.seed,
   });
 
   @override
   Widget build(BuildContext context) {
     // Generate a simple deterministic sparkline that trends up or down
-    final random = Random(color.value);
+    final random = Random(seed ?? color.value);
     final spots = <FlSpot>[];
     
     double currentY = 5.0;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -14,7 +15,6 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_c
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
-import 'package:stock_investment_tracker/presentation/common/animated_pdf_button.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 
@@ -33,10 +33,14 @@ class StockDetailScreen extends ConsumerWidget {
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: Column(
         children: [
           CustomAppBar(
@@ -46,19 +50,58 @@ class StockDetailScreen extends ConsumerWidget {
             actions: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: AnimatedPdfButton(
-                  label: 'Export $ticker PDF',
-                  onPressed: () async {
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () async {
+                    HapticFeedback.lightImpact();
                     final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
-                    final stockLots = allLots.where((l) => l.ticker == ticker).toList();
+                    final stockLots = allLots
+                        .where((l) => l.ticker == ticker)
+                        .toList();
                     final stockSummaries = ref.read(stockSummariesProvider);
-                    final stockSummary = stockSummaries.where((s) => s.ticker == ticker).firstOrNull;
+                    final stockSummary = stockSummaries
+                        .where((s) => s.ticker == ticker)
+                        .firstOrNull;
                     await PdfReportService.exportStockPdf(
                       ticker: ticker,
                       stockLots: stockLots,
                       summary: stockSummary,
                     );
                   },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF10233A)
+                          : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.chartBlue.withOpacity(0.25),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.picture_as_pdf_outlined,
+                          size: 16,
+                          color: AppColors.chartBlue,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Export PDF',
+                          style: TextStyle(
+                            color: AppColors.chartBlue,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -66,12 +109,19 @@ class StockDetailScreen extends ConsumerWidget {
           ),
           Expanded(
             child: lotsAsyncValue.when(
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.brandIndigo)),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.brandIndigo),
+              ),
               error: (error, stack) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Error loading $ticker details', style: AppTypography.body.copyWith(color: AppColors.dangerRed)),
+                    Text(
+                      'Error loading $ticker details',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.dangerRed,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(allLotsProvider),
@@ -81,19 +131,29 @@ class StockDetailScreen extends ConsumerWidget {
                 ),
               ),
               data: (lots) {
-                final stockLots = lots.where((lot) => lot.ticker == ticker).toList();
-                
+                final stockLots = lots
+                    .where((lot) => lot.ticker == ticker)
+                    .toList();
+
                 if (stockLots.isEmpty) {
                   return Center(
-                    child: Text('No active lots for $ticker', style: AppTypography.body.copyWith(color: AppColors.neutral500)),
+                    child: Text(
+                      'No active lots for $ticker',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.neutral500,
+                      ),
+                    ),
                   );
                 }
-                
+
                 return CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0,
+                          vertical: 12.0,
+                        ),
                         child: Column(
                           children: [
                             Hero(
@@ -114,37 +174,78 @@ class StockDetailScreen extends ConsumerWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   StatusBadge(
-                                    status: summary.status == LotStatus.open 
-                                        ? TradeStatus.open 
-                                        : summary.status == LotStatus.partiallySold 
-                                            ? TradeStatus.partial 
-                                            : TradeStatus.closed
+                                    status: summary.status == LotStatus.open
+                                        ? TradeStatus.open
+                                        : summary.status ==
+                                              LotStatus.partiallySold
+                                        ? TradeStatus.partial
+                                        : TradeStatus.closed,
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 24),
                               Container(
-                                padding: const EdgeInsets.all(AppSpacing.md),
-                                decoration: BoxDecoration(
-                                  color: containerBg,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: borderColor, width: 1.2),
-                                  boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _buildStatColumn('Shares', formatNumber.format(summary.sharesHeld), primaryTextColor),
-                                    _buildStatColumn('Avg Price', AppCurrencyFormatter.format(summary.avgBuyPrice, decimalDigits: 2), primaryTextColor),
-                                    _buildStatColumn(
-                                      'Total P/L', 
-                                      summary.realizedPL != 0 ? AppCurrencyFormatter.format(summary.realizedPL, decimalDigits: 2, showSign: true) : '-',
-                                      primaryTextColor,
-                                      color: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.md,
                                     ),
-                                  ],
-                                ),
-                              ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+                                    decoration: BoxDecoration(
+                                      color: containerBg,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: borderColor,
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: isDark
+                                          ? null
+                                          : [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.04,
+                                                ),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        _buildStatColumn(
+                                          'Shares',
+                                          formatNumber.format(
+                                            summary.sharesHeld,
+                                          ),
+                                          primaryTextColor,
+                                        ),
+                                        _buildStatColumn(
+                                          'Avg Price',
+                                          AppCurrencyFormatter.format(
+                                            summary.avgBuyPrice,
+                                            decimalDigits: 2,
+                                          ),
+                                          primaryTextColor,
+                                        ),
+                                        _buildStatColumn(
+                                          'Total P/L',
+                                          summary.realizedPL != 0
+                                              ? AppCurrencyFormatter.format(
+                                                  summary.realizedPL,
+                                                  decimalDigits: 2,
+                                                  showSign: true,
+                                                )
+                                              : '-',
+                                          primaryTextColor,
+                                          color: summary.realizedPL >= 0
+                                              ? AppColors.moneyGreen
+                                              : AppColors.alertRed,
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                  .animate()
+                                  .fadeIn(duration: 400.ms)
+                                  .slideY(begin: 0.1, end: 0),
                             ],
                             const SizedBox(height: 24),
                             Row(
@@ -175,7 +276,9 @@ class StockDetailScreen extends ConsumerWidget {
                                   verticalOffset: 50.0,
                                   child: FadeInAnimation(
                                     child: Padding(
-                                      padding: const EdgeInsets.only(bottom: 12.0),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12.0,
+                                      ),
                                       child: LotCard(
                                         lot: stockLots[index],
                                         showStockDetailNavigation: false,
@@ -200,7 +303,12 @@ class StockDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatColumn(String label, String value, Color defaultTextColor, {Color? color}) {
+  Widget _buildStatColumn(
+    String label,
+    String value,
+    Color defaultTextColor, {
+    Color? color,
+  }) {
     return Column(
       children: [
         Text(

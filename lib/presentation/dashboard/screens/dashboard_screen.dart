@@ -68,6 +68,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final portfolioSummary = ref.watch(portfolioSummaryProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
     final allocationData = ref.watch(allocationDataProvider);
+    final withdrawals = ref.watch(allWithdrawalsProvider).valueOrNull ?? [];
 
     return AppScaffold(
       body: lotsAsyncValue.when(
@@ -136,6 +137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           summary: portfolioSummary,
                           stockSummaries: stockSummaries,
                           lots: lots,
+                          withdrawals: withdrawals,
                           onClose: () {
                             setState(() {
                               _selectedMetric = null;

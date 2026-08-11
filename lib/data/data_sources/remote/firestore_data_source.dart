@@ -3,6 +3,7 @@ import 'package:stock_investment_tracker/core/constants/firestore_paths.dart';
 import 'package:stock_investment_tracker/data/models/lot_model.dart';
 import 'package:stock_investment_tracker/data/models/sale_model.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
+import 'package:stock_investment_tracker/data/models/withdrawal_model.dart';
 
 class FirestoreDataSource {
   final FirebaseFirestore _firestore;
@@ -114,6 +115,57 @@ class FirestoreDataSource {
       final lot = LotModel.fromJson(data);
       final updatedSales = lot.sales.where((s) => s.id != saleId).toList();
       await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
+    }
+  }
+
+  // WITHDRAWALS
+  Stream<List<WithdrawalModel>> watchAllWithdrawals(String uid) {
+    return _firestore
+        .collection(FirestorePaths.withdrawals(uid))
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return WithdrawalModel.fromJson(data);
+            }).toList());
+  }
+
+  Future<void> addWithdrawal(String uid, WithdrawalModel withdrawal) async {
+    final json = withdrawal.toJson()..remove('id');
+    try {
+      await _firestore
+          .collection(FirestorePaths.withdrawals(uid))
+          .doc(withdrawal.id)
+          .set(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
+  Future<void> updateWithdrawal(String uid, WithdrawalModel withdrawal) async {
+    final json = withdrawal.toJson()..remove('id');
+    try {
+      await _firestore
+          .collection(FirestorePaths.withdrawals(uid))
+          .doc(withdrawal.id)
+          .update(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
+  Future<void> deleteWithdrawal(String uid, String withdrawalId) async {
+    try {
+      await _firestore
+          .collection(FirestorePaths.withdrawals(uid))
+          .doc(withdrawalId)
+          .delete()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/allocation_segment.dart';
+import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/domain/calculator/portfolio_calculator.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
@@ -22,16 +23,28 @@ Stream<List<Lot>> allLots(AllLotsRef ref) async* {
 }
 
 @riverpod
+Stream<List<Withdrawal>> allWithdrawals(AllWithdrawalsRef ref) async* {
+  final repo = ref.watch(withdrawalRepositoryProvider);
+  if (repo == null) {
+    yield [];
+    return;
+  }
+  yield* repo.watchAllWithdrawals();
+}
+
+@riverpod
 PortfolioSummary portfolioSummary(PortfolioSummaryRef ref) {
   final lots = ref.watch(allLotsProvider).valueOrNull ?? [];
   final settings = ref.watch(settingsProvider).valueOrNull;
-  
+  final withdrawals = ref.watch(allWithdrawalsProvider).valueOrNull ?? [];
+
   // Starting capital from settings, default to 0.0 PKR if not loaded
   final startingCapital = settings?.startingCapital ?? 0.0;
 
   return PortfolioCalculator.calculatePortfolioSummary(
     lots,
     startingCapital,
+    PortfolioCalculator.calculateTotalWithdrawn(withdrawals),
   );
 }
 

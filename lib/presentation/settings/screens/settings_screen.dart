@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/presentation/auth/controllers/auth_controller.dart';
@@ -12,7 +13,10 @@ import 'package:stock_investment_tracker/presentation/auth/providers/auth_provid
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 import 'package:stock_investment_tracker/presentation/common/stock_color_picker_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
+import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
 import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -58,6 +62,11 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSectionTitle(context, 'PORTFOLIO'),
                       const SizedBox(height: 12),
                       _buildPortfolioPreferences(context, colors, ref, settings, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'PROFIT WITHDRAWALS'),
+                      const SizedBox(height: 12),
+                      _buildWithdrawalsSection(context, ref, isDark),
                       const SizedBox(height: 28),
 
                       _buildSectionTitle(context, 'COMPANY INFO'),
@@ -282,6 +291,93 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWithdrawalsSection(BuildContext context, WidgetRef ref, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    final withdrawals = ref.watch(allWithdrawalsProvider).valueOrNull ?? [];
+    final summary = ref.watch(portfolioSummaryProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: total withdrawn + remaining profit
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Total Withdrawn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
+                      const SizedBox(height: 2),
+                      Text(
+                        withdrawals.isEmpty
+                            ? 'No withdrawals yet'
+                            : '${withdrawals.length} withdrawal${withdrawals.length == 1 ? '' : 's'} · ${AppCurrencyFormatter.format(summary.grossRealizedPL)} profit earned',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  AppCurrencyFormatter.format(summary.totalWithdrawn),
+                  style: TextStyle(
+                    fontFamily: 'JetBrains Mono',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    color: summary.totalWithdrawn > 0 ? AppColors.warningYellow : primaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+
+          if (withdrawals.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+              child: Column(
+                children: withdrawals.map((w) => WithdrawalRow(withdrawal: w)).toList(),
+              ),
+            ),
+
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, withdrawals.isEmpty ? 16 : 6, 16, 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: () => WithdrawalBottomSheet.show(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? const Color(0xFF2A2416) : const Color(0xFFFEF9E7),
+                  foregroundColor: AppColors.warningYellow,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.north_east_rounded, size: 18, color: AppColors.warningYellow),
+                label: const Text(
+                  'Add Withdrawal',
+                  style: TextStyle(color: AppColors.warningYellow, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
             ),
           ),
         ],

@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
+import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 
 class PdfReportService {
   static final NumberFormat _wholeFormat = NumberFormat('#,##0');
@@ -35,6 +36,7 @@ class PdfReportService {
     required List<Lot> lots,
     required PortfolioSummary summary,
     required List<StockSummary> stockSummaries,
+    List<Withdrawal> withdrawals = const [],
   }) async {
     final pdf = pw.Document();
 
@@ -69,6 +71,40 @@ class PdfReportService {
           // Executive Summary Banner
           _buildExecutiveSummaryBanner(summary, lots.length),
           pw.SizedBox(height: 20),
+
+          // Profit Withdrawals (cash taken out of realized profit)
+          if (withdrawals.isNotEmpty) ...[
+            _buildSectionTitle('Profit Withdrawals & Cash Outflows'),
+            pw.SizedBox(height: 8),
+            pw.TableHelper.fromTextArray(
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
+              headerDecoration: const pw.BoxDecoration(color: _redColor),
+              rowDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: _borderColor))),
+              oddRowDecoration: const pw.BoxDecoration(color: _lightBgColor),
+              cellAlignment: pw.Alignment.centerLeft,
+              cellStyle: const pw.TextStyle(fontSize: 8.5),
+              cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              headers: ['Withdrawal Date', 'Amount Withdrawn', 'Note'],
+              data: [
+                ...withdrawals.map<List<dynamic>>((w) => [
+                      _dateFormat.format(w.date),
+                      '-Rs ${AppCurrencyFormatter.format(w.amount)}',
+                      w.note.isEmpty ? '—' : w.note,
+                    ]),
+                [
+                  'TOTAL WITHDRAWN',
+                  '-Rs ${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
+                  '${withdrawals.length} withdrawal${withdrawals.length == 1 ? '' : 's'}',
+                ],
+              ],
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              'Withdrawals are cash removed from realized profit. They reduce the net realized P/L, the portfolio value and the liquid capital, but not the starting capital or the amount currently invested in stocks.',
+              style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600),
+            ),
+            pw.SizedBox(height: 20),
+          ],
 
           // Visual Breakdown Section
           if (stockSummaries.isNotEmpty) ...[
@@ -138,9 +174,9 @@ class PdfReportService {
                   _dateFormat.format(sale['sellDate'] as DateTime),
                   sale['ticker'],
                   _wholeFormat.format(sale['sharesSold']),
-                  'Rs ${AppCurrencyFormatter.format(sale['buyPrice'])}',
-                  'Rs ${AppCurrencyFormatter.format(sale['sellPrice'])}',
-                  'Rs ${AppCurrencyFormatter.format(sale['amountReceived'])}',
+                  'Rs ${AppCurrencyFormatter.format(sale['buyPrice'] as num)}',
+                  'Rs ${AppCurrencyFormatter.format(sale['sellPrice'] as num)}',
+                  'Rs ${AppCurrencyFormatter.format(sale['amountReceived'] as num)}',
                   '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(profit.abs())}',
                 ];
               }).toList(),
@@ -309,9 +345,9 @@ class PdfReportService {
                 return [
                   _dateFormat.format(sale['sellDate'] as DateTime),
                   _wholeFormat.format(sale['sharesSold']),
-                  'Rs ${AppCurrencyFormatter.format(sale['buyPrice'])}',
-                  'Rs ${AppCurrencyFormatter.format(sale['sellPrice'])}',
-                  'Rs ${AppCurrencyFormatter.format(sale['amountReceived'])}',
+                  'Rs ${AppCurrencyFormatter.format(sale['buyPrice'] as num)}',
+                  'Rs ${AppCurrencyFormatter.format(sale['sellPrice'] as num)}',
+                  'Rs ${AppCurrencyFormatter.format(sale['amountReceived'] as num)}',
                   '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(profit.abs())}',
                 ];
               }).toList(),
@@ -477,6 +513,32 @@ class PdfReportService {
               _buildMetricItem('Total Lots Count', '${summary.openLots} Active / ${totalLotsCount - summary.openLots} Closed'),
             ],
           ),
+          if (summary.totalWithdrawn > 0) ...[
+            pw.SizedBox(height: 12),
+            pw.Divider(color: _borderColor, thickness: 0.5),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _buildMetricItem(
+                  'Gross Trading Profit',
+                  '${summary.grossRealizedPL >= 0 ? "+" : "-"}Rs ${AppCurrencyFormatter.format(summary.grossRealizedPL.abs())}',
+                  color: summary.grossRealizedPL >= 0 ? _greenColor : _redColor,
+                ),
+                _buildMetricItem(
+                  'Profit Withdrawn',
+                  '-Rs ${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
+                  color: _redColor,
+                ),
+                _buildMetricItem(
+                  'Net Profit In Account',
+                  '${summary.realizedPL >= 0 ? "+" : "-"}Rs ${AppCurrencyFormatter.format(summary.realizedPL.abs())}',
+                  color: summary.realizedPL >= 0 ? _greenColor : _redColor,
+                ),
+                _buildMetricItem('Portfolio Value', 'Rs ${AppCurrencyFormatter.format(summary.portfolioValue)}'),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -11,6 +11,8 @@ import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data
 import 'package:stock_investment_tracker/data/models/lot_model.dart' as _i4;
 import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i5;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
+    as _i7;
+import 'package:stock_investment_tracker/data/models/withdrawal_model.dart'
     as _i6;
 
 // ignore_for_file: type=lint
@@ -111,17 +113,58 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
-  _i3.Stream<_i6.UserSettingsModel?> watchSettings(String? uid) =>
+  _i3.Stream<List<_i6.WithdrawalModel>> watchAllWithdrawals(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllWithdrawals, [uid]),
+            returnValue: _i3.Stream<List<_i6.WithdrawalModel>>.empty(),
+          )
+          as _i3.Stream<List<_i6.WithdrawalModel>>);
+
+  @override
+  _i3.Future<void> addWithdrawal(
+    String? uid,
+    _i6.WithdrawalModel? withdrawal,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#addWithdrawal, [uid, withdrawal]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updateWithdrawal(
+    String? uid,
+    _i6.WithdrawalModel? withdrawal,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateWithdrawal, [uid, withdrawal]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deleteWithdrawal(String? uid, String? withdrawalId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteWithdrawal, [uid, withdrawalId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Stream<_i7.UserSettingsModel?> watchSettings(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchSettings, [uid]),
-            returnValue: _i3.Stream<_i6.UserSettingsModel?>.empty(),
+            returnValue: _i3.Stream<_i7.UserSettingsModel?>.empty(),
           )
-          as _i3.Stream<_i6.UserSettingsModel?>);
+          as _i3.Stream<_i7.UserSettingsModel?>);
 
   @override
   _i3.Future<void> updateSettings(
     String? uid,
-    _i6.UserSettingsModel? settings,
+    _i7.UserSettingsModel? settings,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#updateSettings, [uid, settings]),

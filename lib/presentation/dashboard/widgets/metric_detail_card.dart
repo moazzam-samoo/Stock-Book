@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/lot.dart';
+import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card_grid.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -15,6 +16,7 @@ class MetricDetailCard extends StatelessWidget {
   final PortfolioSummary summary;
   final List<StockSummary> stockSummaries;
   final List<Lot> lots;
+  final List<Withdrawal> withdrawals;
   final VoidCallback onClose;
 
   const MetricDetailCard({
@@ -24,6 +26,7 @@ class MetricDetailCard extends StatelessWidget {
     required this.stockSummaries,
     required this.lots,
     required this.onClose,
+    this.withdrawals = const [],
   });
 
   @override
@@ -228,6 +231,8 @@ class MetricDetailCard extends StatelessWidget {
   Widget _buildRealizedPLBody() {
     final totalSalesCount = lots.fold(0, (sum, lot) => sum + lot.sales.length);
     final isProfit = summary.realizedPL >= 0;
+    final hasWithdrawals = summary.totalWithdrawn > 0;
+    final dateFormat = DateFormat('MMM d, yyyy');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,14 +251,114 @@ class MetricDetailCard extends StatelessWidget {
             Expanded(child: _buildDetailStat('Total Sales', '$totalSalesCount transactions')),
             Expanded(
               child: _buildDetailStat(
-                'Performance', 
+                'Performance',
                 isProfit ? 'Gain' : 'Loss',
                 color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
               ),
             ),
           ],
         ),
+
+        // Withdrawal breakdown: where the gap between gross and net comes from
+        if (hasWithdrawals) ...[
+          const SizedBox(height: AppSpacing.md),
+          const Divider(color: Color(0xFF242731), height: 1),
+          const SizedBox(height: AppSpacing.sm),
+          _buildLedgerRow(
+            'Gross Trading Profit',
+            AppCurrencyFormatter.format(summary.grossRealizedPL, showSign: true),
+            color: summary.grossRealizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+          ),
+          _buildLedgerRow(
+            'Profit Withdrawn',
+            '-${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
+            color: AppColors.warningYellow,
+          ),
+          const SizedBox(height: 4),
+          const Divider(color: Color(0xFF242731), height: 1),
+          const SizedBox(height: 4),
+          _buildLedgerRow(
+            'Still In Account',
+            AppCurrencyFormatter.format(summary.realizedPL, showSign: true),
+            color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+            bold: true,
+          ),
+
+          if (withdrawals.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'RECENT WITHDRAWALS',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.neutral500,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...withdrawals.take(3).map(
+                  (w) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            w.note.isEmpty
+                                ? dateFormat.format(w.date)
+                                : '${dateFormat.format(w.date)} · ${w.note}',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.neutral500,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          AppCurrencyFormatter.format(w.amount),
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondaryDark,
+                            fontFamily: 'JetBrains Mono',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+          ],
+        ],
       ],
+    );
+  }
+
+  Widget _buildLedgerRow(String label, String value, {Color? color, bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTypography.body.copyWith(
+              color: bold ? AppColors.textPrimaryDark : AppColors.neutral500,
+              fontSize: 13,
+              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            value,
+            style: AppTypography.body.copyWith(
+              color: color ?? AppColors.textPrimaryDark,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

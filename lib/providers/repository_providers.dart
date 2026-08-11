@@ -5,9 +5,11 @@ import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data
 import 'package:stock_investment_tracker/data/repositories/lot_repository_impl.dart';
 import 'package:stock_investment_tracker/data/repositories/sale_repository_impl.dart';
 import 'package:stock_investment_tracker/data/repositories/settings_repository_impl.dart';
+import 'package:stock_investment_tracker/data/repositories/withdrawal_repository_impl.dart';
 import 'package:stock_investment_tracker/domain/repositories/lot_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/sale_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
+import 'package:stock_investment_tracker/domain/repositories/withdrawal_repository.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 
 final firebaseFirestoreProvider = Provider<FirebaseFirestore?>((ref) {
@@ -51,6 +53,16 @@ final saleRepositoryProvider = Provider<SaleRepository?>((ref) {
   final dataSource = ref.watch(firestoreDataSourceProvider);
   if (uid == null || dataSource == null) return null;
   return SaleRepositoryImpl(
+    uid: uid,
+    firestoreDataSource: dataSource,
+  );
+});
+
+final withdrawalRepositoryProvider = Provider<WithdrawalRepository?>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  final dataSource = ref.watch(firestoreDataSourceProvider);
+  if (uid == null || dataSource == null) return null;
+  return WithdrawalRepositoryImpl(
     uid: uid,
     firestoreDataSource: dataSource,
   );

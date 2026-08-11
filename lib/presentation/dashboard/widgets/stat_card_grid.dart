@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
+import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card.dart';
 
@@ -70,6 +71,9 @@ class StatCardGrid extends StatelessWidget {
                 valueColor: summary.realizedPL >= 0
                     ? AppColors.moneyGreen
                     : AppColors.alertRed,
+                tag: summary.totalWithdrawn > 0
+                    ? '${AppCurrencyFormatter.format(summary.totalWithdrawn, decimalDigits: 0)} withdrawn'
+                    : null,
                 animationDelayMs: 300,
                 isSelected: selectedMetric == DashboardMetricType.realizedPL,
                 onTap: () =>

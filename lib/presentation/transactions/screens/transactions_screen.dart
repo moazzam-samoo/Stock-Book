@@ -12,7 +12,6 @@ import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
-import 'package:stock_investment_tracker/presentation/common/animated_pdf_button.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -49,20 +48,57 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               actions: [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: AnimatedPdfButton(
-                    label: 'Export PDF',
-                    onPressed: () async {
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () async {
                       HapticFeedback.lightImpact();
                       final allLots =
                           ref.read(allLotsProvider).valueOrNull ?? [];
                       final summary = ref.read(portfolioSummaryProvider);
                       final stockSummaries = ref.read(stockSummariesProvider);
+                      final withdrawals =
+                          ref.read(allWithdrawalsProvider).valueOrNull ?? [];
                       await PdfReportService.exportOverallPortfolioPdf(
                         lots: allLots,
                         summary: summary,
                         stockSummaries: stockSummaries,
+                        withdrawals: withdrawals,
                       );
                     },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF10233A)
+                            : const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.chartBlue.withOpacity(0.25),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf_outlined,
+                            size: 16,
+                            color: AppColors.chartBlue,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Export PDF',
+                            style: TextStyle(
+                              color: AppColors.chartBlue,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

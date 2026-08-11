@@ -23,7 +23,25 @@ final allLotsProvider = AutoDisposeStreamProvider<List<Lot>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllLotsRef = AutoDisposeStreamProviderRef<List<Lot>>;
-String _$portfolioSummaryHash() => r'8e0d5eb1ff38a04278a56169331339e1348b2d7e';
+String _$allWithdrawalsHash() => r'3aca2d19da53373ff8600693942e9b6f2fed184f';
+
+/// See also [allWithdrawals].
+@ProviderFor(allWithdrawals)
+final allWithdrawalsProvider =
+    AutoDisposeStreamProvider<List<Withdrawal>>.internal(
+      allWithdrawals,
+      name: r'allWithdrawalsProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$allWithdrawalsHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AllWithdrawalsRef = AutoDisposeStreamProviderRef<List<Withdrawal>>;
+String _$portfolioSummaryHash() => r'ecc99173dc0f98d02b9e69a93d2c193a7798bb96';
 
 /// See also [portfolioSummary].
 @ProviderFor(portfolioSummary)
