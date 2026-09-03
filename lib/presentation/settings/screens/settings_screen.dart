@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:stock_investment_tracker/core/services/data_export_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
@@ -642,6 +645,27 @@ class SettingsScreen extends ConsumerWidget {
           ),
           Divider(height: 1, color: borderColor),
           InkWell(
+            onTap: () => _exportData(context, ref),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.file_download_outlined, color: AppColors.brandIndigo, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Export data (JSON)',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: primaryTextColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+          InkWell(
             onTap: () => _confirmLogout(context, ref),
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
             child: Padding(
@@ -723,7 +747,57 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (result == true) {
-      ref.read(authControllerProvider.notifier).signOut();
+      await ref.read(authControllerProvider.notifier).signOut();
+    }
+  }
+
+  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    try {
+      final lots = ref.read(allLotsProvider).valueOrNull ?? [];
+      final withdrawals = ref.read(allWithdrawalsProvider).valueOrNull ?? [];
+      final settings = ref.read(settingsProvider).valueOrNull;
+      
+      if (settings == null) {
+        throw Exception("Settings not loaded.");
+      }
+
+      final jsonString = await DataExportService.buildExportJson(
+        lots: lots,
+        withdrawals: withdrawals,
+        settings: settings,
+      );
+
+      final date = DateTime.now().toIso8601String().split('T').first;
+      final filename = 'stock-book-backup-$date.json';
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              utf8.encode(jsonString),
+              mimeType: 'application/json',
+              name: filename,
+            ),
+          ],
+          fileNameOverrides: [filename],
+        ),
+      );
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Export successful.'),
+          backgroundColor: AppColors.moneyGreen,
+        ),
+      );
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: AppColors.alertRed,
+        ),
+      );
     }
   }
 }
