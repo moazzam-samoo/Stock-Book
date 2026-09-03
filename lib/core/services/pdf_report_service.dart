@@ -88,12 +88,12 @@ class PdfReportService {
               data: [
                 ...withdrawals.map<List<dynamic>>((w) => [
                       _dateFormat.format(w.date),
-                      '-Rs ${AppCurrencyFormatter.format(w.amount)}',
+                      '-${AppCurrencyFormatter.format(w.amount)}',
                       w.note.isEmpty ? '—' : w.note,
                     ]),
                 [
                   'TOTAL WITHDRAWN',
-                  '-Rs ${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
+                  '-${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
                   '${withdrawals.length} withdrawal${withdrawals.length == 1 ? '' : 's'}',
                 ],
               ],
@@ -144,9 +144,9 @@ class PdfReportService {
               return [
                 s.ticker,
                 _wholeFormat.format(s.sharesHeld),
-                'Rs ${AppCurrencyFormatter.format(s.avgBuyPrice)}',
-                'Rs ${AppCurrencyFormatter.format(s.amountInvestedOpen)}',
-                '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(s.realizedPL.abs())}',
+                AppCurrencyFormatter.format(s.avgBuyPrice),
+                AppCurrencyFormatter.format(s.amountInvestedOpen),
+                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(s.realizedPL.abs())}',
                 s.status.name.toUpperCase(),
               ];
             }).toList(),
@@ -174,10 +174,10 @@ class PdfReportService {
                   _dateFormat.format(sale['sellDate'] as DateTime),
                   sale['ticker'],
                   _wholeFormat.format(sale['sharesSold']),
-                  'Rs ${AppCurrencyFormatter.format(sale['buyPrice'] as num)}',
-                  'Rs ${AppCurrencyFormatter.format(sale['sellPrice'] as num)}',
-                  'Rs ${AppCurrencyFormatter.format(sale['amountReceived'] as num)}',
-                  '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(profit.abs())}',
+                  AppCurrencyFormatter.format(sale['buyPrice'] as num),
+                  AppCurrencyFormatter.format(sale['sellPrice'] as num),
+                  AppCurrencyFormatter.format(sale['amountReceived'] as num),
+                  '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(profit.abs())}',
                 ];
               }).toList(),
             ),
@@ -202,11 +202,11 @@ class PdfReportService {
                 lot.ticker,
                 _dateFormat.format(lot.buyDate),
                 _wholeFormat.format(lot.sharesPurchased),
-                'Rs ${AppCurrencyFormatter.format(lot.buyPricePerShare)}',
+                AppCurrencyFormatter.format(lot.buyPricePerShare),
                 '${_wholeFormat.format(lot.sharesRemaining)} sh',
                 '${lot.holdingDays}d',
                 lot.status.name.toUpperCase(),
-                '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
+                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
               ];
             }).toList(),
           ),
@@ -277,12 +277,12 @@ class PdfReportService {
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     _buildMetricItem('Total Shares Bought', _wholeFormat.format(totalPurchasedShares)),
-                    _buildMetricItem('Total Capital Invested', 'Rs ${AppCurrencyFormatter.format(totalInvested)}'),
+                    _buildMetricItem('Total Capital Invested', AppCurrencyFormatter.format(totalInvested)),
                     _buildMetricItem('Shares Remaining', summary != null ? _wholeFormat.format(summary.sharesHeld) : '0'),
-                    _buildMetricItem('Total Sales Received', 'Rs ${AppCurrencyFormatter.format(totalSalesReceived)}'),
+                    _buildMetricItem('Total Sales Received', AppCurrencyFormatter.format(totalSalesReceived)),
                     _buildMetricItem(
                       'Realized Profit/Loss',
-                      '${totalRealizedPL >= 0 ? "+" : "-"}Rs ${AppCurrencyFormatter.format(totalRealizedPL.abs())}',
+                      '${totalRealizedPL >= 0 ? "+" : "-"}${AppCurrencyFormatter.format(totalRealizedPL.abs())}',
                       color: totalRealizedPL >= 0 ? _greenColor : _redColor,
                     ),
                   ],
@@ -309,11 +309,11 @@ class PdfReportService {
               return [
                 _dateFormat.format(lot.buyDate),
                 _wholeFormat.format(lot.sharesPurchased),
-                'Rs ${AppCurrencyFormatter.format(lot.buyPricePerShare)}',
+                AppCurrencyFormatter.format(lot.buyPricePerShare),
                 _wholeFormat.format(lot.sharesRemaining),
                 '${lot.holdingDays} days',
                 lot.status.name.toUpperCase(),
-                '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
+                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
               ];
             }).toList(),
           ),
@@ -345,10 +345,10 @@ class PdfReportService {
                 return [
                   _dateFormat.format(sale['sellDate'] as DateTime),
                   _wholeFormat.format(sale['sharesSold']),
-                  'Rs ${AppCurrencyFormatter.format(sale['buyPrice'] as num)}',
-                  'Rs ${AppCurrencyFormatter.format(sale['sellPrice'] as num)}',
-                  'Rs ${AppCurrencyFormatter.format(sale['amountReceived'] as num)}',
-                  '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(profit.abs())}',
+                  AppCurrencyFormatter.format(sale['buyPrice'] as num),
+                  AppCurrencyFormatter.format(sale['sellPrice'] as num),
+                  AppCurrencyFormatter.format(sale['amountReceived'] as num),
+                  '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(profit.abs())}',
                 ];
               }).toList(),
             ),
@@ -416,8 +416,8 @@ class PdfReportService {
                     children: [
                       _buildMetricItem('Buy Date', _dateFormat.format(lot.buyDate)),
                       _buildMetricItem('Shares Purchased', _wholeFormat.format(lot.sharesPurchased)),
-                      _buildMetricItem('Buy Price / Share', 'Rs ${AppCurrencyFormatter.format(lot.buyPricePerShare)}'),
-                      _buildMetricItem('Total Capital Invested', 'Rs ${AppCurrencyFormatter.format(lot.amountInvested)}'),
+                      _buildMetricItem('Buy Price / Share', AppCurrencyFormatter.format(lot.buyPricePerShare)),
+                      _buildMetricItem('Total Capital Invested', AppCurrencyFormatter.format(lot.amountInvested)),
                     ],
                   ),
                   pw.SizedBox(height: 12),
@@ -426,10 +426,10 @@ class PdfReportService {
                     children: [
                       _buildMetricItem('Holding Period', '${lot.holdingDays} Days'),
                       _buildMetricItem('Remaining Shares', '${_wholeFormat.format(lot.sharesRemaining)} sh'),
-                      _buildMetricItem('Total Sales Received', 'Rs ${AppCurrencyFormatter.format(totalAmountReceived)}'),
+                      _buildMetricItem('Total Sales Received', AppCurrencyFormatter.format(totalAmountReceived)),
                       _buildMetricItem(
                         'Realized Profit / Loss',
-                        '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
+                        '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
                         color: isProfit ? _greenColor : _redColor,
                       ),
                     ],
@@ -464,10 +464,10 @@ class PdfReportService {
                   return [
                     _dateFormat.format(sale.sellDate),
                     _wholeFormat.format(sale.sharesSold),
-                    'Rs ${AppCurrencyFormatter.format(lot.buyPricePerShare)}',
-                    'Rs ${AppCurrencyFormatter.format(sale.sellPricePerShare)}',
-                    'Rs ${AppCurrencyFormatter.format(sale.amountReceived)}',
-                    '${saleIsProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(saleProfit.abs())}',
+                    AppCurrencyFormatter.format(lot.buyPricePerShare),
+                    AppCurrencyFormatter.format(sale.sellPricePerShare),
+                    AppCurrencyFormatter.format(sale.amountReceived),
+                    '${saleIsProfit ? "+" : "-"}${AppCurrencyFormatter.format(saleProfit.abs())}',
                   ];
                 }).toList(),
               ),
@@ -503,13 +503,13 @@ class PdfReportService {
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetricItem('Total Capital Invested', 'Rs ${AppCurrencyFormatter.format(summary.totalInvested)}'),
+              _buildMetricItem('Total Capital Invested', AppCurrencyFormatter.format(summary.totalInvested)),
               _buildMetricItem(
                 'Realized Profit / Loss',
-                '${summary.realizedPL >= 0 ? "+" : "-"}Rs ${AppCurrencyFormatter.format(summary.realizedPL.abs())}',
+                '${summary.realizedPL >= 0 ? "+" : "-"}${AppCurrencyFormatter.format(summary.realizedPL.abs())}',
                 color: summary.realizedPL >= 0 ? _greenColor : _redColor,
               ),
-              _buildMetricItem('Active Investment Value', 'Rs ${AppCurrencyFormatter.format(summary.currentlyInvested)}'),
+              _buildMetricItem('Active Investment Value', AppCurrencyFormatter.format(summary.currentlyInvested)),
               _buildMetricItem('Total Lots Count', '${summary.openLots} Active / ${totalLotsCount - summary.openLots} Closed'),
             ],
           ),
@@ -522,20 +522,20 @@ class PdfReportService {
               children: [
                 _buildMetricItem(
                   'Gross Trading Profit',
-                  '${summary.grossRealizedPL >= 0 ? "+" : "-"}Rs ${AppCurrencyFormatter.format(summary.grossRealizedPL.abs())}',
+                  '${summary.grossRealizedPL >= 0 ? "+" : "-"}${AppCurrencyFormatter.format(summary.grossRealizedPL.abs())}',
                   color: summary.grossRealizedPL >= 0 ? _greenColor : _redColor,
                 ),
                 _buildMetricItem(
                   'Profit Withdrawn',
-                  '-Rs ${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
+                  '-${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
                   color: _redColor,
                 ),
                 _buildMetricItem(
                   'Net Profit In Account',
-                  '${summary.realizedPL >= 0 ? "+" : "-"}Rs ${AppCurrencyFormatter.format(summary.realizedPL.abs())}',
+                  '${summary.realizedPL >= 0 ? "+" : "-"}${AppCurrencyFormatter.format(summary.realizedPL.abs())}',
                   color: summary.realizedPL >= 0 ? _greenColor : _redColor,
                 ),
-                _buildMetricItem('Portfolio Value', 'Rs ${AppCurrencyFormatter.format(summary.portfolioValue)}'),
+                _buildMetricItem('Portfolio Value', AppCurrencyFormatter.format(summary.portfolioValue)),
               ],
             ),
           ],
@@ -574,7 +574,7 @@ class PdfReportService {
                   border: pw.Border.all(color: _borderColor),
                 ),
                 child: pw.Text(
-                  'Rs ${AppCurrencyFormatter.format(totalInvested)}',
+                  AppCurrencyFormatter.format(totalInvested),
                   style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: _primaryColor),
                 ),
               ),
@@ -644,7 +644,7 @@ class PdfReportService {
                               pw.Row(
                                 children: [
                                   pw.Text(
-                                    'Rs ${AppCurrencyFormatter.format(s.amountInvestedOpen)}',
+                                    AppCurrencyFormatter.format(s.amountInvestedOpen),
                                     style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700),
                                   ),
                                   pw.SizedBox(width: 4),
@@ -720,7 +720,7 @@ class PdfReportService {
                       ),
                       pw.SizedBox(width: 6),
                       pw.Text(
-                        '${isProfit ? "+" : "-"}Rs ${AppCurrencyFormatter.format(s.realizedPL.abs())}',
+                        '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(s.realizedPL.abs())}',
                         style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: isProfit ? _greenColor : _redColor),
                       ),
                     ],
