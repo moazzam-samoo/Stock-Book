@@ -21,7 +21,8 @@ import 'package:stock_investment_tracker/presentation/settings/providers/setting
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -227,30 +228,31 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Starting Capital', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                      const SizedBox(height: 2),
-                      Text('Baseline for free cash', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500)),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 140,
-                  height: 48,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 360;
+                
+                final labelWidget = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Starting Capital', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
+                    const SizedBox(height: 2),
+                    Text('Baseline for free cash', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500)),
+                  ],
+                );
+                
+                final inputWidget = Container(
                   decoration: BoxDecoration(
                     color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
+                      Container(
+                        height: 48,
                         padding: const EdgeInsets.only(left: 12.0),
+                        alignment: Alignment.centerLeft,
                         child: Text(settings.currency == 'PKR' ? 'Rs' : '\$', style: const TextStyle(color: AppColors.neutral500)),
                       ),
                       Expanded(
@@ -258,8 +260,33 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+
+                if (isSmallScreen) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      labelWidget,
+                      const SizedBox(height: 12),
+                      inputWidget,
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: labelWidget),
+                    const SizedBox(width: 16),
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
+                        child: inputWidget,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           Divider(height: 1, color: borderColor),
@@ -653,12 +680,15 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.file_download_outlined, color: AppColors.brandIndigo, size: 20),
                   const SizedBox(width: 8),
-                  Text(
-                    'Export data (JSON)',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Flexible(
+                    child: Text(
+                      'Export data (JSON)',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: primaryTextColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -675,12 +705,15 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.logout, color: AppColors.alertRed, size: 20),
                   const SizedBox(width: 8),
-                  Text(
-                    'Log Out',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.alertRed,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Flexible(
+                    child: Text(
+                      'Log Out',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.alertRed,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -816,18 +849,26 @@ class _StartingCapitalInput extends StatefulWidget {
 class _StartingCapitalInputState extends State<_StartingCapitalInput> {
   late TextEditingController _controller;
   bool _isDirty = false;
+  String? _errorText;
+  final _formatter = NumberFormat('#,##0');
+
+  String _formatValue(num value) {
+    if (value == 0) return '0';
+    return _formatter.format(value);
+  }
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.settings.startingCapital.toInt().toString());
+    _controller = TextEditingController(text: _formatValue(widget.settings.startingCapital));
   }
 
   @override
   void didUpdateWidget(_StartingCapitalInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.settings.startingCapital != widget.settings.startingCapital && !_isDirty) {
-      _controller.text = widget.settings.startingCapital.toInt().toString();
+      _controller.text = _formatValue(widget.settings.startingCapital);
+      _errorText = null;
     }
   }
 
@@ -838,55 +879,145 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
   }
 
   void _save() {
-    final parsed = double.tryParse(_controller.text) ?? 0.0;
-    if (parsed >= 0) {
-      widget.ref.read(settingsControllerProvider.notifier).updateStartingCapital(parsed);
-      widget.ref.invalidate(settingsProvider);
-      setState(() => _isDirty = false);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Starting capital updated successfully'),
-          backgroundColor: AppColors.moneyGreen,
-          duration: Duration(seconds: 2),
-        ),
-      );
+    final raw = _controller.text.replaceAll(',', '').trim();
+    final parsed = double.tryParse(raw);
+    
+    if (parsed == null || parsed < 0) {
+      setState(() {
+        _errorText = 'Invalid amount';
+      });
+      return;
     }
+
+    setState(() {
+      _errorText = null;
+      _isDirty = false;
+    });
+
+    widget.ref.read(settingsControllerProvider.notifier).updateStartingCapital(parsed);
+    widget.ref.invalidate(settingsProvider);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Starting capital updated successfully'),
+        backgroundColor: AppColors.moneyGreen,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? Colors.white : AppColors.textPrimaryLight;
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-            keyboardType: const TextInputType.numberWithOptions(decimal: false),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12),
-              isDense: true,
-            ),
-            onChanged: (_) {
-              if (!_isDirty) setState(() => _isDirty = true);
-            },
-            onSubmitted: (_) => _save(),
+        SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                  inputFormatters: [
+                    ThousandsSeparatorInputFormatter(),
+                  ],
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                    isDense: true,
+                  ),
+                  onChanged: (_) {
+                    if (!_isDirty) setState(() => _isDirty = true);
+                    if (_errorText != null) setState(() => _errorText = null);
+                  },
+                  onSubmitted: (_) => _save(),
+                ),
+              ),
+              SizedBox(
+                width: 40,
+                child: _isDirty
+                    ? IconButton(
+                        icon: const Icon(Icons.check_circle, color: AppColors.moneyGreen, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _save,
+                      )
+                    : const SizedBox(),
+              ),
+            ],
           ),
         ),
-        if (_isDirty)
-          IconButton(
-            icon: const Icon(Icons.check_circle, color: AppColors.moneyGreen, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: _save,
-          )
-        else
-          const SizedBox(width: 20), // Placeholder to keep alignment
-        const SizedBox(width: 8),
+        if (_errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12.0, bottom: 4.0),
+            child: Text(
+              _errorText!,
+              style: const TextStyle(color: AppColors.alertRed, fontSize: 11),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+class ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  static const int _maxDigits = 12;
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // Only allow digits and commas
+    final validCharacters = RegExp(r'^[0-9,]*$');
+    if (!validCharacters.hasMatch(newValue.text)) {
+      return oldValue;
+    }
+
+    String rawNewValue = newValue.text.replaceAll(',', '');
+    if (rawNewValue.length > _maxDigits) {
+      rawNewValue = rawNewValue.substring(0, _maxDigits);
+    }
+
+    final intValue = int.tryParse(rawNewValue);
+    if (intValue == null) {
+      return oldValue;
+    }
+
+    final formatter = NumberFormat('#,##0');
+    final newString = formatter.format(intValue);
+
+    int rawCursorPosition = 0;
+    for (int i = 0; i < newValue.selection.end; i++) {
+      if (i < newValue.text.length && newValue.text[i] != ',') {
+        rawCursorPosition++;
+      }
+    }
+    
+    int newCursorPosition = 0;
+    int rawCount = 0;
+    for (int i = 0; i < newString.length; i++) {
+      if (rawCount == rawCursorPosition) {
+        newCursorPosition = i;
+        break;
+      }
+      if (newString[i] != ',') {
+        rawCount++;
+      }
+    }
+    if (rawCount == rawCursorPosition) {
+        newCursorPosition = newString.length;
+    }
+
+    return TextEditingValue(
+      text: newString,
+      selection: TextSelection.collapsed(offset: newCursorPosition),
     );
   }
 }
