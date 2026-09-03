@@ -9,7 +9,7 @@ class FilterChipRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentFilter = ref.watch(statusFilterProvider);
-    final filters = ['All', 'Open', 'Partial', 'Closed'];
+    final filters = ['Open', 'Partial', 'Closed', 'All'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,

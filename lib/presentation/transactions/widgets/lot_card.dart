@@ -78,13 +78,27 @@ class _LotCardState extends ConsumerState<LotCard> {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 1.2),
+          border: Border.all(
+            color: _isExpanded ? AppColors.brandIndigo : borderColor, 
+            width: 1.2
+          ),
           boxShadow: isDark
-              ? null
+              ? (_isExpanded
+                  ? [
+                      BoxShadow(
+                        color: AppColors.brandIndigo.withOpacity(0.3),
+                        blurRadius: 12,
+                        spreadRadius: 2,
+                      )
+                    ]
+                  : null)
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
+                    color: _isExpanded
+                        ? AppColors.brandIndigo.withOpacity(0.4)
+                        : Colors.black.withOpacity(0.04),
+                    blurRadius: _isExpanded ? 16 : 10,
+                    spreadRadius: _isExpanded ? 2 : 0,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -137,25 +151,49 @@ class _LotCardState extends ConsumerState<LotCard> {
                       ),
                       const SizedBox(height: 6),
                       _BulletDetail(
-                        text:
-                            'Bought ${dateFormat.format(widget.lot.buyDate)} @ ${AppCurrencyFormatter.format(widget.lot.buyPricePerShare)}',
-                        color: bulletColor,
+                        icon: Icons.calendar_today_outlined,
+                        label: 'Bought ',
+                        isDark: isDark,
+                        valueSpans: [
+                          TextSpan(
+                            text: dateFormat.format(widget.lot.buyDate),
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 16, 205, 234),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' @ ',
+                            style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                          ),
+                          TextSpan(
+                            text: AppCurrencyFormatter.format(widget.lot.buyPricePerShare),
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 16, 205, 234),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                       _BulletDetail(
-                        text:
-                            'Total Invested: ${AppCurrencyFormatter.format(widget.lot.amountInvested)}',
-                        color: bulletColor,
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'Total Invested: ',
+                        value: AppCurrencyFormatter.format(widget.lot.amountInvested),
+                        isDark: isDark,
                       ),
                       _BulletDetail(
-                        text: 'Holding Period: $holdingDaysText',
-                        color: bulletColor,
+                        icon: Icons.timer_outlined,
+                        label: 'Holding Period: ',
+                        value: holdingDaysText,
+                        isDark: isDark,
                       ),
                       if (widget.lot.targetPrice != null &&
                           widget.lot.targetPrice! > 0)
                         _BulletDetail(
-                          text:
-                              'Target: ${AppCurrencyFormatter.format(widget.lot.targetPrice!)} (${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100) >= 0 ? "+" : ""}${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100).toStringAsFixed(1)}% Est.)',
-                          color: bulletColor,
+                          icon: Icons.track_changes_outlined,
+                          label: 'Target: ',
+                          value: '${AppCurrencyFormatter.format(widget.lot.targetPrice!)} (${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100) >= 0 ? "+" : ""}${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100).toStringAsFixed(1)}% Est.)',
+                          isDark: isDark,
                         ),
                     ],
                   ),
@@ -557,37 +595,58 @@ class _LotCardState extends ConsumerState<LotCard> {
   }
 }
 
-/// One "• label" line in the lot card header. All bullets share the same
-/// color so the block reads as one clean group of facts.
 class _BulletDetail extends StatelessWidget {
-  final String text;
-  final Color color;
+  final IconData icon;
+  final String label;
+  final String? value;
+  final List<TextSpan>? valueSpans;
+  final bool isDark;
 
-  const _BulletDetail({required this.text, required this.color});
+  const _BulletDetail({
+    required this.icon,
+    required this.label,
+    this.value,
+    this.valueSpans,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final labelColor = isDark ? Colors.white70 : Colors.black54;
+    const valueColor = Color.fromARGB(255, 16, 205, 234);
+
     return Padding(
-      padding: const EdgeInsets.only(top: 3),
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '•  ',
-            style: TextStyle(
-              color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              height: 1.35,
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(icon, size: 14, color: labelColor),
           ),
+          const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              text,
-              style: AppTypography.caption.copyWith(
-                color: color,
-                fontSize: 13,
-                height: 1.35,
+            child: RichText(
+              text: TextSpan(
+                style: AppTypography.caption.copyWith(
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+                children: [
+                  TextSpan(
+                    text: label,
+                    style: TextStyle(color: labelColor),
+                  ),
+                  if (value != null)
+                    TextSpan(
+                      text: value,
+                      style: const TextStyle(
+                        color: valueColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (valueSpans != null) ...valueSpans!,
+                ],
               ),
             ),
           ),

@@ -18,7 +18,7 @@ class SearchQuery extends _$SearchQuery {
 @riverpod
 class StatusFilter extends _$StatusFilter {
   @override
-  String build() => 'All';
+  String build() => 'Open';
 
   void updateFilter(String filter) {
     state = filter;
@@ -31,7 +31,7 @@ List<Lot> filteredLots(FilteredLotsRef ref) {
   final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
   final statusFilter = ref.watch(statusFilterProvider);
 
-  return allLots.where((lot) {
+  final filteredList = allLots.where((lot) {
     final matchesSearch = lot.ticker.toLowerCase().contains(searchQuery);
     
     bool matchesStatus = true;
@@ -49,4 +49,9 @@ List<Lot> filteredLots(FilteredLotsRef ref) {
 
     return matchesSearch && matchesStatus;
   }).toList();
+
+  // Sort by buyDate descending (latest date on top)
+  filteredList.sort((a, b) => b.buyDate.compareTo(a.buyDate));
+
+  return filteredList;
 }

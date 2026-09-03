@@ -6,7 +6,7 @@ part of 'transactions_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$filteredLotsHash() => r'255c431fb9dec36b5833fd35199eb3ee914680ab';
+String _$filteredLotsHash() => r'550555502caf50533258cee843c02fb54a5541fe';
 
 /// See also [filteredLots].
 @ProviderFor(filteredLots)
@@ -39,7 +39,7 @@ final searchQueryProvider =
     );
 
 typedef _$SearchQuery = AutoDisposeNotifier<String>;
-String _$statusFilterHash() => r'85ae72f38ec9f9b0030a662608a87076c99ea915';
+String _$statusFilterHash() => r'713886900e1174f1c2e2b16d0cb011761ecde081';
 
 /// See also [StatusFilter].
 @ProviderFor(StatusFilter)
