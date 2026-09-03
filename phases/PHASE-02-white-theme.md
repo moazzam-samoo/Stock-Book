@@ -7,6 +7,17 @@
 
 Dark stays the default. This phase makes light mode actually usable and adds the switch.
 
+> **Written-after-the-fact note:** this brief was authored before Phase 00 and Phase 01 landed.
+> Both already touched `settings_screen.dart` — Phase 00 added an "Export data (JSON)" row to
+> `_buildAccountSection`, and Phase 01 reworked the Starting Capital row in
+> `_buildPortfolioPreferences` into a `LayoutBuilder` with a `ThousandsSeparatorInputFormatter` and
+> inline validation (see `test/presentation/settings/starting_capital_input_test.dart`, 8 passing
+> tests). Both are already committed. When you touch this file for Task 2 and Task 6 below, **read
+> the current file first** — don't assume the structure described anywhere else in this brief is
+> the only thing there — and make sure your changes don't regress the Phase 01 tests. Re-run
+> `flutter test test/presentation/settings/starting_capital_input_test.dart` after your changes to
+> that file as a sanity check, in addition to the full suite.
+
 ---
 
 ## Current state

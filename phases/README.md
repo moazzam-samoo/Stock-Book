@@ -22,10 +22,10 @@ everything else, so their briefs are final and ready now.
 
 | Phase | Brief | Depends on | Status |
 |---|---|---|---|
-| 00 — Safety net | [PHASE-00-safety-net.md](PHASE-00-safety-net.md) | — | **Ready to hand over** |
-| 01 — Starting-capital input | [PHASE-01-capital-input.md](PHASE-01-capital-input.md) | — | **Ready to hand over** |
+| 00 — Safety net | [PHASE-00-safety-net.md](PHASE-00-safety-net.md) | — | **Done** — reviewed, 3 bugs fixed, committed (`b24e78c`) |
+| 01 — Starting-capital input | [PHASE-01-capital-input.md](PHASE-01-capital-input.md) | — | **Done** — reviewed clean, committed (`9f3ec26`) |
 | 02 — Complete white theme | [PHASE-02-white-theme.md](PHASE-02-white-theme.md) | — | **Ready to hand over** |
-| 03 — Merge same-ticker buys | not written yet | 00 | Blocked on 00 |
+| 03 — Merge same-ticker buys | not written yet | 00 | **Unblocked — brief next** |
 | 04 — Live PSX prices | not written yet | 03 | Blocked |
 | 05 — Push notification infra | not written yet | — | Can start any time |
 | 06 — Sell-target alerts | not written yet | 03, 04, 05 | Blocked |
