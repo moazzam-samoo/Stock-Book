@@ -64,6 +64,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final cardBg = isDark ? AppColors.offBlack : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final refreshBg = isDark ? AppColors.offBlack : Colors.white;
+
     final lotsAsyncValue = ref.watch(allLotsProvider);
     final portfolioSummary = ref.watch(portfolioSummaryProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
@@ -81,7 +87,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               await Future.delayed(const Duration(milliseconds: 500));
             },
             color: AppColors.brandIndigo,
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: refreshBg,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -162,7 +168,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Text(
                             'Your Stocks',
                             style: AppTypography.h2.copyWith(
-                              color: AppColors.textPrimaryDark,
+                              color: primaryTextColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -177,7 +183,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               child: Text(
                                 'View all',
                                 style: AppTypography.body.copyWith(
-                                  color: Colors.white,
+                                  color: primaryTextColor,
                                   fontWeight: FontWeight.bold,
                                   decoration: TextDecoration.underline,
                                   fontSize: 14,
@@ -207,10 +213,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       else
                         Container(
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceDark,
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: const Color(0xFF242731),
+                              color: borderColor,
                               width: 1.2,
                             ),
                           ),
@@ -219,9 +225,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: stockSummaries.length,
-                            separatorBuilder: (context, index) => const Divider(
+                            separatorBuilder: (context, index) => Divider(
                               height: 1,
-                              color: Color(0xFF242731),
+                              color: borderColor,
                               indent: 16,
                               endIndent: 16,
                             ),
@@ -266,7 +272,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Text(
                   'Something went wrong',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimaryDark,
+                    color: primaryTextColor,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),

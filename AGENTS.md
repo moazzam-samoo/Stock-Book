@@ -1,7 +1,9 @@
 # AGENTS.md — Stock Book (`stock_investment_tracker`)
 
 > Persistent map of this codebase so an agent can act without re-reading everything.
-> Verified against the tree at commit `385660b` (Flutter 3.44.8, Dart SDK `^3.12.2`).
+> Verified against the tree at commit `385660b` (Flutter 3.44.8, Dart SDK `^3.12.2`), then updated
+> through Phase 02 (`feat/positions-and-alerts` branch — see `phases/README.md` for the phased
+> rebuild this repo is currently mid-way through; check it before starting new work here).
 > **Keep this file updated when structure, schema, or the gotchas below change.**
 
 ---
@@ -25,8 +27,8 @@ PDF report export.
 
 ```bash
 flutter pub get
-flutter analyze                      # Baseline: 0 errors, 26 warnings, 713 infos
-flutter test                         # 23 tests, all passing (~15s)
+flutter analyze                      # Baseline: 0 errors, 25 warnings, 873 infos
+flutter test                         # 60 tests, all passing (~1m30s full suite)
 dart run build_runner build --delete-conflicting-outputs   # after touching @freezed / @riverpod
 flutter run -t lib/main.dart         # dev (default; main.dart itself forces Environment.dev)
 flutter run -t lib/main_prod.dart    # prod + Crashlytics error handlers
@@ -36,10 +38,13 @@ flutter pub run flutter_launcher_icons   # regenerate launcher icons from assets
 
 Lint baseline is `very_good_analysis` with `public_member_api_docs`, `sort_pub_dependencies` and
 `lines_longer_than_80_chars` disabled, and `*.g.dart` / `*.freezed.dart` excluded.
-**The 739 existing issues are pre-existing noise — do not "fix the analyzer" as a side quest.**
-Only care that your change adds no new *errors*. Top existing rule hits: `prefer_int_literals` (152),
-`directives_ordering` (95), `deprecated_member_use` (59), `sort_constructors_first` (58),
-`always_use_package_imports` (56).
+**The ~898 existing issues are pre-existing noise — do not "fix the analyzer" as a side quest.**
+Only care that your change adds no new *errors*. Top existing rule hits: `prefer_int_literals`,
+`directives_ordering`, `deprecated_member_use`, `sort_constructors_first`, `always_use_package_imports`.
+
+`flutter analyze` and `flutter test` both take several minutes on this machine and are prone to
+timing out under a tool's default timeout — run them with a generous timeout (5–10 min) or in the
+background and poll, rather than assuming a timeout means failure.
 
 ---
 
@@ -251,14 +256,24 @@ Shell specifics:
   `showModalBottomSheet(isScrollControlled: true)` with a 20–24px top radius and a 40×4 grab handle.
   Follow it exactly.
 - Theme: `AppColors` / `AppTypography` (Google Fonts **Outfit** for headings, **Inter** for body) /
-  `AppSpacing` (4/8/16/24/32/48) / `AppSemanticColors` ThemeExtension.
-  `main.dart` drives `MaterialApp.themeMode` from `settings.themeMode` via `_themeModeFrom()`
-  (`'light'` / `'system'` / anything else → dark, which is also the loading fallback).
-  **There is still no UI control that calls `SettingsController.updateThemeMode`,** so in practice
-  every user is on dark until such a toggle is added.
+  `AppSpacing` (4/8/16/24/32/48) / `AppSemanticColors` ThemeExtension. **Both dark and light are now
+  fully styled and user-switchable** (Phase 02, `feat/positions-and-alerts`) — a Theme row in
+  Settings → PORTFOLIO (`Dark`/`Light`/`System`, right below Currency) calls
+  `SettingsController.updateThemeMode`; `main.dart`'s top-level `themeModeFrom()` (public,
+  `@visibleForTesting`, **not** a method on `StockTrackerApp` — pulled out specifically so it's unit
+  testable, see `test/theme_mode_mapping_test.dart`) maps the stored string to `ThemeMode`, falling
+  back to dark for `null`/unrecognised values.
   In practice **many widgets hardcode hex** (`0xFF13151B` card bg, `0xFF242731` dark border,
   `0xFFE2E8F0` light border, `0xFF1A1D27` input bg) and branch on
   `Theme.of(context).brightness == Brightness.dark`. Match the surrounding file.
+  **`AppTypography.h1/h2/h3/body/display` are deliberately hardcoded to `Colors.white`** (not
+  theme-derived) — every usage **must** chain `.copyWith(color: primaryTextColor)` or equivalent, or
+  it renders unreadable white text in light mode. This was tried the "clean" way once already
+  (stripping the literal color and relying on Flutter's ambient `DefaultTextStyle`) and reverted: the
+  ambient fallback resolves to `bodyMedium`'s *muted secondary* color in both themes, not the
+  intended full-contrast one — so unstyled usages don't go invisible, they go silently washed-out
+  everywhere, dark mode included, which is worse because it's harder to notice. `caption`'s hardcoded
+  mid-grey is the one exception that's fine as-is (legible on both grounds).
 - Money is rendered via `AppCurrencyFormatter.format()` — symbol `'Rs '`, 0 decimals for whole
   numbers, 2 otherwise, optional `showSign`.
   **The formatter already emits the `Rs ` prefix — never write `'Rs ${AppCurrencyFormatter...}'`.**
@@ -305,42 +320,85 @@ Shell specifics:
 
 ## 11. Known issues / traps (verified, not speculation)
 
-1. **No UI exposes `themeMode`.** The plumbing is complete end to end (entity → Firestore →
-   `SettingsController.updateThemeMode` → `MaterialApp.themeMode`), but nothing in
-   `settings_screen.dart` calls the setter, so the app is always dark in practice. Adding the
-   toggle is a UI-only change — a row in the `PORTFOLIO` section alongside Currency.
-2. **`PortfolioCalculator.calculateStockSummaries` has an unused `anySales` local** and its status
+1. **`PortfolioCalculator.calculateStockSummaries` has an unused `anySales` local** and its status
    branch is partly redundant. Behaviour is correct; the dead line is analyzer noise.
-3. **Two divergent status computations.** `LotModel.toEntity()` recomputes status/derived fields from
+2. **Two divergent status computations.** `LotModel.toEntity()` recomputes status/derived fields from
    the raw doc (source of truth on read), while `AddSellController` computes them optimistically from
    the in-memory entity before writing. They agree today; keep them in sync if you change either.
-4. **`LotRepository.watchLotsByTicker` / `watchLotsByFilter` are dead code** — all filtering happens
+3. **`LotRepository.watchLotsByTicker` / `watchLotsByFilter` are dead code** — all filtering happens
    in `filteredLotsProvider` or in view-level `.where(...)`.
-5. **`SparklineChart` draws fake data** — `Random(seed ?? color.value)`, 7 points, biased up or down
+4. **`SparklineChart` draws fake data** — `Random(seed ?? color.value)`, 7 points, biased up or down
    by `isPositive`. It is decorative. There is no price history in this app.
-6. **`/add-stock` route is a placeholder** with nothing navigating to it.
-7. `lib/firebase_options.dart` **is committed**;
+5. **`/add-stock` route is a placeholder** with nothing navigating to it.
+6. `lib/firebase_options.dart` **is committed**;
    `android/app/google-services.json` is gitignored and untracked.
-8. `lib/main_staging.dart` has a formatting glitch (`...local_storage.dart';void main()` on one line).
-9. Only `main_prod.dart` installs the Crashlytics `FlutterError.onError` /
-    `PlatformDispatcher.onError` handlers. `firebase_analytics` is a dependency but **never used**
-    anywhere in `lib/`.
-10. `mocktail` and `golden_toolkit` are dev dependencies but unused.
+7. `lib/main_staging.dart` has a formatting glitch (`...local_storage.dart';void main()` on one line).
+8. Only `main_prod.dart` installs the Crashlytics `FlutterError.onError` /
+   `PlatformDispatcher.onError` handlers. `firebase_analytics` is a dependency but **never used**
+   anywhere in `lib/`.
+9. `mocktail` is a dev dependency but unused. (`golden_toolkit` is now heavily used — see §12.)
+10. **`DashboardScreen` is not pixel-golden-testable as written.** It keeps `_lastSyncTime =
+    DateTime.now()` directly in `State` (`dashboard_screen.dart`) with no injectable clock, and
+    renders it as visible "Offline (HH:MM)" text. Any golden master captured against it goes stale
+    the instant a minute boundary passes before the comparison runs — which happens routinely once
+    the suite is large enough to take more than a few seconds to reach that test. `theme_golden_test.dart`
+    deliberately does **not** pixel-diff Dashboard for this reason (see the comment above its two
+    test cases) — it asserts no-exception + correct scaffold background color instead, and leans on
+    `contrast_test.dart` (which is immune to this, since it checks contrast ratios, not exact pixels)
+    for Dashboard's real coverage. If you ever need Dashboard fully pixel-tested, it needs a proper
+    injectable clock first — don't just re-add `screenMatchesGolden` and hope.
+11. **`OfflineBanner` has a real wall-clock `Timer` (3s auto-hide) that makes it a landmine for any
+    widget/golden test.** Mocking connectivity as `'none'` (offline) to exercise the banner will make
+    that screen's test flaky in a large suite: enough real time can pass between the initial pump and
+    a later assertion/comparison for the timer to fire mid-test, silently hiding the banner and
+    shifting the entire layout up — a "regression" that has nothing to do with your change and
+    everything to do with how long the rest of the suite took to get there. `theme_golden_test.dart`
+    and `contrast_test.dart` both mock connectivity as **online** (`'wifi'`) for exactly this reason;
+    the banner's own styling is deliberately theme-invariant (yellow-on-black regardless of light/dark,
+    see `common/offline_banner.dart`) so there's no theme coverage lost by keeping it hidden in these
+    tests. If a future test genuinely needs to exercise the *offline* banner rendering itself, keep it
+    isolated to its own short, single-purpose test rather than layering it onto a screen-level golden.
 
 ---
 
 ## 12. Tests
 
-`test/` mirrors `lib/`. 23 tests, all green:
+`test/` mirrors `lib/`. 60 tests, all green (~1m30s for the full suite; run with a generous timeout,
+see §2):
 
 - `domain/calculator/portfolio_calculator_test.dart` (9) — includes the three withdrawal-semantics tests
+- `domain/calculator/portfolio_calculator_characterisation_test.dart` (4) — **do not "fix" these
+  numbers if they go red.** Locks `PortfolioCalculator`'s exact output against a fixed 8-lot/12-sale/
+  3-ticker fixture, written specifically so the future position-merge migration (see
+  `phases/PHASE-03A-position-model.md`) can prove it changes nothing. Header comment explains it further.
 - `data/repositories/lot_repository_impl_test.dart` (4) — **mockito** with a checked-in `.mocks.dart`;
   regenerate via build_runner if the interface changes
 - `data/models/model_serialization_test.dart` (2) — Lot/Sale roundtrips
 - `core/utils/{currency_formatter,stock_color_utils}_test.dart` (7)
+- `core/services/data_export_service_test.dart` (4) — the Settings → Account "Export data (JSON)"
+  backup feature; round-trip, empty portfolio, null `targetPrice`, ISO-8601 dates
+- `presentation/settings/starting_capital_input_test.dart` (8) — responsive layout + the
+  thousands-separator formatter + validation (rejects negative/unparseable input rather than
+  silently saving `0`)
+- `presentation/settings/theme_toggle_test.dart` (1) — the Theme dropdown calls
+  `updateThemeMode` with the exact persisted string
+- `theme_mode_mapping_test.dart` (5) — pure unit tests of `main.dart`'s `themeModeFrom()`
+- `golden/theme_golden_test.dart` (10) — full-screen goldens, light+dark, for Dashboard (smoke-test
+  only, see AGENTS.md #10 above), Settings, Transactions, Lot Card, Stock Detail. Needs
+  `test/flutter_test_config.dart`'s `loadAppFonts()` to render real fonts instead of tofu boxes —
+  **if goldens start failing en masse with text-shaped diffs everywhere, that's a font-loading
+  problem, not a real regression; regenerate with `--update-goldens` after fixing the actual cause,
+  don't just accept the new pixels blind.**
+- `golden/contrast_test.dart` (5) — walks every rendered `RichText`, resolves each run's *actual
+  local* background (not a blanket app-wide assumption — that false-positives on `TickerAvatar`'s
+  deliberate white-on-saturated-circle text) and flags anything under 5% luminance contrast. This is
+  the test that would have caught the white-on-white class of bug if one shipped; golden pixel-diffs
+  can't (a bad master just diffs clean against itself forever).
 - `widget_test.dart` (1) — `StatusBadge`
 
-New pure logic belongs in `PortfolioCalculator` **with a test**; that is the only well-tested layer.
+New pure logic belongs in `PortfolioCalculator` **with a test**; that used to be the only
+consistently well-tested layer, but Phase 02 added real widget/golden coverage too — follow whichever
+existing test's pattern is closest to what you're adding rather than starting from scratch.
 
 ---
 
@@ -366,13 +424,18 @@ To add a new persisted entity, mirror `Withdrawal` end-to-end (it is the newest 
 
 ## 14. Open work
 
-`target-price-alerts-plan.md` (repo root, **untracked**) is a detailed, not-yet-implemented plan for:
-live PSX market prices in a shared top-level `market_prices/{ticker}` collection, FCM push when a
-lot's `targetPrice` is hit (sell alert), and a new "buy alerts" feature
-(`users/{uid}/price_alerts/{alertId}` + a new screen + nav entry). The backend is specified as a
-**Python script on a GitHub Actions cron**, deliberately *not* Cloud Functions, because the Firebase
-project is on the Spark/free plan. `firebase_messaging` is not yet a dependency and there is no
-`functions/` or `scripts/` directory. Read that file before touching anything alert- or price-related.
+This repo is mid-way through a phased rebuild on the `feat/positions-and-alerts` branch. **Start at
+`phases/README.md`** — it's the live index (status table, workflow, per-agent rules) for everything
+below, and supersedes the older `target-price-alerts-plan.md` / `IMPLEMENTATION_PLAN.md` at the repo
+root (kept for historical context, but `phases/` is where the current, reconciled plan lives).
+
+Done: Phase 00 (safety net — characterisation tests + JSON export/backup), Phase 01 (responsive
+starting-capital input), Phase 02 (full light theme + toggle). Ready but not started: 03A/03B (merge
+same-ticker lots into one moving-average-cost `Position` per ticker — the biggest, riskiest phase,
+deliberately split for reviewability), 04 (live PSX prices, display-only), 05 (push notification
+infra), 06 (sell-target alert fields), 07 (buy alerts + new screen), 08 (Python/GitHub-Actions
+backend that actually fetches prices and sends the pushes). Each brief is self-contained — read the
+target brief plus this file before starting, not the whole chain.
 
 Design references (static, not code): `Stock_Tracker_PRD.md`, `Stock_Tracker_UI_UX_Design_PRD.md`,
 `Stock App UI/*.png`.

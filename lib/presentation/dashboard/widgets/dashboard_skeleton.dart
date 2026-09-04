@@ -8,9 +8,10 @@ class DashboardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF2D3748),
-      highlightColor: const Color(0xFF4A5568),
+      baseColor: isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0),
+      highlightColor: isDark ? const Color(0xFF4A5568) : const Color(0xFFF1F5F9),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

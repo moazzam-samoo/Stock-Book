@@ -22,7 +22,9 @@ class AddBuyBottomSheet extends ConsumerStatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: const AddBuyBottomSheet(),
       ),
     );
@@ -51,22 +53,26 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
     super.dispose();
   }
 
-
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _ticker.isEmpty || _buyDate == null) {
+    if (!_formKey.currentState!.validate() ||
+        _ticker.isEmpty ||
+        _buyDate == null) {
       return;
     }
-    
-    final results = await Connectivity().checkConnectivity();
-    final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
 
-    await ref.read(addBuyControllerProvider.notifier).submit(
-      ticker: _ticker,
-      buyDate: _buyDate!,
-      sharesPurchased: _sharesPurchased,
-      buyPricePerShare: _buyPrice,
-      targetPrice: _targetPrice,
-    );
+    final results = await Connectivity().checkConnectivity();
+    final isOffline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
+
+    await ref
+        .read(addBuyControllerProvider.notifier)
+        .submit(
+          ticker: _ticker,
+          buyDate: _buyDate!,
+          sharesPurchased: _sharesPurchased,
+          buyPricePerShare: _buyPrice,
+          targetPrice: _targetPrice,
+        );
 
     if (!mounted) return;
     if (!ref.read(addBuyControllerProvider).hasError) {
@@ -78,7 +84,9 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                 ? "You're offline. Your purchase was saved locally and will sync when online."
                 : 'Bought ${_sharesPurchased.toInt()} shares of $_ticker successfully!',
           ),
-          backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     }
@@ -90,8 +98,12 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
     final asyncState = ref.watch(addBuyControllerProvider);
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final boxBgColor = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     return SafeArea(
       child: Padding(
@@ -108,7 +120,9 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF333A4A) : const Color(0xFFCBD5E1),
+                      color: isDark
+                          ? const Color(0xFF333A4A)
+                          : const Color(0xFFCBD5E1),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -118,7 +132,11 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.close, color: AppColors.neutral500, size: 20),
+                      icon: Icon(
+                        Icons.close,
+                        color: AppColors.neutral500,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
@@ -163,7 +181,8 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                             _sharesPurchased = double.tryParse(val) ?? 0.0;
                           });
                         },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -175,7 +194,8 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                             _buyPrice = double.tryParse(val) ?? 0.0;
                           });
                         },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                   ],
@@ -192,7 +212,10 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                 const SizedBox(height: 20),
                 // Amount Invested Box (Matches Add Buy.png)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: boxBgColor,
                     borderRadius: BorderRadius.circular(14),
@@ -210,7 +233,9 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                         ),
                       ),
                       Text(
-                        _amountInvested > 0 ? AppCurrencyFormatter.format(_amountInvested) : 'Rs —',
+                        _amountInvested > 0
+                            ? AppCurrencyFormatter.format(_amountInvested)
+                            : 'Rs —',
                         style: AppTypography.h2.copyWith(
                           color: primaryTextColor,
                           fontFamily: 'JetBrains Mono',
@@ -230,13 +255,18 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                       backgroundColor: const Color(0xFF584BF6),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: asyncState.isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
                           )
                         : const Text(
                             'Save Buy',

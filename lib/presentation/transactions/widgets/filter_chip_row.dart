@@ -8,6 +8,10 @@ class FilterChipRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chipBg = isDark ? AppColors.offBlack : const Color(0xFFF5F5F5);
+    final unselectedLabel = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     final currentFilter = ref.watch(statusFilterProvider);
     final filters = ['Open', 'Partial', 'Closed', 'All'];
 
@@ -27,10 +31,10 @@ class FilterChipRow extends ConsumerWidget {
                   ref.read(statusFilterProvider.notifier).updateFilter(filter);
                 }
               },
-              backgroundColor: AppColors.surfaceDark,
+              backgroundColor: chipBg,
               selectedColor: AppColors.brandIndigo.withOpacity(0.2),
               labelStyle: TextStyle(
-                color: isSelected ? AppColors.brandIndigo : Colors.white,
+                color: isSelected ? AppColors.brandIndigo : unselectedLabel,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               shape: RoundedRectangleBorder(

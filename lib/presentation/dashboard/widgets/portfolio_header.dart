@@ -27,7 +27,7 @@ class PortfolioHeader extends ConsumerWidget {
     if (photoUrl != null && photoUrl.isNotEmpty) {
       return CircleAvatar(
         radius: 22,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: const Color(0xFF9CA3AF),
         backgroundImage: NetworkImage(photoUrl),
       );
     }
@@ -63,7 +63,8 @@ class PortfolioHeader extends ConsumerWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
+        Expanded(
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -79,13 +80,16 @@ class PortfolioHeader extends ConsumerWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  displayValue,
-                  style: AppTypography.display.copyWith(
-                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                    fontFamily: 'JetBrains Mono',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 28,
+                Flexible(
+                  child: Text(
+                    displayValue,
+                    style: AppTypography.display.copyWith(
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      fontFamily: 'JetBrains Mono',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 28,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -94,6 +98,8 @@ class PortfolioHeader extends ConsumerWidget {
             ),
           ],
         ),
+        ), // Close Expanded
+        const SizedBox(width: AppSpacing.md),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,

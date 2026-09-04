@@ -26,13 +26,15 @@ class AppBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.deepSpaceBlack,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.deepSpaceBlack : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Column(
@@ -43,7 +45,7 @@ class AppBottomSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.darkGray,
+                color: isDark ? AppColors.darkGray : const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

@@ -107,7 +107,7 @@ class _NavItem extends StatelessWidget {
             : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.chartGreen.withOpacity(0.6)
+              ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight).withOpacity(0.6)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(28),
         ),

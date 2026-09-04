@@ -323,6 +323,41 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          Divider(height: 1, color: borderColor),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: inputBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: settings.themeMode,
+                      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.neutral500),
+                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                      dropdownColor: inputBg,
+                      items: const [
+                        DropdownMenuItem(value: 'dark', child: Text('Dark')),
+                        DropdownMenuItem(value: 'light', child: Text('Light')),
+                        DropdownMenuItem(value: 'system', child: Text('System')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          ref.read(settingsControllerProvider.notifier).updateThemeMode(val);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

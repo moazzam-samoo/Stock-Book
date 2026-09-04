@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color moneyGreen = Color(0xFF00FF7F);
+
+  /// Same "positive" green, darkened for light backgrounds. `moneyGreen`'s
+  /// luminance (~0.73) sits too close to white/`backgroundLight` (~0.92–1.0)
+  /// for comfortable text contrast — worst on the tinted chips
+  /// (`TrendChip`/`StatusBadge`) where the backdrop is `moneyGreen` itself
+  /// at low opacity, so both text and background share almost the same hue
+  /// and lightness. Use `isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight`
+  /// wherever green is a value/text color, not `moneyGreen` unconditionally.
+  static const Color moneyGreenOnLight = Color(0xFF00A651);
+
   static const Color vibrantPink = Color(0xFFFF4081);
   static const Color alertRed = Color(0xFFFF5252);
   static const Color warningYellow = Color(0xFFFFD740);
@@ -106,7 +116,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   );
 
   static const light = AppSemanticColors(
-    success: AppColors.moneyGreen,
+    success: AppColors.moneyGreenOnLight,
     danger: AppColors.alertRed,
     warning: AppColors.warningYellow,
     background: AppColors.backgroundLight,

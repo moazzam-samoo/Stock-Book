@@ -105,6 +105,22 @@ flutter:
     - assets/icon/
     - assets/screenshots/
 
+  # Bundled locally so widget/golden tests can render real Outfit/Inter text
+  # via golden_toolkit's loadAppFonts() without network access. The app
+  # itself still fetches these through google_fonts at runtime as before —
+  # this declaration exists for test determinism, not for the shipped app.
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit-Bold.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:

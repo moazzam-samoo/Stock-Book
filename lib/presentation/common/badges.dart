@@ -29,14 +29,17 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final positiveColor = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
+
     Color bgColor;
     Color textColor;
     String label;
 
     switch (_tradeStatus) {
       case TradeStatus.open:
-        bgColor = AppColors.moneyGreen.withOpacity(0.2);
-        textColor = AppColors.moneyGreen;
+        bgColor = positiveColor.withOpacity(0.2);
+        textColor = positiveColor;
         label = 'OPEN';
         break;
       case TradeStatus.partial:
@@ -85,8 +88,11 @@ class TrendChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPositive = percentage >= 0;
-    final color = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
+    final color = isPositive
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
     final icon = isPositive ? Icons.arrow_upward : Icons.arrow_downward;
     final prefix = isPositive ? '+' : '';
 

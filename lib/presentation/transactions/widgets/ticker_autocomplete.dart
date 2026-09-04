@@ -19,6 +19,11 @@ class TickerAutocomplete extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final dropdownBg = isDark ? AppColors.offBlack : Colors.white;
+    final dropdownBorder = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+
     final settings = ref.watch(settingsProvider).valueOrNull;
     final favorites = settings?.favorites ?? [];
 
@@ -39,7 +44,7 @@ class TickerAutocomplete extends ConsumerWidget {
           controller: textController,
           focusNode: focusNode,
           textCapitalization: TextCapitalization.characters,
-          style: AppTypography.body.copyWith(color: Colors.white),
+          style: AppTypography.body.copyWith(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: 'Stock Ticker',
             hintText: 'e.g. STPL',
@@ -61,11 +66,11 @@ class TickerAutocomplete extends ConsumerWidget {
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
-            color: AppColors.surfaceDark,
+            color: dropdownBg,
             elevation: 4.0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(color: AppColors.offBlack),
+              side: BorderSide(color: dropdownBorder),
             ),
             child: SizedBox(
               width: MediaQuery.of(context).size.width - 48,
@@ -77,7 +82,7 @@ class TickerAutocomplete extends ConsumerWidget {
                   final String option = options.elementAt(index);
                   return ListTile(
                     leading: TickerAvatar(ticker: option, size: 32),
-                    title: Text(option, style: const TextStyle(color: Colors.white)),
+                    title: Text(option, style: TextStyle(color: primaryTextColor)),
                     onTap: () {
                       onSelected(option);
                     },

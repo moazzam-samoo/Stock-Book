@@ -28,6 +28,8 @@ class StatCardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final positiveColor = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
     final liquidFreeCash = summary.freeCash + summary.realizedPL;
 
     return Column(
@@ -69,7 +71,7 @@ class StatCardGrid extends StatelessWidget {
                 value: summary.realizedPL,
                 isCurrency: true,
                 valueColor: summary.realizedPL >= 0
-                    ? AppColors.moneyGreen
+                    ? positiveColor
                     : AppColors.alertRed,
                 tag: summary.totalWithdrawn > 0
                     ? '${AppCurrencyFormatter.format(summary.totalWithdrawn, decimalDigits: 0)} withdrawn'

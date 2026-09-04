@@ -15,10 +15,11 @@ class SelectLotBottomSheet extends ConsumerWidget {
   const SelectLotBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: isDark ? const Color(0xFF13151B) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -28,8 +29,20 @@ class SelectLotBottomSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final grabHandleColor = isDark
+        ? AppColors.offBlack
+        : const Color(0xFFE2E8F0);
+    final cardBg = isDark ? AppColors.offBlack : const Color(0xFFF5F5F5);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     final lots = ref.watch(allLotsProvider).valueOrNull ?? [];
-    final availableLots = lots.where((l) => l.status != LotStatus.closed).toList();
+    final availableLots = lots
+        .where((l) => l.status != LotStatus.closed)
+        .toList();
     final wholeFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM d, y');
 
@@ -45,7 +58,7 @@ class SelectLotBottomSheet extends ConsumerWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.offBlack,
+                  color: grabHandleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -55,7 +68,10 @@ class SelectLotBottomSheet extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const SizedBox(width: 24), // balance for title centering
-                Text('Add Sell', style: AppTypography.h2),
+                Text(
+                  'Add Sell',
+                  style: AppTypography.h2.copyWith(color: primaryTextColor),
+                ),
                 IconButton(
                   icon: const Icon(Icons.close, color: AppColors.neutral500),
                   onPressed: () => Navigator.pop(context),
@@ -75,7 +91,9 @@ class SelectLotBottomSheet extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 32.0),
                   child: Text(
                     'No open lots available to sell.',
-                    style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                    ),
                   ),
                 ),
               )
@@ -84,7 +102,8 @@ class SelectLotBottomSheet extends ConsumerWidget {
                 height: 300,
                 child: ListView.separated(
                   itemCount: availableLots.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final lot = availableLots[index];
                     return InkWell(
@@ -96,9 +115,9 @@ class SelectLotBottomSheet extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceDark,
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.offBlack),
+                          border: Border.all(color: borderColor),
                         ),
                         child: Row(
                           children: [
@@ -112,24 +131,35 @@ class SelectLotBottomSheet extends ConsumerWidget {
                                     children: [
                                       Text(
                                         '${lot.ticker} · ',
-                                        style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                                        style: AppTypography.body.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryTextColor,
+                                        ),
                                       ),
                                       Text(
                                         '${wholeFormat.format(lot.sharesRemaining)} left',
-                                        style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                                        style: AppTypography.body.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryTextColor,
+                                        ),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Bought ${dateFormat.format(lot.buyDate)} @ ${AppCurrencyFormatter.format(lot.buyPricePerShare)}',
-                                    style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.neutral500,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             StatusBadge(status: lot.status),
-                            const Icon(Icons.chevron_right, color: AppColors.neutral500),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.neutral500,
+                            ),
                           ],
                         ),
                       ),

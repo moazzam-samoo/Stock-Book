@@ -25,7 +25,9 @@ class EditLotBottomSheet extends ConsumerStatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: EditLotBottomSheet(lot: lot),
       ),
     );
@@ -67,7 +69,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _ticker.isEmpty || _buyDate == null) {
+    if (!_formKey.currentState!.validate() ||
+        _ticker.isEmpty ||
+        _buyDate == null) {
       return;
     }
 
@@ -77,7 +81,8 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
 
     try {
       final results = await Connectivity().checkConnectivity();
-      final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
+      final isOffline =
+          results.contains(ConnectivityResult.none) || results.isEmpty;
 
       final updatedLot = widget.lot.copyWith(
         ticker: _ticker.toUpperCase(),
@@ -102,7 +107,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                 ? "You're offline. Lot changes saved locally."
                 : 'Lot updated successfully!',
           ),
-          backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     } catch (e) {
@@ -126,8 +133,12 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final boxBgColor = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     return SafeArea(
       child: Padding(
@@ -144,7 +155,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF333A4A) : const Color(0xFFCBD5E1),
+                      color: isDark
+                          ? const Color(0xFF333A4A)
+                          : const Color(0xFFCBD5E1),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -154,7 +167,11 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.neutral500, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.neutral500,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
@@ -200,7 +217,8 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                             _sharesPurchased = double.tryParse(val) ?? 0.0;
                           });
                         },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -213,7 +231,8 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                             _buyPrice = double.tryParse(val) ?? 0.0;
                           });
                         },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                   ],
@@ -230,7 +249,10 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: boxBgColor,
                     borderRadius: BorderRadius.circular(14),
@@ -248,7 +270,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                         ),
                       ),
                       Text(
-                        _amountInvested > 0 ? AppCurrencyFormatter.format(_amountInvested) : 'Rs —',
+                        _amountInvested > 0
+                            ? AppCurrencyFormatter.format(_amountInvested)
+                            : 'Rs —',
                         style: AppTypography.h2.copyWith(
                           color: primaryTextColor,
                           fontFamily: 'JetBrains Mono',
@@ -268,13 +292,18 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                       backgroundColor: const Color(0xFF584BF6),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: _isSaving
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
                           )
                         : const Text(
                             'Update Lot',

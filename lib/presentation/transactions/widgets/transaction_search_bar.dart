@@ -31,18 +31,22 @@ class _TransactionSearchBarState extends ConsumerState<TransactionSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? AppColors.offBlack : const Color(0xFFF5F5F5);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: TextField(
         controller: _controller,
         onChanged: _onSearchChanged,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
           hintText: 'Search by ticker...',
           hintStyle: TextStyle(color: AppColors.neutral500),
           prefixIcon: Icon(Icons.search, color: AppColors.neutral500),
           filled: true,
-          fillColor: AppColors.surfaceDark,
+          fillColor: fillColor,
           contentPadding: const EdgeInsets.symmetric(vertical: 0),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),

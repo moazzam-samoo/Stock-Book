@@ -14,9 +14,9 @@ fresh coding agent that has never seen this repo.
 6. Phase marked Done → next brief written
 ```
 
-Briefs for phases 3–8 are written **at the start of their cycle**, not upfront, so they reflect what
-actually landed in earlier phases rather than what was predicted. Phases 0–2 are independent of
-everything else, so their briefs are final and ready now.
+All briefs are now written. **Briefs 03A onward were authored before their dependencies landed** —
+re-read the relevant source files before starting one, and tell me if reality has drifted from what
+the brief describes. Each has a "stop and ask" section for exactly that.
 
 ## Status
 
@@ -24,16 +24,27 @@ everything else, so their briefs are final and ready now.
 |---|---|---|---|
 | 00 — Safety net | [PHASE-00-safety-net.md](PHASE-00-safety-net.md) | — | **Done** — reviewed, 3 bugs fixed, committed (`b24e78c`) |
 | 01 — Starting-capital input | [PHASE-01-capital-input.md](PHASE-01-capital-input.md) | — | **Done** — reviewed clean, committed (`9f3ec26`) |
-| 02 — Complete white theme | [PHASE-02-white-theme.md](PHASE-02-white-theme.md) | — | **Ready to hand over** |
-| 03 — Merge same-ticker buys | not written yet | 00 | **Unblocked — brief next** |
-| 04 — Live PSX prices | not written yet | 03 | Blocked |
-| 05 — Push notification infra | not written yet | — | Can start any time |
-| 06 — Sell-target alerts | not written yet | 03, 04, 05 | Blocked |
-| 07 — Buy alerts + screen | not written yet | 05 | Blocked |
-| 08 — Backend on GitHub Actions | not written yet | 04, 06, 07 | Blocked |
+| 02 — Complete white theme | [PHASE-02-white-theme.md](PHASE-02-white-theme.md) | — | **Done** — reviewed, fixed, all green, awaiting commit |
+| 03A — Position model + migration engine | [PHASE-03A-position-model.md](PHASE-03A-position-model.md) | 00 | Ready |
+| 03B — Position UI + run migration | [PHASE-03B-position-ui.md](PHASE-03B-position-ui.md) | 03A | Ready |
+| 04 — Live PSX prices | [PHASE-04-live-prices.md](PHASE-04-live-prices.md) | 03B | Ready |
+| 05 — Push notification infra | [PHASE-05-push-infra.md](PHASE-05-push-infra.md) | — | Ready — can run in parallel |
+| 06 — Sell-target alert fields | [PHASE-06-sell-alerts.md](PHASE-06-sell-alerts.md) | 03B, 04, 05 | Ready |
+| 07 — Buy alerts + Alerts screen | [PHASE-07-buy-alerts.md](PHASE-07-buy-alerts.md) | 05 | Ready |
+| 08 — Backend on GitHub Actions | [PHASE-08-backend.md](PHASE-08-backend.md) | 04, 06, 07 | Ready |
 
-**Suggested order:** 00 first (it gates phase 03 and is half a day), then 01 and 02 in either order —
-both are independent and shippable on their own.
+### Why 03 became 03A + 03B
+
+Phase 03 as originally scoped was ~1500 lines across ~15 files, and it is the one phase that rewrites
+real money history. Split so each half is reviewable: **03A builds the engine and proves it with
+tests, never touching real data; 03B wires the UI and runs the migration once.** Both land on the
+same branch before anything ships.
+
+### Suggested order
+
+`02` (in progress) → `03A` → `03B` → then `04` and `05` in either order (05 has no dependencies and
+can run in parallel with anything) → `06` and `07` → `08` last, since it is written against the
+Firestore schemas the earlier phases define.
 
 Full reasoning behind the phasing lives in [../IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md).
 

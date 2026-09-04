@@ -41,8 +41,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.background : Colors.white;
+    final titleColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor,
       body: SizedBox.expand(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -83,7 +87,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 38,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: titleColor,
                     letterSpacing: 0.8,
                   ),
                 )

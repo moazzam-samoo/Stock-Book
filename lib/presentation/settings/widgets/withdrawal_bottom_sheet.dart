@@ -39,8 +39,7 @@ class WithdrawalBottomSheet extends ConsumerStatefulWidget {
       _WithdrawalBottomSheetState();
 }
 
-class _WithdrawalBottomSheetState
-    extends ConsumerState<WithdrawalBottomSheet> {
+class _WithdrawalBottomSheetState extends ConsumerState<WithdrawalBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late DateTime? _date;
   late double _amount;
@@ -99,11 +98,12 @@ class _WithdrawalBottomSheetState
             isOffline
                 ? "You're offline. Withdrawal saved locally and will sync when online."
                 : _isEditing
-                    ? 'Withdrawal updated successfully'
-                    : 'Withdrew ${AppCurrencyFormatter.format(_amount)} from profit',
+                ? 'Withdrawal updated successfully'
+                : 'Withdrew ${AppCurrencyFormatter.format(_amount)} from profit',
           ),
-          backgroundColor:
-              isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     } catch (e) {
@@ -125,10 +125,12 @@ class _WithdrawalBottomSheetState
     final summary = ref.watch(portfolioSummaryProvider);
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor =
-        isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final boxBgColor =
-        isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     // Available profit excludes the row being edited, so editing 3,000 -> 4,000
     // is measured against the pot as it would be without this withdrawal.

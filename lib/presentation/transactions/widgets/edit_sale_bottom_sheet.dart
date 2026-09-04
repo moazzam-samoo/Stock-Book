@@ -120,8 +120,9 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                 ? "You're offline. Sale changes saved locally and will sync when online."
                 : 'Sale updated successfully!',
           ),
-          backgroundColor:
-              isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     } catch (e) {
@@ -146,12 +147,15 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
     final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor =
-        isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final bannerBgColor =
-        isDark ? const Color(0xFF1E2235) : const Color(0xFFEEF2FF);
-    final boxBgColor =
-        isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final bannerBgColor = isDark
+        ? const Color(0xFF1E2235)
+        : const Color(0xFFEEF2FF);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     return SafeArea(
       child: Padding(
@@ -271,8 +275,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                     Expanded(
                       child: NumericInput(
                         label: 'Sell Price / Share',
-                        initialValue:
-                            widget.sale.sellPricePerShare.toString(),
+                        initialValue: widget.sale.sellPricePerShare.toString(),
                         onChanged: (val) {
                           setState(() {
                             _sellPrice = double.tryParse(val) ?? 0.0;

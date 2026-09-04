@@ -120,7 +120,8 @@ class _LotCardState extends ConsumerState<LotCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           GestureDetector(
                             onTap: widget.showStockDetailNavigation
@@ -357,21 +358,22 @@ class _LotCardState extends ConsumerState<LotCard> {
                       backgroundColor: isDark
                           ? const Color(0xFF132B1A)
                           : const Color(0xFFECFDF5),
-                      foregroundColor: AppColors.moneyGreen,
+                      foregroundColor: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                       elevation: 0,
+                      side: BorderSide(color: borderColor),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.south_west_rounded,
                       size: 18,
-                      color: AppColors.moneyGreen,
+                      color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                     ),
-                    label: const Text(
+                    label: Text(
                       'Add Sale from this lot',
                       style: TextStyle(
-                        color: AppColors.moneyGreen,
+                        color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -381,67 +383,78 @@ class _LotCardState extends ConsumerState<LotCard> {
               ],
 
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton.icon(
-                  onPressed: () => PdfReportService.exportLotPdf(widget.lot),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark
-                        ? const Color(0xFF10233A)
-                        : const Color(0xFFEFF6FF),
-                    foregroundColor: AppColors.chartBlue,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 46,
+                      child: ElevatedButton.icon(
+                        onPressed: () => PdfReportService.exportLotPdf(widget.lot),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDark
+                              ? const Color(0xFF10233A)
+                              : const Color(0xFFEFF6FF),
+                          foregroundColor: AppColors.chartBlue,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          side: BorderSide(color: borderColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.picture_as_pdf_outlined,
+                          size: 16,
+                          color: AppColors.chartBlue,
+                        ),
+                        label: const Text(
+                          'PDF Report',
+                          style: TextStyle(
+                            color: AppColors.chartBlue,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                   ),
-                  icon: const Icon(
-                    Icons.picture_as_pdf_outlined,
-                    size: 18,
-                    color: AppColors.chartBlue,
-                  ),
-                  label: const Text(
-                    'Download Lot PDF Report',
-                    style: TextStyle(
-                      color: AppColors.chartBlue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                  if (widget.showStockDetailNavigation) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push('/stock/${widget.lot.ticker}'),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: borderColor),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            foregroundColor: primaryTextColor,
+                          ),
+                          icon: Icon(
+                            Icons.analytics_outlined,
+                            size: 16,
+                            color: primaryTextColor,
+                          ),
+                          label: Text(
+                            'Stock Details',
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  ],
+                ],
               ),
-              if (widget.showStockDetailNavigation) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: OutlinedButton.icon(
-                    onPressed: () =>
-                        context.push('/stock/${widget.lot.ticker}'),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: borderColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      foregroundColor: primaryTextColor,
-                    ),
-                    icon: Icon(
-                      Icons.analytics_outlined,
-                      size: 18,
-                      color: primaryTextColor,
-                    ),
-                    label: Text(
-                      'View Full Stock Details',
-                      style: TextStyle(
-                        color: primaryTextColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ],
         ),

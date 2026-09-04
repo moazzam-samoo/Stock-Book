@@ -146,7 +146,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           padding: const EdgeInsets.only(bottom: 96.0),
           child: FloatingActionButton(
             shape: const CircleBorder(),
-            backgroundColor: AppColors.moneyGreen.withOpacity(0.7),
+            backgroundColor: isDark
+                ? AppColors.moneyGreen.withOpacity(0.7)
+                : AppColors.moneyGreenOnLight.withOpacity(0.85),
             elevation: 4,
             onPressed: () {
               HapticFeedback.lightImpact();

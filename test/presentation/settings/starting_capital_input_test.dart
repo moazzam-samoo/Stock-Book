@@ -70,17 +70,17 @@ void main() {
   }
 
   testWidgets('1. Renders at 320dp with 999999999999 (No RenderFlex overflow)', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(320, 800));
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     expect(find.text('999,999,999,999'), findsOneWidget);
-
-    await tester.binding.setSurfaceSize(null);
   });
 
   testWidgets('2. Renders at 360dp and 480dp with the same value without overflow', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(360, 800));
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
@@ -90,8 +90,6 @@ void main() {
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-
-    await tester.binding.setSurfaceSize(null);
   });
 
   testWidgets('3. Type 10000000 -> Field displays 10,000,000', (tester) async {
