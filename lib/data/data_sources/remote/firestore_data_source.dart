@@ -65,6 +65,63 @@ class FirestoreDataSource {
     }
   }
 
+  // POSITIONS
+  Stream<List<PositionModel>> watchAllPositions(String uid) {
+    return _firestore
+        .collection(FirestorePaths.positions(uid))
+        .orderBy('openedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return PositionModel.fromJson(data);
+            }).toList());
+  }
+
+  Future<void> addPosition(String uid, PositionModel position) async {
+    final json = position.toJson()..remove('id');
+    // Explicitly serialize nested buys and sales
+    json['buys'] = position.buys.map((b) => b.toJson()).toList();
+    json['sales'] = position.sales.map((s) => s.toJson()).toList();
+    try {
+      await _firestore
+          .collection(FirestorePaths.positions(uid))
+          .doc(position.id)
+          .set(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
+  Future<void> updatePosition(String uid, PositionModel position) async {
+    final json = position.toJson()..remove('id');
+    // Explicitly serialize nested buys and sales
+    json['buys'] = position.buys.map((b) => b.toJson()).toList();
+    json['sales'] = position.sales.map((s) => s.toJson()).toList();
+    try {
+      await _firestore
+          .collection(FirestorePaths.positions(uid))
+          .doc(position.id)
+          .update(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
+  Future<void> deletePosition(String uid, String positionId) async {
+    try {
+      await _firestore
+          .collection(FirestorePaths.positions(uid))
+          .doc(positionId)
+          .delete()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
   // SALES (Embedded in Lots)
   Stream<List<SaleModel>> watchAllSales(String uid, String lotId) {
     return _firestore

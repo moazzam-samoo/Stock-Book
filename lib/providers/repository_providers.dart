@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart';
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/data/repositories/lot_repository_impl.dart';
+import 'package:stock_investment_tracker/data/repositories/position_repository_impl.dart';
 import 'package:stock_investment_tracker/data/repositories/sale_repository_impl.dart';
 import 'package:stock_investment_tracker/data/repositories/settings_repository_impl.dart';
 import 'package:stock_investment_tracker/data/repositories/withdrawal_repository_impl.dart';
 import 'package:stock_investment_tracker/domain/repositories/lot_repository.dart';
+import 'package:stock_investment_tracker/domain/repositories/position_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/sale_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/withdrawal_repository.dart';
@@ -50,12 +52,19 @@ final lotRepositoryProvider = Provider<LotRepository?>((ref) {
 
 final saleRepositoryProvider = Provider<SaleRepository?>((ref) {
   final uid = ref.watch(currentUserIdProvider);
-  final dataSource = ref.watch(firestoreDataSourceProvider);
-  if (uid == null || dataSource == null) return null;
+  final firestoreSource = ref.watch(firestoreDataSourceProvider);
+  if (uid == null || firestoreSource == null) return null;
   return SaleRepositoryImpl(
     uid: uid,
-    firestoreDataSource: dataSource,
+    firestoreDataSource: firestoreSource,
   );
+});
+
+final positionRepositoryProvider = Provider<PositionRepository?>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  final firestoreSource = ref.watch(firestoreDataSourceProvider);
+  if (uid == null || firestoreSource == null) return null;
+  return PositionRepositoryImpl(firestoreSource, uid);
 });
 
 final withdrawalRepositoryProvider = Provider<WithdrawalRepository?>((ref) {

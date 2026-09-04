@@ -74,6 +74,41 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
+  _i3.Stream<List<dynamic>> watchAllPositions(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllPositions, [uid]),
+            returnValue: _i3.Stream<List<dynamic>>.empty(),
+          )
+          as _i3.Stream<List<dynamic>>);
+
+  @override
+  _i3.Future<void> addPosition(String? uid, dynamic position) =>
+      (super.noSuchMethod(
+            Invocation.method(#addPosition, [uid, position]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updatePosition(String? uid, dynamic position) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePosition, [uid, position]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deletePosition(String? uid, String? positionId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deletePosition, [uid, positionId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
   _i3.Stream<List<_i5.SaleModel>> watchAllSales(String? uid, String? lotId) =>
       (super.noSuchMethod(
             Invocation.method(#watchAllSales, [uid, lotId]),
