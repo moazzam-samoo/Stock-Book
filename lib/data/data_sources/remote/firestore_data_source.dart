@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stock_investment_tracker/core/constants/firestore_paths.dart';
 import 'package:stock_investment_tracker/data/models/lot_model.dart';
+import 'package:stock_investment_tracker/data/models/position_model.dart';
 import 'package:stock_investment_tracker/data/models/sale_model.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
 import 'package:stock_investment_tracker/data/models/withdrawal_model.dart';

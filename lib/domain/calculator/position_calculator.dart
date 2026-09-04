@@ -16,14 +16,21 @@ class PositionCalculator {
     return (value * 100).roundToDouble() / 100;
   }
 
-  static double avgCost(Position p) {
-    final remaining = sharesHeld(p);
-    if (remaining <= 0) return 0.0;
-    
-    // avgCost is defined by the total cost / shares held.
-    // We can compute this by re-running the moving average on just this position's events,
-    // or by tracking it. Since a Position represents a contiguous block of trades without hitting 0,
-    // we can re-derive the average cost by walking its events.
+  /// Walks this position's buy/sell history once and returns the *precise*
+  /// (unrounded) remaining total cost — the single source of truth both
+  /// [avgCost] and [totalCost]/[amountInvested] derive from.
+  ///
+  /// This exists so those three functions cannot disagree with each other.
+  /// [avgCost] used to be the only function that walked events directly, and
+  /// [totalCost]/[amountInvested] multiplied `sharesHeld × avgCost(p)` — but
+  /// `avgCost(p)` is *already rounded to 2dp* by the time it's returned, so
+  /// that multiplication re-introduces the exact "rounding an intermediate
+  /// value" problem the model's rule 5 rules out. On the STPL reference case
+  /// (1,700 sh, avg 8.4829..., rounded to 8.48) that was worth Rs 4.41 of
+  /// drift on one position — sharesHeld(1500) × roundedAvg(8.48) = 12,720.00
+  /// against a true remaining cost of 12,724.41. Computing straight from the
+  /// unrounded running total avoids it.
+  static double _preciseTotalCost(Position p) {
     double totalCost = 0.0;
     int currentShares = 0;
 
@@ -54,9 +61,14 @@ class PositionCalculator {
         }
       }
     }
-    
-    if (currentShares <= 0) return 0.0;
-    return _round(totalCost / currentShares);
+
+    return currentShares <= 0 ? 0.0 : totalCost;
+  }
+
+  static double avgCost(Position p) {
+    final remaining = sharesHeld(p);
+    if (remaining <= 0) return 0.0;
+    return _round(_preciseTotalCost(p) / remaining);
   }
 
   static int sharesHeld(Position p) {
@@ -67,7 +79,7 @@ class PositionCalculator {
   }
 
   static double totalCost(Position p) {
-    return _round(sharesHeld(p) * avgCost(p));
+    return _round(_preciseTotalCost(p));
   }
 
   static double realizedPL(Position p) {
@@ -75,7 +87,7 @@ class PositionCalculator {
   }
 
   static double amountInvested(Position p) {
-    return _round(sharesHeld(p) * avgCost(p));
+    return _round(_preciseTotalCost(p));
   }
 
   static List<Position> replay(String ticker, List<PositionBuy> buys, List<PositionSale> sales) {

@@ -430,12 +430,52 @@ below, and supersedes the older `target-price-alerts-plan.md` / `IMPLEMENTATION_
 root (kept for historical context, but `phases/` is where the current, reconciled plan lives).
 
 Done: Phase 00 (safety net — characterisation tests + JSON export/backup), Phase 01 (responsive
-starting-capital input), Phase 02 (full light theme + toggle). Ready but not started: 03A/03B (merge
-same-ticker lots into one moving-average-cost `Position` per ticker — the biggest, riskiest phase,
-deliberately split for reviewability), 04 (live PSX prices, display-only), 05 (push notification
-infra), 06 (sell-target alert fields), 07 (buy alerts + new screen), 08 (Python/GitHub-Actions
-backend that actually fetches prices and sends the pushes). Each brief is self-contained — read the
-target brief plus this file before starting, not the whole chain.
+starting-capital input), Phase 02 (full light theme + toggle), Phase 03A (position engine — see
+below). Ready but not started: 03B (wire the UI to positions and actually run the migration — the
+riskiest remaining step), 04 (live PSX prices, display-only), 05 (push notification infra), 06
+(sell-target alert fields), 07 (buy alerts + new screen), 08 (Python/GitHub-Actions backend that
+actually fetches prices and sends the pushes). Each brief is self-contained — read the target brief
+plus this file before starting, not the whole chain.
+
+### Phase 03A — the position engine (built, tested, not yet wired to anything)
+
+A parallel domain layer alongside `Lot`/`PortfolioCalculator` now exists, built for the eventual
+same-ticker-lot merge (see `phases/PHASE-03A-position-model.md`'s "Review notes" for the full story).
+**None of it is active** — nothing in the running app reads or writes `positions/`, no UI references
+it, and `lots` is completely untouched. It exists purely as tested, reviewed groundwork for Phase 03B.
+
+- `domain/entities/{position,position_buy,position_sale}.dart` — `Position` holds `buys`/`sales` and
+  derives everything else; it does not cache `avgCost`/`totalCost` itself.
+- `domain/enums/position_status.dart` — `open`/`partiallySold`/`closed`, same semantic
+  `PortfolioCalculator.calculateStockSummaries` already uses per ticker (see §5's per-ticker status
+  branch) — a `Position` *is* that per-ticker grouping, so the rule carries over unchanged.
+- `domain/calculator/position_calculator.dart` — moving-average cost engine.
+  **`avgCost()`, `totalCost()` and `amountInvested()` all derive from one private
+  `_preciseTotalCost()` helper — never call `sharesHeld(p) * avgCost(p)` yourself.** `avgCost()`
+  rounds to 2dp before it returns; multiplying through that already-rounded value compounds error
+  (verified: $4.41 off on a $12,724 position in the reference scenario before this was fixed). If
+  you add a new derived figure to `Position`, derive it from `_preciseTotalCost()`, not from
+  `avgCost()`'s return value.
+- `domain/calculator/position_migration.dart` — builds `Position`s from existing `Lot`s and
+  verifies the result three independent ways (realized P/L, amount invested, **and shares held per
+  ticker** — all three are required; amount-invested alone can't catch a share-count corruption that
+  still leaves `shares × avgCost` looking plausible). `MigrationResult.isValid == false` must never
+  be persisted — 03B enforces that, this layer only computes it.
+- `data/models/position_model.dart` — all three models (`PositionModel`, `PositionBuyModel`,
+  `PositionSaleModel`) live in this **one file**, unlike `Lot`/`Sale` which are separate files.
+  Mirrors `LotModel`'s explicit nested re-serialisation (§4.1) and `SaleModel`'s tolerant
+  Timestamp-or-String date parsing.
+- `data/repositories/position_repository_impl.dart`, `providers/repository_providers.dart`'s
+  `positionRepositoryProvider`, and the `users/{uid}/positions/{id}` Firestore rule all follow the
+  established per-entity pattern from §13 — nothing unusual there.
+- **Known quirk, not a bug:** `PositionMigration` assigns a ticker's resolved `targetPrice` to its
+  most recent position regardless of whether that position is open or closed. Harmless today (dead
+  data on a closed position), but don't read `targetPrice` off a `Position` without checking
+  `status` first once alert logic (Phase 06) exists.
+- `test/fixtures/portfolio_fixture.dart` is now the **shared** fixture between Phase 00's
+  characterisation test and Phase 03A's migration invariant test — if you ever need a bigger/different
+  fixture, extend this one rather than forking it; the whole point of the migration invariant test is
+  that both sides read the same data.
 
 Design references (static, not code): `Stock_Tracker_PRD.md`, `Stock_Tracker_UI_UX_Design_PRD.md`,
 `Stock App UI/*.png`.

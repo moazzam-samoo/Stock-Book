@@ -24,9 +24,9 @@ the brief describes. Each has a "stop and ask" section for exactly that.
 |---|---|---|---|
 | 00 — Safety net | [PHASE-00-safety-net.md](PHASE-00-safety-net.md) | — | **Done** — reviewed, 3 bugs fixed, committed (`b24e78c`) |
 | 01 — Starting-capital input | [PHASE-01-capital-input.md](PHASE-01-capital-input.md) | — | **Done** — reviewed clean, committed (`9f3ec26`) |
-| 02 — Complete white theme | [PHASE-02-white-theme.md](PHASE-02-white-theme.md) | — | **Done** — reviewed, fixed, all green, awaiting commit |
-| 03A — Position model + migration engine | [PHASE-03A-position-model.md](PHASE-03A-position-model.md) | 00 | Ready |
-| 03B — Position UI + run migration | [PHASE-03B-position-ui.md](PHASE-03B-position-ui.md) | 03A | Ready |
+| 02 — Complete white theme | [PHASE-02-white-theme.md](PHASE-02-white-theme.md) | — | **Done** — reviewed, fixed, committed (`808b811`, `3f3db52`) |
+| 03A — Position model + migration engine | [PHASE-03A-position-model.md](PHASE-03A-position-model.md) | 00 | **Done** — original commit `08b9450`; review found and fixed a real rounding bug, a missing import, 2 gaps in migration validation, and 10 missing required tests — fixes uncommitted, awaiting manual check |
+| 03B — Position UI + run migration | [PHASE-03B-position-ui.md](PHASE-03B-position-ui.md) | 03A | Ready — re-read 03A's "Review notes" section before starting, the schema and validation behavior it depends on shifted slightly during review |
 | 04 — Live PSX prices | [PHASE-04-live-prices.md](PHASE-04-live-prices.md) | 03B | Ready |
 | 05 — Push notification infra | [PHASE-05-push-infra.md](PHASE-05-push-infra.md) | — | Ready — can run in parallel |
 | 06 — Sell-target alert fields | [PHASE-06-sell-alerts.md](PHASE-06-sell-alerts.md) | 03B, 04, 05 | Ready |

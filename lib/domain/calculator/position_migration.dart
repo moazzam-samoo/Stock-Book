@@ -53,6 +53,13 @@ class PositionMigration {
       
       for (final lot in tickerLots) {
         if (lot.targetPrice != null) {
+          if (activeTargetPrice != null && activeTargetPrice != lot.targetPrice) {
+            warnings.add(
+              'Target price conflict for $ticker: lot ${lot.id} (buy date ${lot.buyDate}) '
+              'sets ${lot.targetPrice}, overriding the earlier $activeTargetPrice. '
+              "The most recent buy's target wins.",
+            );
+          }
           activeTargetPrice = lot.targetPrice;
         }
 
@@ -90,29 +97,50 @@ class PositionMigration {
       }
     }
 
-    // Validation
+    // Validation — three independent checks, all required. Realized P/L and
+    // invested amount alone can't catch a share-count corruption that
+    // happens to leave amountInvested (shares × avgCost) looking plausible;
+    // comparing raw share counts per ticker closes that gap.
     double lotsRealized = 0.0;
     double lotsInvested = 0.0;
+    final lotsSharesByTicker = <String, int>{};
     for (final lot in lots) {
       lotsRealized += PortfolioCalculator.calculateRealizedProfitLoss(lot);
       lotsInvested += PortfolioCalculator.calculateAmountInvestedRemaining(lot);
+      lotsSharesByTicker[lot.ticker] =
+          (lotsSharesByTicker[lot.ticker] ?? 0) + PortfolioCalculator.calculateSharesRemaining(lot);
     }
 
     double posRealized = 0.0;
     double posInvested = 0.0;
+    final posSharesByTicker = <String, int>{};
     for (final pos in migratedPositions) {
       posRealized += PositionCalculator.realizedPL(pos);
       posInvested += PositionCalculator.amountInvested(pos);
+      posSharesByTicker[pos.ticker] =
+          (posSharesByTicker[pos.ticker] ?? 0) + PositionCalculator.sharesHeld(pos);
     }
+
+    final allTickers = {...lotsSharesByTicker.keys, ...posSharesByTicker.keys};
+    final sharesMismatchedTickers = allTickers
+        .where((t) => (lotsSharesByTicker[t] ?? 0) != (posSharesByTicker[t] ?? 0))
+        .toList();
 
     // Need a tiny epsilon for float comparisons
     bool isValid = (lotsRealized - posRealized).abs() < 0.01 &&
-                   (lotsInvested - posInvested).abs() < 0.01;
+                   (lotsInvested - posInvested).abs() < 0.01 &&
+                   sharesMismatchedTickers.isEmpty;
 
     if (!isValid) {
       warnings.add('Invariant violation: Math does not match original lots.');
       warnings.add('Lots -> Realized: $lotsRealized, Invested: $lotsInvested');
       warnings.add('Pos  -> Realized: $posRealized, Invested: $posInvested');
+      for (final ticker in sharesMismatchedTickers) {
+        warnings.add(
+          'Shares held mismatch for $ticker: lots=${lotsSharesByTicker[ticker] ?? 0}, '
+          'positions=${posSharesByTicker[ticker] ?? 0}',
+        );
+      }
     }
 
     return MigrationResult(
