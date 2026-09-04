@@ -37,5 +37,11 @@ service cloud.firestore {
     match /market_prices/{ticker} {
       allow read: if request.auth != null;
     }
+
+    // Market status — same pattern as market_prices: top-level, read-only,
+    // only the backend (Admin SDK) writes here.
+    match /market_status/{doc} {
+      allow read: if request.auth != null;
+    }
   }
 }

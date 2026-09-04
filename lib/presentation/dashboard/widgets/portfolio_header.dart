@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +9,8 @@ import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/market_status_providers.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PortfolioHeader extends ConsumerWidget {
   final double totalValue;
@@ -108,34 +111,118 @@ class PortfolioHeader extends ConsumerWidget {
               onTap: () => context.go('/settings'),
               child: _buildUserAvatar(photoUrl, displayName),
             ),
-            if (lastSyncTime != null) ...[
-              const SizedBox(height: 6),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isOffline ? AppColors.alertRed : const Color(0xFF00FF7F),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isOffline
-                        ? 'Offline (${DateFormat('h:mm a').format(lastSyncTime!)})'
-                        : 'Last Sync: ${DateFormat('h:mm a').format(lastSyncTime!)}',
-                    style: AppTypography.caption.copyWith(
-                      color: isOffline ? AppColors.alertRed : AppColors.neutral500,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            const SizedBox(height: 6),
+            _MarketClock(
+              lastSyncTime: lastSyncTime,
+              isOffline: isOffline,
+            ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MarketClock extends ConsumerStatefulWidget {
+  final DateTime? lastSyncTime;
+  final bool isOffline;
+
+  const _MarketClock({
+    this.lastSyncTime,
+    this.isOffline = false,
+  });
+
+  @override
+  ConsumerState<_MarketClock> createState() => _MarketClockState();
+}
+
+class _MarketClockState extends ConsumerState<_MarketClock> {
+  late Timer _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = ref.watch(watchMarketStatusProvider).valueOrNull;
+
+    if (status == null || DateTime.now().difference(status.checkedAt).inMinutes > 30) {
+      if (widget.lastSyncTime == null) return const SizedBox.shrink();
+      return _buildLegacySync(widget.lastSyncTime!);
+    }
+
+    final isOpen = status.isOpen;
+    final color = isOpen ? const Color(0xFF00FF7F) : AppColors.alertRed;
+    final text = isOpen ? 'Market Open' : 'Market Closed';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+          ),
+        ).animate(target: isOpen ? 1 : 0).fade(begin: 0.4, end: 1.0).custom(
+          builder: (context, value, child) => Opacity(
+            opacity: isOpen ? (0.4 + (value * 0.6)) : 1.0,
+            child: child,
+          ),
+          duration: const Duration(milliseconds: 1500),
+          curve: Curves.easeInOut,
+        ).then(delay: const Duration(milliseconds: 100)),
+        const SizedBox(width: 4),
+        Text(
+          '$text • ${DateFormat('h:mm a').format(_currentTime)}',
+          style: AppTypography.caption.copyWith(
+            color: AppColors.neutral500,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegacySync(DateTime time) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.isOffline ? AppColors.alertRed : const Color(0xFF00FF7F),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          widget.isOffline
+              ? 'Offline (${DateFormat('h:mm a').format(time)})'
+              : 'Last Sync: ${DateFormat('h:mm a').format(time)}',
+          style: AppTypography.caption.copyWith(
+            color: widget.isOffline ? AppColors.alertRed : AppColors.neutral500,
+            fontSize: 10,
+            fontWeight: FontWeight.w400,
+          ),
         ),
       ],
     );

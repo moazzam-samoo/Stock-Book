@@ -220,6 +220,39 @@ void main() {
       expect(findRichTextContaining('Unrealized'), findsOneWidget);
     },
   );
+
+  // --- Phase 04B required tests 4-5 ---
+
+  testWidgets(
+    'Phase 04B test 4: a fresh price shows an "As of HH:mm" caption',
+    (tester) async {
+      final updatedAt = DateTime.now();
+      await tester.pumpWidget(wrap(
+        PositionCard(position: position, showStockDetailNavigation: false),
+        marketPriceRepository: _FakeMarketPriceRepository(price: 9.0, updatedAt: updatedAt),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(findRichTextContaining('As of'), findsOneWidget);
+      expect(findRichTextContaining(DateFormat('h:mm a').format(updatedAt)), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Phase 04B test 5: a stale price shows BOTH the stale marker and the "As of HH:mm" caption',
+    (tester) async {
+      final updatedAt = DateTime.now().subtract(const Duration(hours: 3));
+      await tester.pumpWidget(wrap(
+        PositionCard(position: position, showStockDetailNavigation: false),
+        marketPriceRepository: _FakeMarketPriceRepository(price: 9.0, updatedAt: updatedAt),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(findRichTextContaining('(Stale)'), findsOneWidget);
+      expect(findRichTextContaining('As of'), findsOneWidget);
+      expect(findRichTextContaining(DateFormat('h:mm a').format(updatedAt)), findsOneWidget);
+    },
+  );
 }
 
 class _FakeMarketPriceRepository implements MarketPriceRepository {

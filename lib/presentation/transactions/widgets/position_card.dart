@@ -240,6 +240,21 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                               ),
                           ],
                         ),
+                      if (!isClosed && livePriceModel != null)
+                        _BulletDetail(
+                          icon: Icons.access_time_outlined,
+                          label: 'As of ',
+                          isDark: isDark,
+                          valueSpans: [
+                            TextSpan(
+                              text: DateFormat('h:mm a').format(livePriceModel.updatedAt),
+                              style: TextStyle(
+                                color: isDark ? Colors.white70 : Colors.black54,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
                       _BulletDetail(
                         icon: Icons.account_balance_wallet_outlined,
                         label: isClosed ? 'Total Cost: ' : 'Total Invested: ',

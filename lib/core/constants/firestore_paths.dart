@@ -11,4 +11,7 @@ class FirestorePaths {
   static String withdrawal(String uid, String withdrawalId) => 'users/$uid/withdrawals/$withdrawalId';
   static String marketPrices() => 'market_prices';
   static String marketPrice(String ticker) => 'market_prices/$ticker';
+
+  // Market Status
+  static String marketStatus() => 'market_status/current';
 }

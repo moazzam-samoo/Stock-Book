@@ -90,9 +90,12 @@ behaviour (at exactly the threshold → fires).
    distinct watched tickers.
 4. `fetch_prices(held | watched)` — **one call**.
 5. Write each price to `market_prices/{ticker}` with `SERVER_TIMESTAMP`.
-6. Sell alerts: for each qualifying position, send FCM to that user's `fcmToken`, then set
+6. `fetch_market_status()` (Task 6) → write `market_status/current` with `SERVER_TIMESTAMP`. Do this
+   even if the price fetch failed or returned nothing (see Task 6) — the status is more useful the
+   *more* reliably it updates, including runs where prices themselves had trouble.
+7. Sell alerts: for each qualifying position, send FCM to that user's `fcmToken`, then set
    `targetAlertSent: True` + `targetAlertSentAt`.
-7. Buy alerts: for each qualifying alert, send FCM, then set `alertSent: True`, `isActive: False`,
+8. Buy alerts: for each qualifying alert, send FCM, then set `alertSent: True`, `isActive: False`,
    `alertSentAt`.
 
 **Ordering rule: send the push first, then set the flag.** If the flag write fails after a successful
@@ -145,6 +148,42 @@ versioned (`firebase deploy --only firestore:indexes` works on Spark).
 
 ---
 
+## Task 6 — Market status (added 2026-09-05, for Phase 04B)
+
+PSX's own homepage (`psx.com.pk`) shows a live **"Market Status: Open"** / **"Market Status: Closed"**
+indicator under "Market Highlights". This is the authoritative source — it already accounts for every
+PSX holiday, ad-hoc closure, and any special/reduced-hours day, which a fixed weekly schedule computed
+in the Flutter app cannot. Phase 04B's dashboard clock reads whatever this task writes; it does no
+schedule math of its own.
+
+`scripts/price_alerts/market_status_source.py`:
+
+```python
+def fetch_market_status() -> dict
+    # { "isOpen": bool, "label": str }
+```
+
+- Fetch `https://www.psx.com.pk`, parse the "Market Status" text out of the Market Highlights section.
+- `isOpen = label.strip().lower() == "open"` — don't guess from anything else (index movement, time of
+  day) if the label itself is unparseable; see the failure behavior below.
+- **This is a second, independent scrape from Task 2's `psxdata` screener call** — different site
+  section, different failure modes. Give it its own try/except so a PSX homepage layout change can't
+  take down the price fetch, and vice versa.
+- **On any fetch/parse failure: skip writing `market_status/current` for this run, log it, move on.**
+  Do not write a guessed or last-known value — the client already treats a missing/stale doc as
+  "unknown, show nothing" (Phase 04B), which is the correct degraded state. Writing a wrong `isOpen`
+  would be worse than writing nothing.
+
+`main.py` step 6 writes the result (when present) to `market_status/current`:
+
+```python
+{ "isOpen": True, "label": "Open", "checkedAt": SERVER_TIMESTAMP }
+```
+
+No `firestore.indexes.json` entry needed — this is a single fixed-path document, not a query.
+
+---
+
 ## Required tests
 
 `scripts/price_alerts/tests/` with `pytest` — no credentials, no network.
@@ -162,6 +201,10 @@ versioned (`firebase deploy --only firestore:indexes` works on Spark).
 | 9 | **Ticker absent from screener** | skipped entirely — never treated as `0` |
 | 10 | **Contract test vs. a recorded screener fixture** | a `psxdata` upgrade that renames columns fails in CI, not in production |
 | 11 | **A partially-sold position with a live target** | its ticker is included in the held-tickers query, and its sell alert can still fire — a `status == "open"` filter would wrongly exclude it |
+| 12 | `fetch_market_status()` parses "Open" | `{"isOpen": True, "label": "Open"}` |
+| 13 | `fetch_market_status()` parses "Closed" | `{"isOpen": False, "label": "Closed"}` |
+| 14 | **Homepage fetch/parse failure** | no `market_status/current` write this run — never a guessed value |
+| 15 | A price-fetch failure does not block the market-status write, and vice versa | the two are independent |
 
 Test 10 is the one that protects against the scraping dependency breaking silently. Commit a real
 captured `screener()` sample as a fixture.
@@ -173,6 +216,7 @@ captured `screener()` sample as a fixture.
 - [ ] `pytest` green
 - [ ] `workflow_dispatch` run succeeds against the real project
 - [ ] `market_prices` populated; app (Phase 04) shows live prices
+- [ ] `market_status/current` populated; app (Phase 04B) shows the correct Open/Closed clock
 - [ ] A deliberately low sell target fires **once**, deep-links correctly, and does **not** re-fire
       on the next run
 - [ ] A buy alert near a real price fires with correct tolerance behaviour

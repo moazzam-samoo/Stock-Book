@@ -12,6 +12,7 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/add_t
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
+import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 
@@ -142,22 +143,30 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       title: 'No transactions found',
                       message: 'Add your first stock purchase to get started.',
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 110),
-                      itemCount: cards.length,
-                      itemBuilder: (context, index) {
-                        final card = cards[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 6,
-                          ),
-                          child: PositionCard(
-                            position: card.display,
-                            writePosition: card.writeTarget,
-                          ),
-                        );
+                  : RefreshIndicator(
+                      color: AppColors.brandIndigo,
+                      backgroundColor: isDark ? AppColors.offBlack : Colors.white,
+                      onRefresh: () async {
+                        ref.invalidate(watchMarketPriceProvider);
+                        await Future.delayed(const Duration(milliseconds: 500));
                       },
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 110),
+                        itemCount: cards.length,
+                        itemBuilder: (context, index) {
+                          final card = cards[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 6,
+                            ),
+                            child: PositionCard(
+                              position: card.display,
+                              writePosition: card.writeTarget,
+                            ),
+                          );
+                        },
+                      ),
                     ),
             ),
           ],

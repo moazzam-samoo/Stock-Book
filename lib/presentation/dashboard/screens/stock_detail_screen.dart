@@ -166,8 +166,17 @@ class StockDetailScreen extends ConsumerWidget {
                   );
                 }
 
-                return CustomScrollView(
-                  slivers: [
+                final refreshBg = isDark ? const Color(0xFF13151B) : Colors.white;
+                return RefreshIndicator(
+                  color: AppColors.brandIndigo,
+                  backgroundColor: refreshBg,
+                  onRefresh: () async {
+                    ref.invalidate(watchMarketPriceProvider(ticker));
+                    await Future.delayed(const Duration(milliseconds: 500));
+                  },
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -244,6 +253,18 @@ class StockDetailScreen extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
+                                if (livePriceModel != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Text(
+                                      'As of ${DateFormat('h:mm a').format(livePriceModel.updatedAt)}',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white54 : Colors.black54,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 16),
                                 Builder(builder: (context) {
                                   // Unrealized P/L across every cycle still
                                   // held for this ticker — a closed cycle
@@ -388,13 +409,14 @@ class StockDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
   }
 
   Widget _buildStatColumn(
