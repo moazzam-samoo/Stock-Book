@@ -14,6 +14,7 @@ import 'package:stock_investment_tracker/presentation/dashboard/widgets/dashboar
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/portfolio_header.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card_grid.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stock_row.dart';
+import 'package:stock_investment_tracker/providers/push_notification_providers.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/data/migration/position_migration_runner.dart';
@@ -64,6 +65,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         setState(() {
           if (outcome.success) {
             _isMigrating = false;
+            // Initialize push notifications after successful migration
+            ref.read(pushNotificationServiceProvider)?.initialize();
           } else {
             _migrationError = outcome.errorMessage ?? 'Migration failed due to an unknown error.';
           }
