@@ -109,7 +109,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     final dateFormat = DateFormat('MMM d, y');
     final asyncState = ref.watch(addSellControllerProvider);
     final isProfit = _profitLoss >= 0;
-    final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
+    final plColor = isProfit
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final boxBorderColor = isDark

@@ -35,6 +35,7 @@ class MetricDetailCard extends StatelessWidget {
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final secondaryTextColor = isDark ? const Color(0xFFB3B3B3) : const Color(0xFF757575);
     final dividerColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final positiveColor = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
     final title = _getTitle();
     final icon = _getIcon();
 
@@ -43,7 +44,7 @@ class MetricDetailCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF13151B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.moneyGreen.withOpacity(0.4), width: 1.5),
+        border: Border.all(color: positiveColor.withOpacity(0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
@@ -60,12 +61,12 @@ class MetricDetailCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, color: AppColors.moneyGreen, size: 18),
+                  Icon(icon, color: positiveColor, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     title.toUpperCase(),
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.moneyGreen,
+                      color: positiveColor,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8,
                       fontSize: 12,
@@ -86,7 +87,7 @@ class MetricDetailCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Divider(color: dividerColor, height: 1),
           const SizedBox(height: AppSpacing.md),
-          _buildMetricBody(primaryTextColor, secondaryTextColor, dividerColor),
+          _buildMetricBody(primaryTextColor, secondaryTextColor, dividerColor, positiveColor),
         ],
       ),
     ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05, end: 0, curve: Curves.easeOutCubic);
@@ -126,24 +127,29 @@ class MetricDetailCard extends StatelessWidget {
     }
   }
 
-  Widget _buildMetricBody(Color primaryTextColor, Color secondaryTextColor, Color dividerColor) {
+  Widget _buildMetricBody(
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color dividerColor,
+    Color positiveColor,
+  ) {
     switch (metricType) {
       case DashboardMetricType.totalInvested:
-        return _buildTotalInvestedBody(primaryTextColor);
+        return _buildTotalInvestedBody(primaryTextColor, positiveColor);
       case DashboardMetricType.currentlyInvested:
         return _buildInvestedBody(primaryTextColor);
       case DashboardMetricType.realizedPL:
-        return _buildRealizedPLBody(primaryTextColor, secondaryTextColor, dividerColor);
+        return _buildRealizedPLBody(primaryTextColor, secondaryTextColor, dividerColor, positiveColor);
       case DashboardMetricType.totalFree:
-        return _buildTotalFreeBody(primaryTextColor);
+        return _buildTotalFreeBody(primaryTextColor, positiveColor);
       case DashboardMetricType.freeCash:
-        return _buildFreeCashBody(primaryTextColor);
+        return _buildFreeCashBody(primaryTextColor, positiveColor);
       case DashboardMetricType.openLots:
         return _buildOpenLotsBody(primaryTextColor, secondaryTextColor);
     }
   }
 
-  Widget _buildTotalInvestedBody(Color primaryTextColor) {
+  Widget _buildTotalInvestedBody(Color primaryTextColor, Color positiveColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -163,7 +169,7 @@ class MetricDetailCard extends StatelessWidget {
               child: _buildDetailStat(
                 'Deployment',
                 '${(summary.currentlyInvested / (summary.totalInvested > 0 ? summary.totalInvested : 1) * 100).toStringAsFixed(1)}% Active',
-                color: AppColors.moneyGreen,
+                color: positiveColor,
                 primaryTextColor: primaryTextColor,
               ),
             ),
@@ -173,7 +179,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalFreeBody(Color primaryTextColor) {
+  Widget _buildTotalFreeBody(Color primaryTextColor, Color positiveColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,7 +199,7 @@ class MetricDetailCard extends StatelessWidget {
               child: _buildDetailStat(
                 'Status',
                 summary.freeCash > 0 ? 'Cash Available' : 'Fully Deployed',
-                color: AppColors.moneyGreen,
+                color: positiveColor,
                 primaryTextColor: primaryTextColor,
               ),
             ),
@@ -233,7 +239,12 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRealizedPLBody(Color primaryTextColor, Color secondaryTextColor, Color dividerColor) {
+  Widget _buildRealizedPLBody(
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color dividerColor,
+    Color positiveColor,
+  ) {
     final totalSalesCount = lots.fold(0, (sum, lot) => sum + lot.sales.length);
     final isProfit = summary.realizedPL >= 0;
     final hasWithdrawals = summary.totalWithdrawn > 0;
@@ -245,7 +256,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(
           AppCurrencyFormatter.format(summary.realizedPL, showSign: true, decimalDigits: 2),
           style: AppTypography.h1.copyWith(
-            color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+            color: isProfit ? positiveColor : AppColors.alertRed,
             fontFamily: 'JetBrains Mono',
             fontSize: 24,
           ),
@@ -258,7 +269,7 @@ class MetricDetailCard extends StatelessWidget {
               child: _buildDetailStat(
                 'Performance',
                 isProfit ? 'Gain' : 'Loss',
-                color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+                color: isProfit ? positiveColor : AppColors.alertRed,
                 primaryTextColor: primaryTextColor,
               ),
             ),
@@ -273,7 +284,7 @@ class MetricDetailCard extends StatelessWidget {
           _buildLedgerRow(
             'Gross Trading Profit',
             AppCurrencyFormatter.format(summary.grossRealizedPL, showSign: true),
-            color: summary.grossRealizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+            color: summary.grossRealizedPL >= 0 ? positiveColor : AppColors.alertRed,
             primaryTextColor: primaryTextColor,
           ),
           _buildLedgerRow(
@@ -288,7 +299,7 @@ class MetricDetailCard extends StatelessWidget {
           _buildLedgerRow(
             'Still In Account',
             AppCurrencyFormatter.format(summary.realizedPL, showSign: true),
-            color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+            color: isProfit ? positiveColor : AppColors.alertRed,
             bold: true,
             primaryTextColor: primaryTextColor,
           ),
@@ -371,7 +382,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFreeCashBody(Color primaryTextColor) {
+  Widget _buildFreeCashBody(Color primaryTextColor, Color positiveColor) {
     final totalVal = summary.portfolioValue > 0 ? summary.portfolioValue : 1.0;
     final liquidCash = summary.freeCash + summary.realizedPL;
     final cashPercent = (liquidCash / totalVal * 100).toStringAsFixed(1);
@@ -395,7 +406,7 @@ class MetricDetailCard extends StatelessWidget {
               child: _buildDetailStat(
                 'Includes Sales Profit',
                 summary.realizedPL >= 0 ? '+${AppCurrencyFormatter.format(summary.realizedPL)}' : AppCurrencyFormatter.format(summary.realizedPL),
-                color: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+                color: summary.realizedPL >= 0 ? positiveColor : AppColors.alertRed,
                 primaryTextColor: primaryTextColor,
               ),
             ),

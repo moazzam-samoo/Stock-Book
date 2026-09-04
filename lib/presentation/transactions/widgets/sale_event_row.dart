@@ -69,7 +69,9 @@ class SaleEventRow extends ConsumerWidget {
             lot.buyPricePerShare *
             100;
     final isProfit = saleProfit >= 0;
-    final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
+    final plColor = isProfit
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -161,7 +163,7 @@ class SaleEventRow extends ConsumerWidget {
                         Text(
                           AppCurrencyFormatter.format(sale.amountReceived),
                           style: AppTypography.body.copyWith(
-                            color: AppColors.moneyGreen,
+                            color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),

@@ -237,7 +237,7 @@ class StockDetailScreen extends ConsumerWidget {
                                               : '-',
                                           primaryTextColor,
                                           color: summary.realizedPL >= 0
-                                              ? AppColors.moneyGreen
+                                              ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
                                               : AppColors.alertRed,
                                         ),
                                       ],

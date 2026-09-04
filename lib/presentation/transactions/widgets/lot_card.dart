@@ -57,7 +57,9 @@ class _LotCardState extends ConsumerState<LotCard> {
     final pillBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
 
     final isProfit = widget.lot.realizedProfitLoss >= 0;
-    final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
+    final plColor = isProfit
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
     final soldShares = widget.lot.sharesPurchased - widget.lot.sharesRemaining;
     final holdingDaysText = widget.lot.holdingDays == 1
         ? '1 day'
