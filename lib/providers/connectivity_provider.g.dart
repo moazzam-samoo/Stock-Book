@@ -6,22 +6,38 @@ part of 'connectivity_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$isConnectedHash() => r'65acfb150b32e3717e59294be9ee0ac665c319f8';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [isConnected].
 @ProviderFor(isConnected)
-final isConnectedProvider = AutoDisposeStreamProvider<bool>.internal(
-  isConnected,
-  name: r'isConnectedProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$isConnectedHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final isConnectedProvider = IsConnectedProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef IsConnectedRef = AutoDisposeStreamProviderRef<bool>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class IsConnectedProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, Stream<bool>>
+    with $FutureModifier<bool>, $StreamProvider<bool> {
+  IsConnectedProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isConnectedProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$isConnectedHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<bool> create(Ref ref) {
+    return isConnected(ref);
+  }
+}
+
+String _$isConnectedHash() => r'65acfb150b32e3717e59294be9ee0ac665c319f8';

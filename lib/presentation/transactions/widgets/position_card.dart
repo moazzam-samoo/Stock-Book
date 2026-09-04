@@ -303,7 +303,27 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                         _BulletDetail(
                           icon: Icons.track_changes_outlined,
                           label: 'Target: ',
-                          value: '${AppCurrencyFormatter.format(widget.position.targetPrice!)} (${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100) >= 0 ? "+" : ""}${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100).toStringAsFixed(1)}% Est.)',
+                          valueSpans: [
+                            TextSpan(
+                              text: '${AppCurrencyFormatter.format(widget.position.targetPrice!)} (${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100) >= 0 ? "+" : ""}${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100).toStringAsFixed(1)}% Est.)',
+                              style: const TextStyle(
+                                color: Color.fromARGB(255, 16, 205, 234),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (widget.position.targetAlertSent)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Icon(
+                                    Icons.notifications_active,
+                                    size: 14,
+                                    color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
+                                  ),
+                                ),
+                              ),
+                          ],
                           isDark: isDark,
                         ),
                     ],
@@ -831,7 +851,7 @@ class _BulletDetail extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? value;
-  final List<TextSpan>? valueSpans;
+  final List<InlineSpan>? valueSpans;
   final bool isDark;
 
   const _BulletDetail({

@@ -19,6 +19,8 @@ void main() {
           PositionSaleModel(id: 's1', date: date, shares: 50, pricePerShare: 12.0, costBasisAtSale: 10.0),
         ],
         targetPrice: 15.0,
+        targetAlertSent: true,
+        targetAlertSentAt: date,
       );
 
       final json = position.toJson();
@@ -27,6 +29,8 @@ void main() {
       expect(json['ticker'], 'TEST');
       expect(json['status'], 'open');
       expect(json['targetPrice'], 15.0);
+      expect(json['targetAlertSent'], true);
+      expect(json['targetAlertSentAt'], isNotNull);
       expect(json['buys'].length, 1);
       expect(json['sales'].length, 1);
 
@@ -36,6 +40,8 @@ void main() {
       expect(decoded.ticker, position.ticker);
       expect(decoded.status, position.status);
       expect(decoded.targetPrice, position.targetPrice);
+      expect(decoded.targetAlertSent, position.targetAlertSent);
+      expect(decoded.targetAlertSentAt?.isAtSameMomentAs(position.targetAlertSentAt!), isTrue);
 
       expect(decoded.buys.first.id, position.buys.first.id);
       expect(decoded.buys.first.date.isAtSameMomentAs(position.buys.first.date), isTrue);

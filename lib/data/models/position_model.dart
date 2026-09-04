@@ -141,6 +141,8 @@ abstract class PositionModel with _$PositionModel {
     @TimestampConverter() required DateTime openedAt,
     @TimestampConverter() DateTime? closedAt,
     double? targetPrice,
+    @Default(false) bool targetAlertSent,
+    @TimestampConverter() DateTime? targetAlertSentAt,
     @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)
     @Default([]) List<PositionBuyModel> buys,
     @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)
@@ -186,6 +188,8 @@ extension PositionModelExtension on PositionModel {
       openedAt: openedAt,
       closedAt: closedAt,
       targetPrice: targetPrice,
+      targetAlertSent: targetAlertSent,
+      targetAlertSentAt: targetAlertSentAt,
       buys: buys.map((b) => b.toEntity()).toList(),
       sales: sales.map((s) => s.toEntity()).toList(),
     );
@@ -199,6 +203,8 @@ extension PositionModelExtension on PositionModel {
       openedAt: entity.openedAt,
       closedAt: entity.closedAt,
       targetPrice: entity.targetPrice,
+      targetAlertSent: entity.targetAlertSent,
+      targetAlertSentAt: entity.targetAlertSentAt,
       buys: entity.buys.map((b) => PositionBuyModelExtension.fromEntity(b)).toList(),
       sales: entity.sales.map((s) => PositionSaleModelExtension.fromEntity(s)).toList(),
     );

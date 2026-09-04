@@ -103,6 +103,7 @@ class _EditBuyBottomSheetState extends ConsumerState<EditBuyBottomSheet> {
       final updatedPosition = widget.position.copyWith(
         ticker: _ticker.toUpperCase(),
         targetPrice: _targetPrice,
+        clearTargetPrice: _targetPrice == null,
         buys: updatedBuys,
       );
 
