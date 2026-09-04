@@ -430,37 +430,101 @@ below, and supersedes the older `target-price-alerts-plan.md` / `IMPLEMENTATION_
 root (kept for historical context, but `phases/` is where the current, reconciled plan lives).
 
 Done: Phase 00 (safety net — characterisation tests + JSON export/backup), Phase 01 (responsive
-starting-capital input), Phase 02 (full light theme + toggle), Phase 03A (position engine — see
-below). Ready but not started: 03B (wire the UI to positions and actually run the migration — the
-riskiest remaining step), 04 (live PSX prices, display-only), 05 (push notification infra), 06
-(sell-target alert fields), 07 (buy alerts + new screen), 08 (Python/GitHub-Actions backend that
-actually fetches prices and sends the pushes). Each brief is self-contained — read the target brief
-plus this file before starting, not the whole chain.
+starting-capital input), Phase 02 (full light theme + toggle), Phase 03A (position engine), Phase 03B
+(positions wired to the UI, migration runs on launch — see below). Ready but not started: 04 (live
+PSX prices, display-only), 05 (push notification infra), 06 (sell-target alert fields), 07 (buy
+alerts + new screen), 08 (Python/GitHub-Actions backend that actually fetches prices and sends the
+pushes). Each brief is self-contained — read the target brief plus this file before starting, not the
+whole chain.
 
-### Phase 03A — the position engine (built, tested, not yet wired to anything)
+### Phase 03A/03B — positions are now the live UI data source
 
-A parallel domain layer alongside `Lot`/`PortfolioCalculator` now exists, built for the eventual
-same-ticker-lot merge (see `phases/PHASE-03A-position-model.md`'s "Review notes" for the full story).
-**None of it is active** — nothing in the running app reads or writes `positions/`, no UI references
-it, and `lots` is completely untouched. It exists purely as tested, reviewed groundwork for Phase 03B.
+The dashboard, transactions list, stock-detail screen, PDF exports, and the buy/sell/edit flows all
+read and write `Position`s now (`PositionCard` replaced `LotCard` everywhere). `lots` still exists,
+is never deleted or written to by the position flows, and remains the migration's rollback path — but
+new activity after migration only updates `positions`, not `lots`, so **don't assume `lots` is
+up to date for anything except the one-time migration and the JSON backup export.**
 
 - `domain/entities/{position,position_buy,position_sale}.dart` — `Position` holds `buys`/`sales` and
-  derives everything else; it does not cache `avgCost`/`totalCost` itself.
+  derives everything else; it does not cache `avgCost`/`totalCost` itself. `Position.status` **is**
+  stored (not derived) — every write path that mutates `buys`/`sales` must restamp it via
+  `PositionCalculator.computeStatus()`, or it goes stale.
 - `domain/enums/position_status.dart` — `open`/`partiallySold`/`closed`, same semantic
   `PortfolioCalculator.calculateStockSummaries` already uses per ticker (see §5's per-ticker status
   branch) — a `Position` *is* that per-ticker grouping, so the rule carries over unchanged.
-- `domain/calculator/position_calculator.dart` — moving-average cost engine.
-  **`avgCost()`, `totalCost()` and `amountInvested()` all derive from one private
-  `_preciseTotalCost()` helper — never call `sharesHeld(p) * avgCost(p)` yourself.** `avgCost()`
-  rounds to 2dp before it returns; multiplying through that already-rounded value compounds error
-  (verified: $4.41 off on a $12,724 position in the reference scenario before this was fixed). If
-  you add a new derived figure to `Position`, derive it from `_preciseTotalCost()`, not from
-  `avgCost()`'s return value.
+- `domain/calculator/position_calculator.dart` — moving-average cost engine, plus the write-path
+  helpers every buy/sell/edit flow should go through rather than reimplementing:
+  - `applyBuy(position, ...)` — appends a `PositionBuy`, clears `closedAt`, restamps `status`.
+  - `applySell(position, ...)` — appends a `PositionSale` with `costBasisAtSale` frozen to the
+    position's **current** `avgCost` at the moment of the call — never recomputed later. Restamps
+    `status`/`closedAt`.
+  - `findOpenPosition(positions, ticker)` — the "append to the open position, or start a new one"
+    check `AddBuyController` uses. A closed position for a ticker never gets reopened; a fresh buy on
+    an already-fully-sold ticker starts a brand-new `Position` (deliberate — see PHASE-03A's review).
+  - `computeStatus(position)` — the shared open/partial/closed rule; call this after any manual
+    `buys`/`sales` mutation instead of hand-rolling the three-way check.
+  - **`avgCost()`, `totalCost()` and `amountInvested()` all derive from one private
+    `_preciseTotalCost()` helper — never call `sharesHeld(p) * avgCost(p)` yourself.** `avgCost()`
+    rounds to 2dp before it returns; multiplying through that already-rounded value compounds error
+    (verified: $4.41 off on a $12,724 position in the reference scenario before this was fixed). If
+    you add a new derived figure to `Position`, derive it from `_preciseTotalCost()`, not from
+    `avgCost()`'s return value.
+  - **A sale's realized P/L must always read `PositionSale.realizedPL`** (which uses
+    `costBasisAtSale`), never recompute it against the position's current `avgCost` — a later buy
+    would silently change an already-booked sale's displayed profit. This was a real bug found and
+    fixed in `position_sale_row.dart` during the 03B review; don't reintroduce it elsewhere.
+  - **`avgCost()`/`amountInvested()` return 0 for a closed position** — correct ("what am I still
+    holding"), but useless on any UI that records what *happened*. Use `historicalAvgCost()` /
+    `totalCapitalDeployed()` / `totalSharesBought()` there, as `PositionCard` does. Anything dividing
+    by `avgCost` must guard against a closed position too, or it renders `Infinity%`.
+  - `blendedAvgCost(List<Position>)` is the per-ticker average across cycles, for the dashboard's
+    one-row-per-ticker view. It sums unrounded cost and rounds once — don't rebuild it by summing
+    `amountInvested`.
+  - `splitByBuy(Position)` breaks a **closed** cycle into one display position per buy (sales
+    attributed FIFO, share counts and realized P/L both conserved) — that's how closed history renders
+    as separate cards while what you still hold stays pooled in one averaged card. **Its output is
+    display-only**: synthetic `<positionId>::<buyId>` ids and possibly-partial sale slices. Never
+    persist one — `PositionCard.writePosition` carries the real document for delete/edit, and
+    `PositionSaleRow.readOnly` blocks editing a slice of a sale. Open and partial positions come back
+    untouched; pooling them is the averaging feature, not a bug to fix.
+- `domain/calculator/portfolio_calculator.dart` — `calculatePortfolioSummaryFromPositions` and
+  `calculateStockSummariesFromPositions` are the position-based siblings of the original lot-based
+  functions, kept side by side (the lot-based ones are still the verification reference — Phase 00's
+  characterisation test locks them). `StockSummary.status` is still typed `LotStatus` (that entity
+  predates positions), so the aggregate status is built as a `LotStatus` directly.
+  **`calculateStockSummariesFromPositions` returns one row per *ticker*, not per position** — a ticker
+  sold out and re-bought has several cycles and must still show once. Closed cycles keep contributing
+  their realized P/L; **hiding sold-out tickers is `dashboard_screen.dart`'s job** (it filters
+  `sharesHeld > 0` for the "Your Stocks" list only), because `exportOverallPortfolioPdf` and
+  `MetricDetailCard` read the same list and need it complete.
+- **`openLots` means something different depending on which summary you're looking at, by design.**
+  From lots, it counts individual open/partial *lots*. From positions, it counts open/partial
+  *positions*. A ticker with two lots — one fully sold, one still open — is 1 open lot pre-migration
+  but folds into 1 still-open position either way; the divergent case is a ticker where **both** lots
+  are non-closed individually but merge into a single position (2 open lots → 1 open position). This
+  is the intended effect of the merge feature, not a bug — see
+  `test/domain/calculator/dashboard_position_parity_test.dart` for the worked example.
+  `MetricDetailCard`'s "Open Lots" drill-down still counts raw lots (deliberately left alone per the
+  "keep the lot-based functions, add position equivalents alongside" rule), so that one panel can show
+  a different count than the dashboard's stat card — also expected.
+- **`StatusBadge` (`presentation/common/badges.dart`) takes a `dynamic status`** and switches on three
+  different enums. A `PositionStatus` once fell straight through its unrecognised-type fallback to
+  `TradeStatus.open`, with no compile error — every position in the app rendered a green OPEN badge,
+  fully-sold ones included, for the whole of Phase 03B. There is now an `assert` on that fallback.
+  If you pass a new enum in, add a branch; never rely on the default.
+- **A ticker has at most one non-closed position at a time.** `findOpenPosition` + `applyBuy` maintain
+  that, and the "one row per ticker" grouping assumes it. Two open positions for one ticker is a data
+  bug worth reporting, not something to handle in the UI. Note `edit_buy_bottom_sheet.dart` still lets
+  the *ticker* be edited, which could break this — an open question, not yet resolved.
 - `domain/calculator/position_migration.dart` — builds `Position`s from existing `Lot`s and
   verifies the result three independent ways (realized P/L, amount invested, **and shares held per
   ticker** — all three are required; amount-invested alone can't catch a share-count corruption that
   still leaves `shares × avgCost` looking plausible). `MigrationResult.isValid == false` must never
-  be persisted — 03B enforces that, this layer only computes it.
+  be persisted — `PositionMigrationRunner` enforces that.
+- `data/migration/position_migration_runner.dart` runs once per account, triggered from
+  `DashboardScreen.initState()` (not literally "after sign-in" as PHASE-03B specified, but low-risk:
+  `SwipeableNavigationShell`'s `PageView` keeps all three tabs mounted for the whole app session, so
+  this only fires once). Reads/writes `users/{uid}.schemaVersion`; `>= 2` means migrated.
 - `data/models/position_model.dart` — all three models (`PositionModel`, `PositionBuyModel`,
   `PositionSaleModel`) live in this **one file**, unlike `Lot`/`Sale` which are separate files.
   Mirrors `LotModel`'s explicit nested re-serialisation (§4.1) and `SaleModel`'s tolerant

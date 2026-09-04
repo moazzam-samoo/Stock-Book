@@ -6,14 +6,15 @@ import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_card.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
@@ -26,7 +27,7 @@ class StockDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lotsAsyncValue = ref.watch(allLotsProvider);
+    final positionsAsyncValue = ref.watch(allPositionsProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
     final summary = stockSummaries.where((s) => s.ticker == ticker).firstOrNull;
     final formatNumber = NumberFormat.decimalPattern();
@@ -54,19 +55,24 @@ class StockDetailScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                   onTap: () async {
                     HapticFeedback.lightImpact();
-                    final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
-                    final stockLots = allLots
-                        .where((l) => l.ticker == ticker)
+                    final allPositions = ref.read(allPositionsProvider).valueOrNull ?? [];
+                    // Every cycle of this ticker, not just the newest — a
+                    // per-stock report that drops a closed cycle's sales is
+                    // missing exactly the history it exists to record.
+                    final tickerPositions = allPositions
+                        .where((p) => p.ticker == ticker)
                         .toList();
                     final stockSummaries = ref.read(stockSummariesProvider);
                     final stockSummary = stockSummaries
                         .where((s) => s.ticker == ticker)
                         .firstOrNull;
-                    await PdfReportService.exportStockPdf(
-                      ticker: ticker,
-                      stockLots: stockLots,
-                      summary: stockSummary,
-                    );
+                    if (tickerPositions.isNotEmpty) {
+                      await PdfReportService.exportStockPdf(
+                        ticker: ticker,
+                        positions: tickerPositions,
+                        summary: stockSummary,
+                      );
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -108,7 +114,7 @@ class StockDetailScreen extends ConsumerWidget {
             ],
           ),
           Expanded(
-            child: lotsAsyncValue.when(
+            child: positionsAsyncValue.when(
               loading: () => const Center(
                 child: CircularProgressIndicator(color: AppColors.brandIndigo),
               ),
@@ -124,21 +130,29 @@ class StockDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(allLotsProvider),
+                      onPressed: () => ref.invalidate(allPositionsProvider),
                       child: const Text('Retry'),
                     ),
                   ],
                 ),
               ),
-              data: (lots) {
-                final stockLots = lots
-                    .where((lot) => lot.ticker == ticker)
-                    .toList();
+              data: (positions) {
+                // Every holding cycle for this ticker, each its own card:
+                // what you still hold first, then closed cycles newest-first.
+                final stockPositions = positions
+                    .where((p) => p.ticker == ticker)
+                    .toList()
+                  ..sort((a, b) {
+                    final aClosed = a.status == PositionStatus.closed;
+                    final bClosed = b.status == PositionStatus.closed;
+                    if (aClosed != bClosed) return aClosed ? 1 : -1;
+                    return b.openedAt.compareTo(a.openedAt);
+                  });
 
-                if (stockLots.isEmpty) {
+                if (stockPositions.isEmpty) {
                   return Center(
                     child: Text(
-                      'No active lots for $ticker',
+                      'No active position for $ticker',
                       style: AppTypography.body.copyWith(
                         color: AppColors.neutral500,
                       ),
@@ -207,38 +221,59 @@ class StockDetailScreen extends ConsumerWidget {
                                               ),
                                             ],
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
+                                    child: Column(
                                       children: [
-                                        _buildStatColumn(
-                                          'Shares',
-                                          formatNumber.format(
-                                            summary.sharesHeld,
-                                          ),
-                                          primaryTextColor,
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatColumn(
+                                              'Shares',
+                                              formatNumber.format(
+                                                summary.sharesHeld,
+                                              ),
+                                              primaryTextColor,
+                                            ),
+                                            _buildStatColumn(
+                                              'Avg Price',
+                                              AppCurrencyFormatter.format(
+                                                summary.avgBuyPrice,
+                                                decimalDigits: 2,
+                                              ),
+                                              primaryTextColor,
+                                            ),
+                                          ],
                                         ),
-                                        _buildStatColumn(
-                                          'Avg Price',
-                                          AppCurrencyFormatter.format(
-                                            summary.avgBuyPrice,
-                                            decimalDigits: 2,
-                                          ),
-                                          primaryTextColor,
-                                        ),
-                                        _buildStatColumn(
-                                          'Total P/L',
-                                          summary.realizedPL != 0
-                                              ? AppCurrencyFormatter.format(
-                                                  summary.realizedPL,
-                                                  decimalDigits: 2,
-                                                  showSign: true,
-                                                )
-                                              : '-',
-                                          primaryTextColor,
-                                          color: summary.realizedPL >= 0
-                                              ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
-                                              : AppColors.alertRed,
+                                        const SizedBox(height: 16),
+                                        Divider(color: borderColor, height: 1),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatColumn(
+                                              'Total Invested',
+                                              AppCurrencyFormatter.format(
+                                                summary.amountInvestedOpen,
+                                                decimalDigits: 2,
+                                              ),
+                                              primaryTextColor,
+                                            ),
+                                            _buildStatColumn(
+                                              'Total P/L',
+                                              summary.realizedPL != 0
+                                                  ? AppCurrencyFormatter.format(
+                                                      summary.realizedPL,
+                                                      decimalDigits: 2,
+                                                      showSign: true,
+                                                    )
+                                                  : '-',
+                                              primaryTextColor,
+                                              color: summary.realizedPL >= 0
+                                                  ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                                  : AppColors.alertRed,
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -251,7 +286,9 @@ class StockDetailScreen extends ConsumerWidget {
                             Row(
                               children: [
                                 Text(
-                                  'Lots',
+                                  stockPositions.length == 1
+                                      ? 'Position'
+                                      : 'Positions',
                                   style: AppTypography.h2.copyWith(
                                     color: primaryTextColor,
                                     fontWeight: FontWeight.w800,
@@ -259,37 +296,20 @@ class StockDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      sliver: AnimationLimiter(
-                        child: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              return AnimationConfiguration.staggeredList(
-                                position: index,
-                                duration: const Duration(milliseconds: 375),
-                                child: SlideAnimation(
-                                  verticalOffset: 50.0,
-                                  child: FadeInAnimation(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12.0,
-                                      ),
-                                      child: LotCard(
-                                        lot: stockLots[index],
-                                        showStockDetailNavigation: false,
-                                      ),
-                                    ),
-                                  ),
+                            const SizedBox(height: 12),
+                            // A closed cycle becomes one card per buy; what's
+                            // still held stays pooled as a single averaged card.
+                            ...stockPositions.expand(
+                              (position) => PositionCalculator.splitByBuy(position).map(
+                                (card) => PositionCard(
+                                  position: card,
+                                  showStockDetailNavigation: false,
+                                  writePosition:
+                                      identical(card, position) ? null : position,
                                 ),
-                              );
-                            },
-                            childCount: stockLots.length,
-                          ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

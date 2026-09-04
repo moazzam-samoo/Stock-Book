@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_card.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/transaction_search_bar.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/filter_chip_row.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_transaction_bottom_sheet.dart';
@@ -27,7 +29,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lots = ref.watch(filteredLotsProvider);
+    final filteredPositions = ref.watch(filteredPositionsProvider);
+    // A closed cycle shows as one card per buy — each card knows the real
+    // position behind it so edit/delete still land on the right document.
+    final cards = <({Position display, Position? writeTarget})>[];
+    for (final position in filteredPositions) {
+      for (final slice in PositionCalculator.splitByBuy(position)) {
+        cards.add((
+          display: slice,
+          writeTarget: identical(slice, position) ? null : position,
+        ));
+      }
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = isDark
         ? const Color(0xFF94A3B8)
@@ -52,14 +65,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     borderRadius: BorderRadius.circular(20),
                     onTap: () async {
                       HapticFeedback.lightImpact();
-                      final allLots =
-                          ref.read(allLotsProvider).valueOrNull ?? [];
+                      // The overall report covers the whole portfolio — it must
+                      // not depend on which filter chip happens to be selected
+                      // (the default one now hides closed positions).
+                      final positions =
+                          ref.read(allPositionsProvider).valueOrNull ?? [];
                       final summary = ref.read(portfolioSummaryProvider);
                       final stockSummaries = ref.read(stockSummariesProvider);
                       final withdrawals =
                           ref.read(allWithdrawalsProvider).valueOrNull ?? [];
                       await PdfReportService.exportOverallPortfolioPdf(
-                        lots: allLots,
+                        positions: positions,
                         summary: summary,
                         stockSummaries: stockSummaries,
                         withdrawals: withdrawals,
@@ -120,7 +136,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             if (_showSearch) const TransactionSearchBar(),
             const FilterChipRow(),
             Expanded(
-              child: lots.isEmpty
+              child: cards.isEmpty
                   ? const EmptyStateView(
                       icon: Icons.receipt_long_outlined,
                       title: 'No transactions found',
@@ -128,14 +144,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 110),
-                      itemCount: lots.length,
+                      itemCount: cards.length,
                       itemBuilder: (context, index) {
+                        final card = cards[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 6,
                           ),
-                          child: LotCard(lot: lots[index]),
+                          child: PositionCard(
+                            position: card.display,
+                            writePosition: card.writeTarget,
+                          ),
                         );
                       },
                     ),

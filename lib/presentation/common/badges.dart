@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 
 enum TradeStatus { open, partial, closed }
 
 class StatusBadge extends StatelessWidget {
+  /// Deliberately `dynamic`: three different enums flow in here
+  /// ([TradeStatus], [LotStatus], [PositionStatus]). That flexibility is also
+  /// how `PositionStatus` once went completely unhandled without a compile
+  /// error — every position rendered as OPEN, including fully-sold ones. Hence
+  /// the assert on the fallback below: add a branch, never rely on the default.
   final dynamic status;
 
   const StatusBadge({
@@ -24,6 +30,21 @@ class StatusBadge extends StatelessWidget {
           return TradeStatus.closed;
       }
     }
+    if (status is PositionStatus) {
+      switch (status as PositionStatus) {
+        case PositionStatus.open:
+          return TradeStatus.open;
+        case PositionStatus.partiallySold:
+          return TradeStatus.partial;
+        case PositionStatus.closed:
+          return TradeStatus.closed;
+      }
+    }
+    assert(
+      false,
+      'StatusBadge got an unhandled status type: ${status.runtimeType}. '
+      'Add a branch for it — falling through to OPEN mislabels real data.',
+    );
     return TradeStatus.open;
   }
 

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_buy_bottom_sheet.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/select_lot_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/select_position_bottom_sheet.dart';
 
-class AddTransactionBottomSheet extends StatelessWidget {
+class AddTransactionBottomSheet extends ConsumerWidget {
   const AddTransactionBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -21,7 +25,7 @@ class AddTransactionBottomSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final grabHandleColor = isDark
         ? AppColors.offBlack
@@ -68,7 +72,15 @@ class AddTransactionBottomSheet extends StatelessWidget {
               subtitle: 'Record a partial or full sale',
               onTap: () {
                 Navigator.pop(context);
-                SelectLotBottomSheet.show(context);
+                final positions = ref.read(allPositionsProvider).valueOrNull ?? [];
+                final openPositions = positions
+                    .where((p) => p.status != PositionStatus.closed)
+                    .toList();
+                if (openPositions.length == 1) {
+                  AddSellBottomSheet.show(context, openPositions.first);
+                } else {
+                  SelectPositionBottomSheet.show(context);
+                }
               },
             ),
             const SizedBox(height: 16),

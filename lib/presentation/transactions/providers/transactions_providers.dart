@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 
 part 'transactions_providers.g.dart';
@@ -26,32 +26,38 @@ class StatusFilter extends _$StatusFilter {
 }
 
 @riverpod
-List<Lot> filteredLots(FilteredLotsRef ref) {
-  final allLots = ref.watch(allLotsProvider).valueOrNull ?? [];
+List<Position> filteredPositions(FilteredPositionsRef ref) {
+  final allPositions = ref.watch(allPositionsProvider).valueOrNull ?? [];
   final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
   final statusFilter = ref.watch(statusFilterProvider);
 
-  final filteredList = allLots.where((lot) {
-    final matchesSearch = lot.ticker.toLowerCase().contains(searchQuery);
+  final filteredList = allPositions.where((pos) {
+    final matchesSearch = pos.ticker.toLowerCase().contains(searchQuery);
     
     bool matchesStatus = true;
-    if (statusFilter != 'All') {
-      if (statusFilter.toLowerCase() == 'partial') {
-        matchesStatus = lot.status == LotStatus.partiallySold;
-      } else {
-        final targetStatus = LotStatus.values.firstWhere(
-          (e) => e.name.toLowerCase() == statusFilter.toLowerCase(),
-          orElse: () => LotStatus.open,
-        );
-        matchesStatus = lot.status == targetStatus;
-      }
+    switch (statusFilter.toLowerCase()) {
+      case 'all':
+        matchesStatus = true;
+        break;
+      case 'open':
+        // "Open" means "still holding" — a position that's been partially sold
+        // is still yours, so it belongs in the default view. Only fully-closed
+        // cycles drop out.
+        matchesStatus = pos.status != PositionStatus.closed;
+        break;
+      case 'partial':
+        matchesStatus = pos.status == PositionStatus.partiallySold;
+        break;
+      case 'closed':
+        matchesStatus = pos.status == PositionStatus.closed;
+        break;
     }
 
     return matchesSearch && matchesStatus;
   }).toList();
 
-  // Sort by buyDate descending (latest date on top)
-  filteredList.sort((a, b) => b.buyDate.compareTo(a.buyDate));
+  // Sort by openedAt descending (latest date on top)
+  filteredList.sort((a, b) => b.openedAt.compareTo(a.openedAt));
 
   return filteredList;
 }

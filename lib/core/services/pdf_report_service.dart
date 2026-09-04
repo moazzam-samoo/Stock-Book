@@ -3,7 +3,9 @@ import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
@@ -33,27 +35,26 @@ class PdfReportService {
 
   /// 1. Export Overall Portfolio Executive Report
   static Future<void> exportOverallPortfolioPdf({
-    required List<Lot> lots,
+    required List<Position> positions,
     required PortfolioSummary summary,
     required List<StockSummary> stockSummaries,
     List<Withdrawal> withdrawals = const [],
   }) async {
     final pdf = pw.Document();
 
-    // Collect all sales events across all lots
+    // Collect all sales events across all positions
     final allSalesList = <Map<String, dynamic>>[];
-    for (final lot in lots) {
-      if (lot.sales.isNotEmpty) {
-        for (final sale in lot.sales) {
-          final profit = (sale.sellPricePerShare - lot.buyPricePerShare) * sale.sharesSold;
+    for (final position in positions) {
+      if (position.sales.isNotEmpty) {
+        for (final sale in position.sales) {
           allSalesList.add({
-            'ticker': lot.ticker,
-            'sellDate': sale.sellDate,
-            'sharesSold': sale.sharesSold,
-            'buyPrice': lot.buyPricePerShare,
-            'sellPrice': sale.sellPricePerShare,
+            'ticker': position.ticker,
+            'sellDate': sale.date,
+            'sharesSold': sale.shares,
+            'buyPrice': sale.costBasisAtSale ?? 0.0,
+            'sellPrice': sale.pricePerShare,
             'amountReceived': sale.amountReceived,
-            'profit': profit,
+            'profit': sale.realizedPL,
           });
         }
       }
@@ -69,7 +70,7 @@ class PdfReportService {
         build: (context) => [
           pw.SizedBox(height: 12),
           // Executive Summary Banner
-          _buildExecutiveSummaryBanner(summary, lots.length),
+          _buildExecutiveSummaryBanner(summary, positions.length),
           pw.SizedBox(height: 20),
 
           // Profit Withdrawals (cash taken out of realized profit)
@@ -184,8 +185,8 @@ class PdfReportService {
             pw.SizedBox(height: 24),
           ],
 
-          // Detailed Lots Table
-          _buildSectionTitle('All Buy Lots & Transaction Records'),
+          // Detailed Positions Table
+          _buildSectionTitle('All Positions & Transaction Records'),
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 8.5),
@@ -195,18 +196,21 @@ class PdfReportService {
             cellAlignment: pw.Alignment.centerLeft,
             cellStyle: const pw.TextStyle(fontSize: 8),
             cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-            headers: ['Ticker', 'Buy Date', 'Purchased', 'Buy Price', 'Remaining', 'Holding', 'Status', 'Realized P/L'],
-            data: lots.map<List<dynamic>>((lot) {
-              final isProfit = lot.realizedProfitLoss >= 0;
+            headers: ['Ticker', 'Open Date', 'Purchased', 'Avg Cost', 'Remaining', 'Holding', 'Status', 'Realized P/L'],
+            data: positions.map<List<dynamic>>((pos) {
+              final realizedPL = PositionCalculator.realizedPL(pos);
+              final isProfit = realizedPL >= 0;
+              final purchased = pos.buys.fold<int>(0, (sum, b) => sum + b.shares);
+              final remaining = PositionCalculator.sharesHeld(pos);
               return [
-                lot.ticker,
-                _dateFormat.format(lot.buyDate),
-                _wholeFormat.format(lot.sharesPurchased),
-                AppCurrencyFormatter.format(lot.buyPricePerShare),
-                '${_wholeFormat.format(lot.sharesRemaining)} sh',
-                '${lot.holdingDays}d',
-                lot.status.name.toUpperCase(),
-                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
+                pos.ticker,
+                _dateFormat.format(pos.openedAt),
+                _wholeFormat.format(purchased),
+                AppCurrencyFormatter.format(PositionCalculator.avgCost(pos)),
+                '${_wholeFormat.format(remaining)} sh',
+                '${PositionCalculator.holdingDays(pos)}d',
+                pos.status.name.toUpperCase(),
+                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(realizedPL.abs())}',
               ];
             }).toList(),
           ),
@@ -221,32 +225,39 @@ class PdfReportService {
   }
 
   /// 2. Export Per-Stock Detailed Performance Report
+  /// Takes **every** holding cycle for the ticker. A ticker that was sold out
+  /// and re-bought has more than one `Position`, and a per-stock report that
+  /// covered only the newest would silently omit closed cycles' trades.
   static Future<void> exportStockPdf({
     required String ticker,
-    required List<Lot> stockLots,
+    required List<Position> positions,
     required StockSummary? summary,
   }) async {
     final pdf = pw.Document();
 
-    final totalPurchasedShares = stockLots.fold<int>(0, (sum, l) => sum + l.sharesPurchased);
-    final totalInvested = stockLots.fold<double>(0.0, (sum, l) => sum + l.amountInvested);
-    final totalRealizedPL = stockLots.fold<double>(0.0, (sum, l) => sum + l.realizedProfitLoss);
+    var totalPurchasedShares = 0;
+    var totalInvested = 0.0;
+    var totalRealizedPL = 0.0;
+    final allBuys = <PositionBuy>[];
+    for (final position in positions) {
+      totalPurchasedShares += position.buys.fold<int>(0, (sum, b) => sum + b.shares);
+      totalInvested += PositionCalculator.amountInvested(position);
+      totalRealizedPL += PositionCalculator.realizedPL(position);
+      allBuys.addAll(position.buys);
+    }
+    allBuys.sort((a, b) => a.date.compareTo(b.date));
 
     final allSales = <Map<String, dynamic>>[];
-    for (final lot in stockLots) {
-      if (lot.sales.isNotEmpty) {
-        for (final sale in lot.sales) {
-          final profit = (sale.sellPricePerShare - lot.buyPricePerShare) * sale.sharesSold;
-          allSales.add({
-            'lotId': lot.id,
-            'sellDate': sale.sellDate,
-            'sharesSold': sale.sharesSold,
-            'buyPrice': lot.buyPricePerShare,
-            'sellPrice': sale.sellPricePerShare,
-            'amountReceived': sale.amountReceived,
-            'profit': profit,
-          });
-        }
+    for (final position in positions) {
+      for (final sale in position.sales) {
+        allSales.add({
+          'sellDate': sale.date,
+          'sharesSold': sale.shares,
+          'buyPrice': sale.costBasisAtSale ?? 0.0,
+          'sellPrice': sale.pricePerShare,
+          'amountReceived': sale.amountReceived,
+          'profit': sale.realizedPL,
+        });
       }
     }
     allSales.sort((a, b) => (b['sellDate'] as DateTime).compareTo(a['sellDate'] as DateTime));
@@ -292,8 +303,8 @@ class PdfReportService {
           ),
           pw.SizedBox(height: 20),
 
-          // Lots Breakdown Table
-          _buildSectionTitle('Lots Purchase History for $ticker'),
+          // Buys Breakdown Table
+          _buildSectionTitle('Buy History for $ticker'),
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
@@ -303,17 +314,13 @@ class PdfReportService {
             cellAlignment: pw.Alignment.centerLeft,
             cellStyle: const pw.TextStyle(fontSize: 8.5),
             cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            headers: ['Buy Date', 'Purchased', 'Buy Price', 'Remaining', 'Holding Period', 'Status', 'Realized P/L'],
-            data: stockLots.map<List<dynamic>>((lot) {
-              final isProfit = lot.realizedProfitLoss >= 0;
+            headers: ['Buy Date', 'Purchased', 'Buy Price', 'Total Cost'],
+            data: allBuys.map<List<dynamic>>((buy) {
               return [
-                _dateFormat.format(lot.buyDate),
-                _wholeFormat.format(lot.sharesPurchased),
-                AppCurrencyFormatter.format(lot.buyPricePerShare),
-                _wholeFormat.format(lot.sharesRemaining),
-                '${lot.holdingDays} days',
-                lot.status.name.toUpperCase(),
-                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
+                _dateFormat.format(buy.date),
+                _wholeFormat.format(buy.shares),
+                AppCurrencyFormatter.format(buy.pricePerShare),
+                AppCurrencyFormatter.format(buy.shares * buy.pricePerShare),
               ];
             }).toList(),
           ),
@@ -362,13 +369,15 @@ class PdfReportService {
     );
   }
 
-  /// 3. Export Per-Lot Detailed Audit Report
-  static Future<void> exportLotPdf(Lot lot) async {
+  /// 3. Export Per-Position Detailed Audit Report
+  static Future<void> exportPositionPdf(Position position) async {
     final pdf = pw.Document();
-    final isProfit = lot.realizedProfitLoss >= 0;
+    final realizedPL = PositionCalculator.realizedPL(position);
+    final isProfit = realizedPL >= 0;
 
-    final salesList = lot.sales;
+    final salesList = position.sales;
     final totalAmountReceived = salesList.fold<double>(0.0, (sum, s) => sum + s.amountReceived);
+    final totalPurchased = position.buys.fold<int>(0, (sum, b) => sum + b.shares);
 
     pdf.addPage(
       pw.Page(
@@ -377,10 +386,10 @@ class PdfReportService {
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            _buildPdfHeader('${lot.ticker} Lot Audit Report'),
+            _buildPdfHeader('${position.ticker} Position Audit Report'),
             pw.SizedBox(height: 16),
 
-            // Lot Purchase Card
+            // Position Summary Card
             pw.Container(
               padding: const pw.EdgeInsets.all(16),
               decoration: pw.BoxDecoration(
@@ -394,7 +403,7 @@ class PdfReportService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text(
-                        '${lot.ticker} LOT AUDIT SUMMARY',
+                        '${position.ticker} POSITION AUDIT SUMMARY',
                         style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: _accentColor),
                       ),
                       pw.Container(
@@ -404,7 +413,7 @@ class PdfReportService {
                           borderRadius: pw.BorderRadius.circular(6),
                         ),
                         child: pw.Text(
-                          lot.status.name.toUpperCase(),
+                          position.status.name.toUpperCase(),
                           style: const pw.TextStyle(color: PdfColors.white, fontSize: 9, fontWeight: pw.FontWeight.bold),
                         ),
                       ),
@@ -414,22 +423,22 @@ class PdfReportService {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMetricItem('Buy Date', _dateFormat.format(lot.buyDate)),
-                      _buildMetricItem('Shares Purchased', _wholeFormat.format(lot.sharesPurchased)),
-                      _buildMetricItem('Buy Price / Share', AppCurrencyFormatter.format(lot.buyPricePerShare)),
-                      _buildMetricItem('Total Capital Invested', AppCurrencyFormatter.format(lot.amountInvested)),
+                      _buildMetricItem('Open Date', _dateFormat.format(position.openedAt)),
+                      _buildMetricItem('Shares Purchased', _wholeFormat.format(totalPurchased)),
+                      _buildMetricItem('Avg Cost / Share', AppCurrencyFormatter.format(PositionCalculator.avgCost(position))),
+                      _buildMetricItem('Total Capital Invested', AppCurrencyFormatter.format(PositionCalculator.amountInvested(position))),
                     ],
                   ),
                   pw.SizedBox(height: 12),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMetricItem('Holding Period', '${lot.holdingDays} Days'),
-                      _buildMetricItem('Remaining Shares', '${_wholeFormat.format(lot.sharesRemaining)} sh'),
+                      _buildMetricItem('Holding Period', '${PositionCalculator.holdingDays(position)} Days'),
+                      _buildMetricItem('Remaining Shares', '${_wholeFormat.format(PositionCalculator.sharesHeld(position))} sh'),
                       _buildMetricItem('Total Sales Received', AppCurrencyFormatter.format(totalAmountReceived)),
                       _buildMetricItem(
                         'Realized Profit / Loss',
-                        '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(lot.realizedProfitLoss.abs())}',
+                        '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(realizedPL.abs())}',
                         color: isProfit ? _greenColor : _redColor,
                       ),
                     ],
@@ -446,7 +455,7 @@ class PdfReportService {
               pw.Container(
                 padding: const pw.EdgeInsets.all(12),
                 decoration: pw.BoxDecoration(color: _lightBgColor, borderRadius: pw.BorderRadius.circular(8)),
-                child: pw.Text('No sales recorded for this lot yet.', style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9)),
+                child: pw.Text('No sales recorded for this position yet.', style: const pw.TextStyle(color: PdfColors.grey600, fontSize: 9)),
               )
             else
               pw.TableHelper.fromTextArray(
@@ -457,15 +466,15 @@ class PdfReportService {
                 cellAlignment: pw.Alignment.centerLeft,
                 cellStyle: const pw.TextStyle(fontSize: 8.5),
                 cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                headers: ['Sell Date', 'Shares Sold', 'Buy Price / Share', 'Sell Price / Share', 'Amount Received', 'Realized P/L'],
+                headers: ['Sell Date', 'Shares Sold', 'Cost Basis / Share', 'Sell Price / Share', 'Amount Received', 'Realized P/L'],
                 data: salesList.map<List<dynamic>>((sale) {
-                  final saleProfit = (sale.sellPricePerShare - lot.buyPricePerShare) * sale.sharesSold;
+                  final saleProfit = sale.realizedPL;
                   final saleIsProfit = saleProfit >= 0;
                   return [
-                    _dateFormat.format(sale.sellDate),
-                    _wholeFormat.format(sale.sharesSold),
-                    AppCurrencyFormatter.format(lot.buyPricePerShare),
-                    AppCurrencyFormatter.format(sale.sellPricePerShare),
+                    _dateFormat.format(sale.date),
+                    _wholeFormat.format(sale.shares),
+                    AppCurrencyFormatter.format(sale.costBasisAtSale ?? 0.0),
+                    AppCurrencyFormatter.format(sale.pricePerShare),
                     AppCurrencyFormatter.format(sale.amountReceived),
                     '${saleIsProfit ? "+" : "-"}${AppCurrencyFormatter.format(saleProfit.abs())}',
                   ];
@@ -481,7 +490,7 @@ class PdfReportService {
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: '${lot.ticker}_Lot_Report.pdf',
+      name: '${position.ticker}_Position_Report.pdf',
     );
   }
 

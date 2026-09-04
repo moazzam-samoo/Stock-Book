@@ -1,6 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:uuid/uuid.dart';
 
@@ -22,25 +25,44 @@ class AddBuyController extends _$AddBuyController {
   }) async {
     state = const AsyncLoading();
     try {
-      final amountInvested = sharesPurchased * buyPricePerShare;
-      
-      final lot = Lot(
-        id: const Uuid().v4(),
-        ticker: ticker,
-        buyDate: buyDate,
-        sharesPurchased: sharesPurchased.toInt(),
-        buyPricePerShare: buyPricePerShare,
-        amountInvested: amountInvested,
-        targetPrice: targetPrice,
-        sharesRemaining: sharesPurchased.toInt(),
-        amountInvestedRemaining: amountInvested,
-        realizedProfitLoss: 0.0,
-        status: LotStatus.open,
+      final repo = ref.read(positionRepositoryProvider);
+      if (repo == null) {
+        state = const AsyncData(null);
+        return;
+      }
+
+      final positions = ref.read(allPositionsProvider).valueOrNull ?? [];
+      final openPosition = PositionCalculator.findOpenPosition(
+        positions,
+        ticker,
       );
 
-      final repo = ref.read(lotRepositoryProvider);
-      if (repo != null) {
-        await repo.addLot(lot);
+      if (openPosition != null) {
+        final updated = PositionCalculator.applyBuy(
+          openPosition,
+          buyId: const Uuid().v4(),
+          date: buyDate,
+          shares: sharesPurchased.toInt(),
+          pricePerShare: buyPricePerShare,
+        ).copyWith(targetPrice: targetPrice ?? openPosition.targetPrice);
+        await repo.updatePosition(updated);
+      } else {
+        final newPosition = Position(
+          id: const Uuid().v4(),
+          ticker: ticker,
+          status: PositionStatus.open,
+          openedAt: buyDate,
+          targetPrice: targetPrice,
+          buys: [
+            PositionBuy(
+              id: const Uuid().v4(),
+              date: buyDate,
+              shares: sharesPurchased.toInt(),
+              pricePerShare: buyPricePerShare,
+            ),
+          ],
+        );
+        await repo.addPosition(newPosition);
       }
     } catch (e, st) {
       state = AsyncError(e, st);

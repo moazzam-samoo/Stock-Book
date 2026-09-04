@@ -11,9 +11,11 @@ import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart'
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_card.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/screens/stock_detail_screen.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/core/theme/app_theme.dart';
 
 void mockConnectivity() {
@@ -57,8 +59,8 @@ void main() {
       overrides: [
         authStateProvider.overrideWith((ref) => Stream.value(null)),
         allWithdrawalsProvider.overrideWith((ref) => Stream.value([])),
-        allLotsProvider.overrideWith((ref) => Stream.value([])),
-        filteredLotsProvider.overrideWith((ref) => []),
+        allPositionsProvider.overrideWith((ref) => Stream.value([])),
+        filteredPositionsProvider.overrideWith((ref) => []),
         portfolioSummaryProvider.overrideWith((ref) => const PortfolioSummary(
           startingCapital: 100000, grossRealizedPL: 5000, realizedPL: 5000, portfolioValue: 105000,
           totalCash: 50000, freeCash: 50000, currentlyInvested: 50000, totalWithdrawn: 0, totalInvested: 50000, openLots: 2,
@@ -153,43 +155,48 @@ void main() {
     await screenMatchesGolden(tester, 'transactions_screen_dark');
   });
 
-  final dummyLot = Lot(
-    id: 'lot1',
+  final dummyPosition = Position(
+    id: 'pos1',
     ticker: 'ENGRO',
-    buyDate: DateTime(2023, 1, 1),
-    sharesPurchased: 100,
-    buyPricePerShare: 350.0,
-    amountInvested: 35000.0,
+    status: PositionStatus.open,
+    openedAt: DateTime(2023, 1, 1),
     targetPrice: 400.0,
-    sales: const [],
+    buys: [
+      PositionBuy(
+        id: 'buy1',
+        date: DateTime(2023, 1, 1),
+        shares: 100,
+        pricePerShare: 350.0,
+      ),
+    ],
   );
 
-  testGoldens('Lot Card - Light', (tester) async {
+  testGoldens('Position Card - Light', (tester) async {
     final builder = DeviceBuilder()
       ..overrideDevicesForAllScenarios(devices: [Device.phone])
       ..addScenario(
         widget: buildScreen(
-          Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: LotCard(lot: dummyLot))),
+          Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: PositionCard(position: dummyPosition))),
           ThemeMode.light
         ),
         name: 'light_mode',
       );
     await tester.pumpDeviceBuilder(builder);
-    await screenMatchesGolden(tester, 'lot_card_light');
+    await screenMatchesGolden(tester, 'position_card_light');
   });
 
-  testGoldens('Lot Card - Dark', (tester) async {
+  testGoldens('Position Card - Dark', (tester) async {
     final builder = DeviceBuilder()
       ..overrideDevicesForAllScenarios(devices: [Device.phone])
       ..addScenario(
         widget: buildScreen(
-          Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: LotCard(lot: dummyLot))),
+          Scaffold(body: Padding(padding: const EdgeInsets.all(16), child: PositionCard(position: dummyPosition))),
           ThemeMode.dark
         ),
         name: 'dark_mode',
       );
     await tester.pumpDeviceBuilder(builder);
-    await screenMatchesGolden(tester, 'lot_card_dark');
+    await screenMatchesGolden(tester, 'position_card_dark');
   });
 
   testGoldens('Stock Detail - Light', (tester) async {

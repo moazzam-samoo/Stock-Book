@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
@@ -12,11 +13,11 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/add_sell_controller.dart';
 
 class AddSellBottomSheet extends ConsumerStatefulWidget {
-  final Lot lot;
+  final Position position;
 
-  const AddSellBottomSheet({super.key, required this.lot});
+  const AddSellBottomSheet({super.key, required this.position});
 
-  static Future<void> show(BuildContext context, Lot lot) {
+  static Future<void> show(BuildContext context, Position position) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
@@ -29,7 +30,7 @@ class AddSellBottomSheet extends ConsumerStatefulWidget {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: AddSellBottomSheet(lot: lot),
+        child: AddSellBottomSheet(position: position),
       ),
     );
   }
@@ -44,27 +45,21 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
   double _sharesSold = 0.0;
   double _sellPrice = 0.0;
 
+  int get _sharesHeld => PositionCalculator.sharesHeld(widget.position);
+  double get _avgCost => PositionCalculator.avgCost(widget.position);
+
   double get _amountReceived => _sharesSold * _sellPrice;
-  double get _profitLoss =>
-      (_sellPrice - widget.lot.buyPricePerShare) * _sharesSold;
-  double get _profitLossPercent {
-    if (widget.lot.buyPricePerShare == 0) return 0;
-    return (_sellPrice - widget.lot.buyPricePerShare) /
-        widget.lot.buyPricePerShare *
-        100;
-  }
+  double get _profitLoss => (_sellPrice - _avgCost) * _sharesSold;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _sellDate == null) {
       return;
     }
 
-    if (_sharesSold > widget.lot.sharesRemaining) {
+    if (_sharesSold > _sharesHeld) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Cannot sell more than available (${widget.lot.sharesRemaining})',
-          ),
+          content: Text('Cannot sell more than available ($_sharesHeld)'),
           backgroundColor: AppColors.dangerRed,
         ),
       );
@@ -78,9 +73,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     await ref
         .read(addSellControllerProvider.notifier)
         .submit(
-          lot: widget.lot,
+          position: widget.position,
           sellDate: _sellDate!,
-          sharesSold: _sharesSold,
+          sharesSold: _sharesSold.toInt(),
           sellPricePerShare: _sellPrice,
         );
 
@@ -92,7 +87,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
           content: Text(
             isOffline
                 ? "You're offline. Your sale was saved locally and will sync when online."
-                : 'Sold ${_sharesSold.toInt()} shares of ${widget.lot.ticker} successfully!',
+                : 'Sold ${_sharesSold.toInt()} shares of ${widget.position.ticker} successfully!',
           ),
           backgroundColor: isOffline
               ? AppColors.warningYellow
@@ -106,7 +101,6 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final wholeFormat = NumberFormat('#,##0');
-    final dateFormat = DateFormat('MMM d, y');
     final asyncState = ref.watch(addSellControllerProvider);
     final isProfit = _profitLoss >= 0;
     final plColor = isProfit
@@ -187,7 +181,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${widget.lot.ticker} · Bought ${dateFormat.format(widget.lot.buyDate)}',
+                              '${widget.position.ticker} · Avg cost ${AppCurrencyFormatter.format(_avgCost)}',
                               style: AppTypography.body.copyWith(
                                 color: primaryTextColor,
                                 fontWeight: FontWeight.w800,
@@ -196,7 +190,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Remaining: ${wholeFormat.format(widget.lot.sharesRemaining)} shares',
+                              'Remaining: ${wholeFormat.format(_sharesHeld)} shares',
                               style: AppTypography.caption.copyWith(
                                 color: AppColors.neutral500,
                                 fontSize: 13,
@@ -205,7 +199,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                           ],
                         ),
                       ),
-                      StatusBadge(status: widget.lot.status),
+                      StatusBadge(status: widget.position.status),
                     ],
                   ),
                 ),
@@ -233,8 +227,9 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                         validator: (val) {
                           if (val == null || val.isEmpty) return 'Required';
                           final parsed = double.tryParse(val) ?? 0.0;
-                          if (parsed > widget.lot.sharesRemaining)
-                            return 'Max: ${widget.lot.sharesRemaining}';
+                          if (parsed > _sharesHeld) {
+                            return 'Max: $_sharesHeld';
+                          }
                           return null;
                         },
                       ),

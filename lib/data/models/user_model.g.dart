@@ -14,6 +14,7 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   createdAt: json['createdAt'] == null
       ? null
       : DateTime.parse(json['createdAt'] as String),
+  schemaVersion: (json['schemaVersion'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
@@ -23,4 +24,5 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'displayName': instance.displayName,
       'photoUrl': instance.photoUrl,
       'createdAt': instance.createdAt?.toIso8601String(),
+      'schemaVersion': instance.schemaVersion,
     };

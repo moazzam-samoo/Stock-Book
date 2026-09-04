@@ -48,9 +48,9 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.backgroundLight,
-      primaryColor: AppColors.moneyGreen,
+      primaryColor: AppColors.moneyGreenOnLight,
       colorScheme: const ColorScheme.light(
-        primary: AppColors.moneyGreen,
+        primary: AppColors.moneyGreenOnLight,
         secondary: AppColors.vibrantPink,
         surface: AppColors.surfaceLight,
         error: AppColors.alertRed,

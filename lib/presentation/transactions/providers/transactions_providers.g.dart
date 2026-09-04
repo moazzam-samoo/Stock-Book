@@ -6,23 +6,23 @@ part of 'transactions_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$filteredLotsHash() => r'550555502caf50533258cee843c02fb54a5541fe';
+String _$filteredPositionsHash() => r'852667eeee89486b10176b2bef3c6562565a47f3';
 
-/// See also [filteredLots].
-@ProviderFor(filteredLots)
-final filteredLotsProvider = AutoDisposeProvider<List<Lot>>.internal(
-  filteredLots,
-  name: r'filteredLotsProvider',
+/// See also [filteredPositions].
+@ProviderFor(filteredPositions)
+final filteredPositionsProvider = AutoDisposeProvider<List<Position>>.internal(
+  filteredPositions,
+  name: r'filteredPositionsProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$filteredLotsHash,
+      : _$filteredPositionsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef FilteredLotsRef = AutoDisposeProviderRef<List<Lot>>;
+typedef FilteredPositionsRef = AutoDisposeProviderRef<List<Position>>;
 String _$searchQueryHash() => r'32848c18dd36b350439a45fa6338bf2df6758978';
 
 /// See also [SearchQuery].

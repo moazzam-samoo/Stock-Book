@@ -176,6 +176,80 @@ class FirestoreDataSource {
     }
   }
 
+  // MIGRATION HELPER METHODS
+  Future<int?> getUserSchemaVersion(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      if (data.containsKey('schemaVersion')) {
+        return data['schemaVersion'] as int?;
+      }
+    }
+    return null;
+  }
+
+  Future<List<LotModel>> getAllLotsOnce(String uid) async {
+    final snapshot = await _firestore.collection(FirestorePaths.lots(uid)).get();
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return LotModel.fromJson(data);
+    }).toList();
+  }
+
+  Future<void> stampSchemaVersion(String uid, int version) async {
+    await _firestore.collection('users').doc(uid).set({
+      'schemaVersion': version,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> runPositionMigrationBatches(String uid, List<PositionModel> positions, int version) async {
+    if (positions.length + 1 <= 450) {
+      // Single batch
+      final batch = _firestore.batch();
+      
+      for (final pos in positions) {
+        final posRef = _firestore.collection(FirestorePaths.positions(uid)).doc(pos.id);
+        final json = pos.toJson()..remove('id');
+        json['buys'] = pos.buys.map((b) => b.toJson()).toList();
+        json['sales'] = pos.sales.map((s) => s.toJson()).toList();
+        batch.set(posRef, json);
+      }
+      
+      final userRef = _firestore.collection('users').doc(uid);
+      batch.set(userRef, {'schemaVersion': version}, SetOptions(merge: true));
+      
+      await batch.commit();
+    } else {
+      // Chunked batches
+      final chunks = <List<PositionModel>>[];
+      for (var i = 0; i < positions.length; i += 450) {
+        chunks.add(positions.sublist(
+          i,
+          i + 450 > positions.length ? positions.length : i + 450,
+        ));
+      }
+
+      for (final chunk in chunks) {
+        final batch = _firestore.batch();
+        for (final pos in chunk) {
+          final posRef = _firestore.collection(FirestorePaths.positions(uid)).doc(pos.id);
+          final json = pos.toJson()..remove('id');
+          json['buys'] = pos.buys.map((b) => b.toJson()).toList();
+          json['sales'] = pos.sales.map((s) => s.toJson()).toList();
+          batch.set(posRef, json);
+        }
+        await batch.commit();
+      }
+      
+      // Write the schemaVersion marker last
+      final finalBatch = _firestore.batch();
+      final userRef = _firestore.collection('users').doc(uid);
+      finalBatch.set(userRef, {'schemaVersion': version}, SetOptions(merge: true));
+      await finalBatch.commit();
+    }
+  }
+
   // WITHDRAWALS
   Stream<List<WithdrawalModel>> watchAllWithdrawals(String uid) {
     return _firestore

@@ -6,35 +6,57 @@ import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/sparkline_chart.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/sale_event_row.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/position_sale_row.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/position_buy_row.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_lot_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_buy_bottom_sheet.dart';
+
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 
-class LotCard extends ConsumerStatefulWidget {
-  final Lot lot;
+class PositionCard extends ConsumerStatefulWidget {
+  final Position position;
   final bool showStockDetailNavigation;
 
-  const LotCard({
+  /// Where writes (delete, edit-buy) should land, when that isn't [position]
+  /// itself.
+  ///
+  /// A closed cycle is displayed as one card per buy — those slices come from
+  /// [PositionCalculator.splitByBuy] and carry synthetic ids plus sales that
+  /// may be partial allocations, so they must never be written back. Passing
+  /// the real position here keeps delete/edit working while the card renders
+  /// the slice, and puts the sale rows into read-only mode.
+  final Position? writePosition;
+
+  const PositionCard({
     super.key,
-    required this.lot,
+    required this.position,
     this.showStockDetailNavigation = true,
+    this.writePosition,
   });
 
   @override
-  ConsumerState<LotCard> createState() => _LotCardState();
+  ConsumerState<PositionCard> createState() => _PositionCardState();
 }
 
-class _LotCardState extends ConsumerState<LotCard> {
+class _PositionCardState extends ConsumerState<PositionCard> {
   bool _isExpanded = false;
   Offset? _tapDownPosition;
+
+  /// The real, persisted position behind this card.
+  Position get _writeTarget => widget.writePosition ?? widget.position;
+
+  /// True when this card is one buy's slice of a split closed cycle, rather
+  /// than a position in its own right.
+  bool get _isSlice => widget.writePosition != null;
 
   void _toggleExpand() {
     HapticFeedback.lightImpact();
@@ -56,16 +78,25 @@ class _LotCardState extends ConsumerState<LotCard> {
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final pillBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
 
-    final isProfit = widget.lot.realizedProfitLoss >= 0;
+    final isProfit = PositionCalculator.realizedPL(widget.position) >= 0;
     final plColor = isProfit
         ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
         : AppColors.alertRed;
-    final soldShares = widget.lot.sharesPurchased - widget.lot.sharesRemaining;
-    final holdingDaysText = widget.lot.holdingDays == 1
+    final soldShares = (widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)) - PositionCalculator.sharesHeld(widget.position);
+    final holdingDaysText = PositionCalculator.holdingDays(widget.position) == 1
         ? '1 day'
-        : '${widget.lot.holdingDays} days';
-    // Every bullet detail line shares this color for a clean, uniform look.
-    const bulletColor = Color.fromARGB(255, 16, 205, 234);
+        : '${PositionCalculator.holdingDays(widget.position)} days';
+
+    // A closed cycle holds nothing, so avgCost/amountInvested correctly return
+    // 0 — useless on a card whose whole job is to record what happened. Show
+    // what the cycle actually cost instead.
+    final isClosed = widget.position.status == PositionStatus.closed;
+    final costPerShare = isClosed
+        ? PositionCalculator.historicalAvgCost(widget.position)
+        : PositionCalculator.avgCost(widget.position);
+    final investedAmount = isClosed
+        ? PositionCalculator.totalCapitalDeployed(widget.position)
+        : PositionCalculator.amountInvested(widget.position);
 
     return GestureDetector(
       onTapDown: (details) => _tapDownPosition = details.globalPosition,
@@ -113,9 +144,9 @@ class _LotCardState extends ConsumerState<LotCard> {
               children: [
                 GestureDetector(
                   onTap: widget.showStockDetailNavigation
-                      ? () => context.push('/stock/${widget.lot.ticker}')
+                      ? () => context.push('/stock/${widget.position.ticker}')
                       : null,
-                  child: TickerAvatar(ticker: widget.lot.ticker, size: 42),
+                  child: TickerAvatar(ticker: widget.position.ticker, size: 42),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -128,11 +159,11 @@ class _LotCardState extends ConsumerState<LotCard> {
                           GestureDetector(
                             onTap: widget.showStockDetailNavigation
                                 ? () => context.push(
-                                    '/stock/${widget.lot.ticker}',
+                                    '/stock/${widget.position.ticker}',
                                   )
                                 : null,
                             child: Text(
-                              '${widget.lot.ticker} · ',
+                              '${widget.position.ticker} · ',
                               style: AppTypography.body.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: primaryTextColor,
@@ -141,7 +172,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                             ),
                           ),
                           Text(
-                            '${wholeFormat.format(widget.lot.sharesPurchased)} sh',
+                            '${wholeFormat.format((widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)))} sh',
                             style: AppTypography.body.copyWith(
                               fontWeight: FontWeight.w800,
                               color: primaryTextColor,
@@ -149,7 +180,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          StatusBadge(status: widget.lot.status),
+                          StatusBadge(status: widget.position.status),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -159,7 +190,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                         isDark: isDark,
                         valueSpans: [
                           TextSpan(
-                            text: dateFormat.format(widget.lot.buyDate),
+                            text: dateFormat.format(widget.position.openedAt),
                             style: const TextStyle(
                               color: Color.fromARGB(255, 16, 205, 234),
                               fontWeight: FontWeight.bold,
@@ -170,7 +201,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                             style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                           ),
                           TextSpan(
-                            text: AppCurrencyFormatter.format(widget.lot.buyPricePerShare),
+                            text: AppCurrencyFormatter.format(costPerShare),
                             style: const TextStyle(
                               color: Color.fromARGB(255, 16, 205, 234),
                               fontWeight: FontWeight.bold,
@@ -180,8 +211,8 @@ class _LotCardState extends ConsumerState<LotCard> {
                       ),
                       _BulletDetail(
                         icon: Icons.account_balance_wallet_outlined,
-                        label: 'Total Invested: ',
-                        value: AppCurrencyFormatter.format(widget.lot.amountInvested),
+                        label: isClosed ? 'Total Cost: ' : 'Total Invested: ',
+                        value: AppCurrencyFormatter.format(investedAmount),
                         isDark: isDark,
                       ),
                       _BulletDetail(
@@ -190,12 +221,17 @@ class _LotCardState extends ConsumerState<LotCard> {
                         value: holdingDaysText,
                         isDark: isDark,
                       ),
-                      if (widget.lot.targetPrice != null &&
-                          widget.lot.targetPrice! > 0)
+                      // No target line on a closed cycle: there's nothing left
+                      // to sell, and the percentage would divide by an avgCost
+                      // of 0. (Migration can also leave a stale targetPrice on
+                      // a closed position — see AGENTS.md §14.)
+                      if (!isClosed &&
+                          widget.position.targetPrice != null &&
+                          widget.position.targetPrice! > 0)
                         _BulletDetail(
                           icon: Icons.track_changes_outlined,
                           label: 'Target: ',
-                          value: '${AppCurrencyFormatter.format(widget.lot.targetPrice!)} (${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100) >= 0 ? "+" : ""}${((widget.lot.targetPrice! - widget.lot.buyPricePerShare) / widget.lot.buyPricePerShare * 100).toStringAsFixed(1)}% Est.)',
+                          value: '${AppCurrencyFormatter.format(widget.position.targetPrice!)} (${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100) >= 0 ? "+" : ""}${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100).toStringAsFixed(1)}% Est.)',
                           isDark: isDark,
                         ),
                     ],
@@ -212,9 +248,9 @@ class _LotCardState extends ConsumerState<LotCard> {
             ),
 
             // Realized P/L banner — shown once anything has been sold, so a
-            // partially-sold lot surfaces the profit it has already booked.
-            if (widget.lot.status == LotStatus.closed ||
-                widget.lot.status == LotStatus.partiallySold) ...[
+            // partially-sold position surfaces the profit it has already booked.
+            if (widget.position.status == PositionStatus.closed ||
+                widget.position.status == PositionStatus.partiallySold) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -255,7 +291,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${wholeFormat.format(soldShares)} of ${wholeFormat.format(widget.lot.sharesPurchased)} shares sold',
+                            '${wholeFormat.format(soldShares)} of ${wholeFormat.format((widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)))} shares sold',
                             style: AppTypography.caption.copyWith(
                               color: AppColors.neutral500,
                               fontSize: 11,
@@ -267,11 +303,11 @@ class _LotCardState extends ConsumerState<LotCard> {
                     SparklineChart(
                       isPositive: isProfit,
                       color: plColor,
-                      seed: widget.lot.id.hashCode,
+                      seed: widget.position.id.hashCode,
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(widget.lot.realizedProfitLoss.abs())}',
+                      '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(PositionCalculator.realizedPL(widget.position).abs())}',
                       style: AppTypography.body.copyWith(
                         color: plColor,
                         fontWeight: FontWeight.w800,
@@ -289,6 +325,21 @@ class _LotCardState extends ConsumerState<LotCard> {
               Divider(color: borderColor, height: 1),
               const SizedBox(height: 16),
               Text(
+                'BUY HISTORY',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.neutral500,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...widget.position.buys.map(
+                (buy) => PositionBuyRow(buy: buy, position: widget.position),
+              ),
+
+              const SizedBox(height: 16),
+              Text(
                 'SALE HISTORY',
                 style: AppTypography.caption.copyWith(
                   color: AppColors.neutral500,
@@ -298,7 +349,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (widget.lot.sales.isEmpty)
+              if (widget.position.sales.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Text(
@@ -310,51 +361,60 @@ class _LotCardState extends ConsumerState<LotCard> {
                   ),
                 )
               else
-                ...widget.lot.sales.map(
-                  (sale) => SaleEventRow(sale: sale, lot: widget.lot),
+                ...widget.position.sales.map(
+                  (sale) => PositionSaleRow(
+                    positionSale: sale,
+                    position: _writeTarget,
+                    // A slice's sale rows can be partial allocations of a real
+                    // sale, so they're a record to read, not a row to edit.
+                    readOnly: _isSlice,
+                  ),
                 ),
 
-              const SizedBox(height: 16),
-              // Remaining shares pill container
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: pillBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Remaining',
-                      style: AppTypography.body.copyWith(
-                        color: AppColors.neutral500,
-                        fontSize: 14,
+              // Remaining shares pill — pointless on a closed cycle, where it
+              // would always read 0.
+              if (!isClosed) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: pillBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Remaining',
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.neutral500,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${wholeFormat.format(widget.lot.sharesRemaining)} shares',
-                      style: AppTypography.body.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: primaryTextColor,
-                        fontSize: 14,
+                      Text(
+                        '${wholeFormat.format(PositionCalculator.sharesHeld(widget.position))} shares',
+                        style: AppTypography.body.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: primaryTextColor,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
 
-              if (widget.lot.status != LotStatus.closed) ...[
+              if (widget.position.status != PositionStatus.closed) ...[
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   height: 46,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      AddSellBottomSheet.show(context, widget.lot);
+                      AddSellBottomSheet.show(context, widget.position);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isDark
@@ -373,7 +433,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                       color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                     ),
                     label: Text(
-                      'Add Sale from this lot',
+                      'Add Sale from this position',
                       style: TextStyle(
                         color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                         fontWeight: FontWeight.bold,
@@ -391,7 +451,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                     child: SizedBox(
                       height: 46,
                       child: ElevatedButton.icon(
-                        onPressed: () => PdfReportService.exportLotPdf(widget.lot),
+                        onPressed: () => PdfReportService.exportPositionPdf(widget.position),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark
                               ? const Color(0xFF10233A)
@@ -428,7 +488,7 @@ class _LotCardState extends ConsumerState<LotCard> {
                         height: 46,
                         child: OutlinedButton.icon(
                           onPressed: () =>
-                              context.push('/stock/${widget.lot.ticker}'),
+                              context.push('/stock/${widget.position.ticker}'),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: borderColor),
                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -496,7 +556,7 @@ class _LotCardState extends ConsumerState<LotCard> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Edit Lot',
+                'Edit Position',
                 style: TextStyle(
                   color: primaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -516,7 +576,7 @@ class _LotCardState extends ConsumerState<LotCard> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Export Lot PDF',
+                'Export Position PDF',
                 style: TextStyle(
                   color: primaryTextColor,
                   fontWeight: FontWeight.w600,
@@ -536,7 +596,7 @@ class _LotCardState extends ConsumerState<LotCard> {
               ),
               const SizedBox(width: 12),
               const Text(
-                'Delete Lot',
+                'Delete Position',
                 style: TextStyle(
                   color: AppColors.alertRed,
                   fontWeight: FontWeight.w600,
@@ -549,11 +609,92 @@ class _LotCardState extends ConsumerState<LotCard> {
     );
 
     if (result == 'edit' && context.mounted) {
-      EditLotBottomSheet.show(context, widget.lot);
+      if (widget.position.buys.length == 1) {
+        // The common case — one buy, nothing to disambiguate.
+        EditBuyBottomSheet.show(context, _writeTarget, widget.position.buys.first);
+      } else {
+        // Multiple buys: ask which one, rather than silently doing nothing
+        // (this used to only expand the card, and only if it wasn't already
+        // expanded — a no-op the second time you tapped Edit).
+        _pickBuyToEdit(context);
+      }
     } else if (result == 'pdf') {
-      PdfReportService.exportLotPdf(widget.lot);
+      PdfReportService.exportPositionPdf(widget.position);
     } else if (result == 'delete' && context.mounted) {
       _confirmDelete(context);
+    }
+  }
+
+  Future<void> _pickBuyToEdit(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final wholeFormat = NumberFormat('#,##0');
+    final dateFormat = DateFormat('MMM d, y');
+
+    final selected = await showModalBottomSheet<PositionBuy>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Which buy do you want to edit?',
+                style: AppTypography.h3.copyWith(color: primaryTextColor),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ...widget.position.buys.map(
+                (buy) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(sheetContext, buy),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${wholeFormat.format(buy.shares)} sh @ ${AppCurrencyFormatter.format(buy.pricePerShare)}',
+                            style: AppTypography.body.copyWith(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            dateFormat.format(buy.date),
+                            style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (selected != null && context.mounted) {
+      EditBuyBottomSheet.show(context, _writeTarget, selected);
     }
   }
 
@@ -561,9 +702,13 @@ class _LotCardState extends ConsumerState<LotCard> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Lot?'),
-        content: const Text(
-          'This will permanently delete this lot and all its sales. This action cannot be undone.',
+        title: const Text('Delete Position?'),
+        content: Text(
+          _isSlice
+              // The card shows one buy, but the record behind it is the whole
+              // cycle — say so rather than deleting more than was asked for.
+              ? 'This deletes the entire ${_writeTarget.ticker} position — every buy and sale in this closed cycle, not just this one. This action cannot be undone.'
+              : 'This will permanently delete this position and all its sales. This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -587,9 +732,9 @@ class _LotCardState extends ConsumerState<LotCard> {
       final isOffline =
           results.contains(ConnectivityResult.none) || results.isEmpty;
 
-      final repo = ref.read(lotRepositoryProvider);
+      final repo = ref.read(positionRepositoryProvider);
       if (repo != null) {
-        await repo.deleteLot(widget.lot.id);
+        await repo.deletePosition(_writeTarget.id);
       }
 
       if (context.mounted) {
@@ -597,8 +742,8 @@ class _LotCardState extends ConsumerState<LotCard> {
           SnackBar(
             content: Text(
               isOffline
-                  ? "You're offline. Lot deleted locally and will sync when online."
-                  : 'Lot deleted successfully',
+                  ? "You're offline. Position deleted locally and will sync when online."
+                  : 'Position deleted successfully',
             ),
             backgroundColor: isOffline
                 ? AppColors.warningYellow

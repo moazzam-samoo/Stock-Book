@@ -5,6 +5,9 @@ import 'package:stock_investment_tracker/domain/entities/sale.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 
 class PortfolioCalculator {
   static double _round(double value) {
@@ -188,6 +191,54 @@ class PortfolioCalculator {
     );
   }
 
+  static PortfolioSummary calculatePortfolioSummaryFromPositions(
+    List<Position> allPositions,
+    double startingCapital, [
+    double totalWithdrawn = 0.0,
+  ]) {
+    double currentlyInvested = 0.0;
+    double grossRealizedPL = 0.0;
+    int openLots = 0; // Using "openLots" to match PortfolioSummary field (it means open positions now)
+
+    for (final position in allPositions) {
+      currentlyInvested += PositionCalculator.amountInvested(position);
+      grossRealizedPL += PositionCalculator.realizedPL(position);
+      if (position.status != PositionStatus.closed) {
+        openLots++;
+      }
+    }
+
+    // Net of withdrawals: everything downstream inherits the reduction.
+    final realizedPL = grossRealizedPL - totalWithdrawn;
+
+    final bool hasStartingCapital = startingCapital > 0;
+    final totalInvested = hasStartingCapital
+        ? startingCapital
+        : currentlyInvested;
+    final freeCash = hasStartingCapital
+        ? (startingCapital - currentlyInvested)
+        : 0.0;
+    final portfolioValue = hasStartingCapital
+        ? (startingCapital + realizedPL)
+        : (currentlyInvested + realizedPL);
+    final totalCash = hasStartingCapital
+        ? (startingCapital - currentlyInvested + realizedPL)
+        : realizedPL;
+
+    return PortfolioSummary(
+      startingCapital: _round(startingCapital),
+      totalInvested: _round(totalInvested),
+      currentlyInvested: _round(currentlyInvested),
+      realizedPL: _round(realizedPL),
+      grossRealizedPL: _round(grossRealizedPL),
+      totalWithdrawn: _round(totalWithdrawn),
+      freeCash: _round(freeCash),
+      totalCash: _round(totalCash),
+      openLots: openLots,
+      portfolioValue: _round(portfolioValue),
+    );
+  }
+
   static List<AllocationSegment> calculateAllocation(
     List<StockSummary> summaries,
   ) {
@@ -202,4 +253,72 @@ class PortfolioCalculator {
         )
         .toList();
   }
+
+  /// One row per **ticker**, not per position — a ticker that was sold out and
+  /// re-bought has several `Position` cycles, and the dashboard shows it once,
+  /// exactly as the lot-based [calculateStockSummaries] always has.
+  ///
+  /// Closed cycles still contribute their realized P/L here; that profit is
+  /// booked and must not disappear. Hiding tickers you no longer hold is the
+  /// *dashboard widget's* job, not this function's — `exportOverallPortfolioPdf`
+  /// and `MetricDetailCard` both read this list and need it complete.
+  static List<StockSummary> calculateStockSummariesFromPositions(
+    List<Position> allPositions,
+  ) {
+    if (allPositions.isEmpty) return [];
+
+    final byTicker = <String, List<Position>>{};
+    for (final pos in allPositions) {
+      byTicker.putIfAbsent(pos.ticker, () => []).add(pos);
+    }
+
+    double totalPortfolioValue = 0.0;
+    for (final pos in allPositions) {
+      totalPortfolioValue += PositionCalculator.amountInvested(pos);
+    }
+
+    final summaries = <StockSummary>[];
+    for (final entry in byTicker.entries) {
+      final positions = entry.value;
+
+      int sharesHeld = 0;
+      double invested = 0.0;
+      double realized = 0.0;
+      bool anySales = false;
+      for (final pos in positions) {
+        sharesHeld += PositionCalculator.sharesHeld(pos);
+        invested += PositionCalculator.amountInvested(pos);
+        realized += PositionCalculator.realizedPL(pos);
+        if (pos.sales.isNotEmpty) anySales = true;
+      }
+
+      // Aggregate status for the ticker as a whole: nothing held means the
+      // ticker is closed even if an individual cycle says otherwise.
+      final LotStatus status;
+      if (sharesHeld <= 0) {
+        status = LotStatus.closed;
+      } else if (anySales) {
+        status = LotStatus.partiallySold;
+      } else {
+        status = LotStatus.open;
+      }
+
+      final allocation =
+          totalPortfolioValue > 0 ? (invested / totalPortfolioValue) * 100 : 0.0;
+
+      summaries.add(StockSummary(
+        ticker: entry.key,
+        sharesHeld: sharesHeld,
+        avgBuyPrice: PositionCalculator.blendedAvgCost(positions),
+        amountInvestedOpen: _round(invested),
+        realizedPL: _round(realized),
+        status: status,
+        allocationPercent: _round(allocation),
+      ));
+    }
+
+    summaries.sort((a, b) => b.amountInvestedOpen.compareTo(a.amountInvestedOpen));
+    return summaries;
+  }
+
 }
