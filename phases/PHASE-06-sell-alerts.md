@@ -37,12 +37,21 @@ the same write.**
 Same write, not a follow-up write. A separate write can fail independently and leave a position with
 a new target that can never fire.
 
-Audit **every** path that can touch `targetPrice`:
+Audit **every** path that can touch `targetPrice`. As of Phase 03C, that's at least:
 
-- `AddBuyBottomSheet` (sets it at creation)
-- `EditLotBottomSheet` / its Phase 03B successor (edits or clears it)
-- Anywhere Phase 03B's position-editing flows write a position
-- Any bulk/position-merge write from Phase 03A/B
+- `AddBuyBottomSheet` / `AddBuyController` — sets it when creating a new position, or carries the
+  existing target forward when appending a buy to an already-open one (`copyWith(targetPrice: ...)`)
+- `EditBuyBottomSheet` — the field is directly editable there
+- `PositionMigration` (03A) — sets it once, at migration time; not a live app write path, but confirm
+  it isn't somehow re-run against an already-migrated account
+- Any other position write you find via `grep -rn targetPrice lib/` — the list above is what existed
+  when this brief was last checked (2026-09-04); re-run the grep, don't trust this list blindly
+
+**Also decide:** should a sell alert be able to fire at all on a `partiallySold` position, or only
+`open`? (AGENTS.md documents a known quirk: `PositionMigration` can leave a stale `targetPrice` on a
+position, and `historicalAvgCost`/`PositionCard` already treat `closed` specially — `targetPrice` is
+never shown on a closed card.) This phase doesn't decide firing logic — that's Phase 08 — but if the
+UI is going to show "alert sent" (Task 3) on a partial position, make sure that's a state you intend.
 
 Grep for `targetPrice` across `lib/` and check each hit. Missing one produces a target that silently
 never alerts — a failure the user cannot see and would only notice by missing a sale.

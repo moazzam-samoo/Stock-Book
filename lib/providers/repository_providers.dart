@@ -12,6 +12,8 @@ import 'package:stock_investment_tracker/domain/repositories/position_repository
 import 'package:stock_investment_tracker/domain/repositories/sale_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/withdrawal_repository.dart';
+import 'package:stock_investment_tracker/domain/repositories/market_price_repository.dart';
+import 'package:stock_investment_tracker/data/repositories/market_price_repository_impl.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 
 final firebaseFirestoreProvider = Provider<FirebaseFirestore?>((ref) {
@@ -85,5 +87,18 @@ final settingsRepositoryProvider = Provider<SettingsRepository?>((ref) {
     uid: uid,
     firestoreDataSource: dataSource,
     hiveDataSource: ref.watch(hiveDataSourceProvider),
+  );
+});
+
+final marketPriceRepositoryProvider = Provider<MarketPriceRepository?>((ref) {
+  final firestoreSource = ref.watch(firestoreDataSourceProvider);
+  final hiveSource = ref.watch(hiveDataSourceProvider);
+  final uid = ref.watch(currentUserIdProvider);
+  
+  if (uid == null || firestoreSource == null) return null;
+  
+  return MarketPriceRepositoryImpl(
+    firestoreDataSource: firestoreSource,
+    hiveDataSource: hiveSource,
   );
 });

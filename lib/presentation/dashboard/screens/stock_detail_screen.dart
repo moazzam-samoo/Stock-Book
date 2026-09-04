@@ -13,6 +13,7 @@ import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
+import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
@@ -31,6 +32,11 @@ class StockDetailScreen extends ConsumerWidget {
     final stockSummaries = ref.watch(stockSummariesProvider);
     final summary = stockSummaries.where((s) => s.ticker == ticker).firstOrNull;
     final formatNumber = NumberFormat.decimalPattern();
+
+    final marketPriceAsync = ref.watch(watchMarketPriceProvider(ticker));
+    final livePriceModel = marketPriceAsync.valueOrNull;
+    final livePrice = livePriceModel?.price;
+    final isPriceStale = livePriceModel != null && DateTime.now().difference(livePriceModel.updatedAt).inHours >= 1;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
@@ -197,6 +203,74 @@ class StockDetailScreen extends ConsumerWidget {
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 12),
+                              // Live Price
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
+                                    style: AppTypography.h1.copyWith(
+                                      color: (livePriceModel == null || isPriceStale)
+                                          ? (isDark ? Colors.white54 : Colors.black38)
+                                          : primaryTextColor,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 32,
+                                    ),
+                                  ),
+                                  if (livePriceModel != null && isPriceStale) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '(Stale)',
+                                      style: TextStyle(
+                                        color: AppColors.alertRed,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (livePrice != null) ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    'Current Market Price',
+                                    style: AppTypography.caption.copyWith(
+                                      color: isDark ? Colors.white54 : Colors.black54,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                Builder(builder: (context) {
+                                  // Unrealized P/L across every cycle still
+                                  // held for this ticker — a closed cycle
+                                  // always contributes 0 (PositionCalculator
+                                  // guards on sharesHeld == 0), so summing
+                                  // over all of stockPositions is safe.
+                                  final totalUnrealizedPL = stockPositions.fold<double>(
+                                    0.0,
+                                    (sum, p) => sum + PositionCalculator.unrealizedPL(p, livePrice),
+                                  );
+                                  final isUnrealizedProfit = totalUnrealizedPL >= 0;
+                                  final unrealizedColor = isUnrealizedProfit
+                                      ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                      : AppColors.alertRed;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      '${isUnrealizedProfit ? "+" : "-"}${AppCurrencyFormatter.format(totalUnrealizedPL.abs())} Unrealized',
+                                      style: AppTypography.body.copyWith(
+                                        color: unrealizedColor,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
                               const SizedBox(height: 24),
                               Container(
                                     padding: const EdgeInsets.all(

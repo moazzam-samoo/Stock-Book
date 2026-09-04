@@ -5,6 +5,10 @@
 
 **Depends on:** 03B · **Estimated:** ~half a day · **Branch:** `feat/positions-and-alerts`
 
+**Status: Done.** Committed `51be44b`. Re-verified 2026-09-05 against the committed tree: every task
+(0–9) confirmed present in the actual code (not just recalled), `flutter analyze` 0 errors / 22
+warnings (baseline), `flutter test` 126/126.
+
 ---
 
 ## The problem
@@ -228,15 +232,16 @@ test needs loosening to pass, stop: that means an aggregate moved that shouldn't
 
 ## Acceptance criteria
 
-- [ ] `flutter analyze` — 0 errors
-- [ ] `flutter test` — fully green, Phase 00 characterisation test unchanged
-- [ ] A fully-sold position is badged **CLOSED**, a partially-sold one **PARTIAL** — on the card, in
+- [x] `flutter analyze` — 0 errors
+- [x] `flutter test` — fully green, Phase 00 characterisation test unchanged
+- [x] A fully-sold position is badged **CLOSED**, a partially-sold one **PARTIAL** — on the card, in
       the sell sheets, and in the position picker
-- [ ] STPL with a closed cycle + a new open cycle: **two cards** on Stock Detail, the old one badged
-      CLOSED with its own profit and its own sale history
-- [ ] Transactions default view shows open **and** partial, never closed
-- [ ] A closed card never displays "Rs 0" as its cost basis
-- [ ] Dashboard lists each ticker once, and drops tickers with nothing held — while total realized P/L
+- [x] STPL with a closed cycle + a new open cycle: **two cards** on Stock Detail, the old one badged
+      CLOSED with its own profit and its own sale history — extended further (Task 7) to one card per
+      buy within a closed cycle, per user confirmation
+- [x] Transactions default view shows open **and** partial, never closed
+- [x] A closed card never displays "Rs 0" as its cost basis
+- [x] Dashboard lists each ticker once, and drops tickers with nothing held — while total realized P/L
       and portfolio value are unchanged by that
 
 ## Out of scope

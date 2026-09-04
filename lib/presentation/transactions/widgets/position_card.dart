@@ -19,6 +19,7 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/posit
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_buy_bottom_sheet.dart';
+import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 
@@ -97,6 +98,11 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final investedAmount = isClosed
         ? PositionCalculator.totalCapitalDeployed(widget.position)
         : PositionCalculator.amountInvested(widget.position);
+
+    final marketPriceAsync = !isClosed ? ref.watch(watchMarketPriceProvider(widget.position.ticker)) : null;
+    final livePriceModel = marketPriceAsync?.valueOrNull;
+    final livePrice = livePriceModel?.price;
+    final isPriceStale = livePriceModel != null && DateTime.now().difference(livePriceModel.updatedAt).inHours >= 1;
 
     return GestureDetector(
       onTapDown: (details) => _tapDownPosition = details.globalPosition,
@@ -209,12 +215,63 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                           ),
                         ],
                       ),
+                      if (!isClosed)
+                        _BulletDetail(
+                          icon: Icons.show_chart_outlined,
+                          label: 'Live Price: ',
+                          isDark: isDark,
+                          valueSpans: [
+                            TextSpan(
+                              text: livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
+                              style: TextStyle(
+                                color: (livePriceModel == null || isPriceStale) 
+                                    ? (isDark ? Colors.white54 : Colors.black38) // dimmed
+                                    : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (livePriceModel != null && isPriceStale)
+                              TextSpan(
+                                text: ' (Stale)',
+                                style: TextStyle(
+                                  color: AppColors.alertRed,
+                                  fontSize: 10,
+                                ),
+                              ),
+                          ],
+                        ),
                       _BulletDetail(
                         icon: Icons.account_balance_wallet_outlined,
                         label: isClosed ? 'Total Cost: ' : 'Total Invested: ',
                         value: AppCurrencyFormatter.format(investedAmount),
                         isDark: isDark,
                       ),
+                      if (!isClosed && livePrice != null)
+                        _BulletDetail(
+                          icon: Icons.pie_chart_outline,
+                          label: 'Unrealized: ',
+                          isDark: isDark,
+                          valueSpans: [
+                            TextSpan(
+                              text: '${PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 ? "+" : ""}${AppCurrencyFormatter.format(PositionCalculator.unrealizedPL(widget.position, livePrice).abs())}',
+                              style: TextStyle(
+                                color: PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 
+                                    ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                    : AppColors.alertRed,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' (${PositionCalculator.unrealizedPLPercent(widget.position, livePrice) >= 0 ? "+" : ""}${PositionCalculator.unrealizedPLPercent(widget.position, livePrice).toStringAsFixed(2)}%)',
+                              style: TextStyle(
+                                color: PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 
+                                    ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                    : AppColors.alertRed,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
                       _BulletDetail(
                         icon: Icons.timer_outlined,
                         label: 'Holding Period: ',

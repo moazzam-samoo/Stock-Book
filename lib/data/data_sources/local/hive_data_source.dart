@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
+import 'package:stock_investment_tracker/data/models/market_price_model.dart';
 
 class HiveDataSource {
   static const String settingsBoxName = 'settingsBox';
@@ -24,6 +25,33 @@ class HiveDataSource {
       }
     }
     return null;
+  }
+
+  // Market Prices
+  Future<void> saveMarketPrices(Map<String, MarketPriceModel> prices) async {
+    final box = await Hive.openBox('market_prices_cache');
+    final jsonMap = prices.map((k, v) => MapEntry(k, v.toJson()));
+    await box.put('market_prices', jsonMap);
+  }
+
+  Future<Map<String, MarketPriceModel>> getMarketPrices() async {
+    final box = await Hive.openBox('market_prices_cache');
+    final data = box.get('market_prices');
+    if (data != null && data is Map) {
+      try {
+        final sanitized = _sanitizeMap(Map<String, dynamic>.from(data));
+        final result = <String, MarketPriceModel>{};
+        sanitized.forEach((key, value) {
+          if (value is Map) {
+            result[key] = MarketPriceModel.fromJson(Map<String, dynamic>.from(value));
+          }
+        });
+        return result;
+      } catch (e) {
+        return {};
+      }
+    }
+    return {};
   }
 
   Map<String, dynamic> _sanitizeMap(Map<String, dynamic> map) {

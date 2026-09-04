@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:stock_investment_tracker/core/constants/firestore_paths.dart';
 import 'package:stock_investment_tracker/data/models/lot_model.dart';
+import 'package:stock_investment_tracker/data/models/market_price_model.dart';
 import 'package:stock_investment_tracker/data/models/position_model.dart';
 import 'package:stock_investment_tracker/data/models/sale_model.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
@@ -323,5 +325,54 @@ class FirestoreDataSource {
     } catch (_) {
       // Timeout or offline write persisted locally
     }
+  }
+
+  // MARKET PRICES
+  Stream<MarketPriceModel?> watchMarketPrice(String ticker) {
+    return _firestore
+        .collection(FirestorePaths.marketPrices())
+        .doc(ticker)
+        .snapshots()
+        .map((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) return null;
+      final data = snapshot.data()!;
+      data['ticker'] ??= snapshot.id;
+      return MarketPriceModel.fromJson(data);
+    });
+  }
+
+  /// Firestore's `whereIn` accepts at most 30 values per query, so a ticker
+  /// list longer than that has to be split and the resulting streams merged
+  /// (see [watchMarketPrices]). Pulled out as its own static method so the
+  /// batch-boundary behaviour (list length 30 vs. 31 vs. a multiple of 30)
+  /// is directly unit-testable without touching Firestore at all.
+  static List<List<String>> chunkTickers(List<String> tickers, {int chunkSize = 30}) {
+    final chunks = <List<String>>[];
+    for (var i = 0; i < tickers.length; i += chunkSize) {
+      chunks.add(tickers.sublist(i, i + chunkSize > tickers.length ? tickers.length : i + chunkSize));
+    }
+    return chunks;
+  }
+
+  Stream<List<MarketPriceModel>> watchMarketPrices(List<String> tickers) {
+    if (tickers.isEmpty) return Stream.value([]);
+
+    final chunks = chunkTickers(tickers);
+
+    final streams = chunks.map((chunk) {
+      return _firestore
+          .collection(FirestorePaths.marketPrices())
+          .where(FieldPath.documentId, whereIn: chunk)
+          .snapshots()
+          .map((snapshot) => snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['ticker'] ??= doc.id;
+                return MarketPriceModel.fromJson(data);
+              }).toList());
+    }).toList();
+    
+    return Rx.combineLatestList(streams).map((lists) {
+      return lists.expand((element) => element).toList();
+    });
   }
 }

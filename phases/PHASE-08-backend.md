@@ -81,7 +81,11 @@ behaviour (at exactly the threshold → fires).
 
 1. Auth via service account (`FIREBASE_SERVICE_ACCOUNT_PATH` env var,
    `firebase_admin.credentials.Certificate`).
-2. Collection-group query `positions` where `status == "open"` → distinct held tickers.
+2. Collection-group query `positions` where `status in ["open", "partiallySold"]` → distinct held
+   tickers. **Not `status == "open"` alone** — a partially-sold position still has shares held and can
+   still carry a live `targetPrice` waiting to fire (see PHASE-03C: "open" meaning "still holding" is
+   the same open+partial distinction the app's UI already makes; the backend must match it, or a
+   partially-sold position's sell alert silently never fires and its price never gets fetched).
 3. Collection-group query `price_alerts` where `isActive == True` and `alertSent == False` →
    distinct watched tickers.
 4. `fetch_prices(held | watched)` — **one call**.
@@ -157,6 +161,7 @@ versioned (`firebase deploy --only firestore:indexes` works on Spark).
 | 8 | Missing `fcmToken` | skipped, no exception |
 | 9 | **Ticker absent from screener** | skipped entirely — never treated as `0` |
 | 10 | **Contract test vs. a recorded screener fixture** | a `psxdata` upgrade that renames columns fails in CI, not in production |
+| 11 | **A partially-sold position with a live target** | its ticker is included in the held-tickers query, and its sell alert can still fire — a `status == "open"` filter would wrongly exclude it |
 
 Test 10 is the one that protects against the scraping dependency breaking silently. Commit a real
 captured `screener()` sample as a fixture.

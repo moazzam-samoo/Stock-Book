@@ -6,8 +6,11 @@ import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
+import 'package:stock_investment_tracker/domain/entities/market_price.dart';
 import 'package:stock_investment_tracker/domain/enums/position_status.dart';
+import 'package:stock_investment_tracker/domain/repositories/market_price_repository.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
+import 'package:stock_investment_tracker/providers/repository_providers.dart';
 
 /// PositionCard renders several of its detail lines as raw `RichText` (not
 /// the `Text`/`Text.rich` widgets `find.text`/`find.textContaining` look
@@ -33,10 +36,18 @@ void main() {
     ],
   );
 
-  Widget wrap(Widget child) {
+  Widget wrap(Widget child, {MarketPriceRepository? marketPriceRepository}) {
     return ProviderScope(
+      overrides: [
+        if (marketPriceRepository != null)
+          marketPriceRepositoryProvider.overrideWithValue(marketPriceRepository),
+      ],
       child: MaterialApp(
-        home: Scaffold(body: child),
+        // PositionCard is always inside a scrolling parent in production
+        // (ListView.builder / CustomScrollView) — matched here so an expanded
+        // card growing past the test viewport's fixed height isn't a false
+        // overflow failure.
+        home: Scaffold(body: SingleChildScrollView(child: child)),
       ),
     );
   }
@@ -156,4 +167,81 @@ void main() {
       expect(find.textContaining(dateFormat.format(DateTime.parse('2026-09-07'))), findsWidgets);
     },
   );
+
+  // --- Phase 04 required tests 10-11 ---
+
+  testWidgets(
+    'test 10: no market_prices doc for this ticker shows "—", never Rs 0',
+    (tester) async {
+      await tester.pumpWidget(wrap(
+        PositionCard(position: position, showStockDetailNavigation: false),
+        marketPriceRepository: _FakeMarketPriceRepository(price: null),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(findRichTextContaining('Live Price'), findsOneWidget);
+      expect(findRichTextContaining('—'), findsOneWidget);
+      // Unrealized P/L only renders once there's a live price to compute it
+      // against — with none, it must not appear at all.
+      expect(findRichTextContaining('Unrealized'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'test 11: a stale updatedAt is visually marked, a fresh one is not',
+    (tester) async {
+      await tester.pumpWidget(wrap(
+        PositionCard(position: position, showStockDetailNavigation: false),
+        marketPriceRepository: _FakeMarketPriceRepository(
+          price: 9.0,
+          updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(findRichTextContaining('(Stale)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a fresh live price shows no staleness marker',
+    (tester) async {
+      await tester.pumpWidget(wrap(
+        PositionCard(position: position, showStockDetailNavigation: false),
+        marketPriceRepository: _FakeMarketPriceRepository(
+          price: 9.0,
+          updatedAt: DateTime.now(),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(findRichTextContaining('(Stale)'), findsNothing);
+      // With a live price present, unrealized P/L should now render.
+      expect(findRichTextContaining('Unrealized'), findsOneWidget);
+    },
+  );
+}
+
+class _FakeMarketPriceRepository implements MarketPriceRepository {
+  final double? price;
+  final DateTime? updatedAt;
+
+  _FakeMarketPriceRepository({required this.price, DateTime? updatedAt})
+      : updatedAt = updatedAt ?? DateTime.now();
+
+  @override
+  Stream<MarketPrice?> watchPrice(String ticker) {
+    if (price == null) return Stream.value(null);
+    return Stream.value(MarketPrice(
+      ticker: ticker,
+      price: price!,
+      previousClose: price!,
+      updatedAt: updatedAt!,
+    ));
+  }
+
+  @override
+  Stream<Map<String, MarketPrice>> watchPrices(List<String> tickers) {
+    return Stream.value({});
+  }
 }

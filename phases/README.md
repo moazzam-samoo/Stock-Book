@@ -25,14 +25,14 @@ the brief describes. Each has a "stop and ask" section for exactly that.
 | 00 — Safety net | [PHASE-00-safety-net.md](PHASE-00-safety-net.md) | — | **Done** — reviewed, 3 bugs fixed, committed (`b24e78c`) |
 | 01 — Starting-capital input | [PHASE-01-capital-input.md](PHASE-01-capital-input.md) | — | **Done** — reviewed clean, committed (`9f3ec26`) |
 | 02 — Complete white theme | [PHASE-02-white-theme.md](PHASE-02-white-theme.md) | — | **Done** — reviewed, fixed, committed (`808b811`, `3f3db52`) |
-| 03A — Position model + migration engine | [PHASE-03A-position-model.md](PHASE-03A-position-model.md) | 00 | **Done** — original commit `08b9450`; review found and fixed a real rounding bug, a missing import, 2 gaps in migration validation, and 10 missing required tests — fixes uncommitted, awaiting manual check |
-| 03B — Position UI + run migration | [PHASE-03B-position-ui.md](PHASE-03B-position-ui.md) | 03A | **Done** — all 5 tasks built, reviewed, fixed (including a real profit-calc bug and an app-wide compile break), 102/102 tests passing, uncommitted, awaiting manual check — see brief's "Review notes, part 2" |
-| 03C — Position cycles in the UI | [PHASE-03C-position-cycles-ui.md](PHASE-03C-position-cycles-ui.md) | 03B | **Done** — closed cycles render as their own cards; also fixed `StatusBadge` silently labelling every position OPEN. 120/120 tests, uncommitted, awaiting manual check |
-| 04 — Live PSX prices | [PHASE-04-live-prices.md](PHASE-04-live-prices.md) | 03B | Ready |
+| 03A — Position model + migration engine | [PHASE-03A-position-model.md](PHASE-03A-position-model.md) | 00 | **Done** — original commit `08b9450`; review found and fixed a real rounding bug, a missing import, 2 gaps in migration validation, and 10 missing required tests — fix commit `0aaecb0` |
+| 03B — Position UI + run migration | [PHASE-03B-position-ui.md](PHASE-03B-position-ui.md) | 03A | **Done** — all 5 tasks built, reviewed, fixed (including a real profit-calc bug and an app-wide compile break), committed (`51be44b`, together with 03A's fixes and all of 03C) — see brief's "Review notes, part 2" |
+| 03C — Position cycles in the UI | [PHASE-03C-position-cycles-ui.md](PHASE-03C-position-cycles-ui.md) | 03B | **Done** — closed cycles split into one card per buy; fixed `StatusBadge` silently labelling every position OPEN, and a delete-sale path that left status stuck on PARTIAL. 126/126 tests, committed (`51be44b`) |
+| 04 — Live PSX prices | [PHASE-04-live-prices.md](PHASE-04-live-prices.md) | 03C | **Done** — reviewed, fixed 5 compile errors, a missing Firestore rule (would have denied all reads), a dropped Task 4 requirement (unrealized P/L on Stock Detail), and 7 of 11 missing required tests. 152/152 tests, uncommitted, awaiting manual check — see brief's "Review notes" |
 | 05 — Push notification infra | [PHASE-05-push-infra.md](PHASE-05-push-infra.md) | — | Ready — can run in parallel |
-| 06 — Sell-target alert fields | [PHASE-06-sell-alerts.md](PHASE-06-sell-alerts.md) | 03B, 04, 05 | Ready |
+| 06 — Sell-target alert fields | [PHASE-06-sell-alerts.md](PHASE-06-sell-alerts.md) | 03B, 04, 05 | Ready — `targetPrice` write-path audit list updated 2026-09-04 for the current controllers |
 | 07 — Buy alerts + Alerts screen | [PHASE-07-buy-alerts.md](PHASE-07-buy-alerts.md) | 05 | Ready |
-| 08 — Backend on GitHub Actions | [PHASE-08-backend.md](PHASE-08-backend.md) | 04, 06, 07 | Ready |
+| 08 — Backend on GitHub Actions | [PHASE-08-backend.md](PHASE-08-backend.md) | 04, 06, 07 | Ready — fixed a real bug 2026-09-04: the held-tickers query filtered `status == "open"`, which would have silently dropped partially-sold positions from both price-fetching and sell alerts |
 
 ### Why 03 became 03A + 03B
 

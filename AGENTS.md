@@ -431,11 +431,26 @@ root (kept for historical context, but `phases/` is where the current, reconcile
 
 Done: Phase 00 (safety net — characterisation tests + JSON export/backup), Phase 01 (responsive
 starting-capital input), Phase 02 (full light theme + toggle), Phase 03A (position engine), Phase 03B
-(positions wired to the UI, migration runs on launch — see below). Ready but not started: 04 (live
-PSX prices, display-only), 05 (push notification infra), 06 (sell-target alert fields), 07 (buy
-alerts + new screen), 08 (Python/GitHub-Actions backend that actually fetches prices and sends the
-pushes). Each brief is self-contained — read the target brief plus this file before starting, not the
-whole chain.
+(positions wired to the UI, migration runs on launch), Phase 03C (closed cycles split into one card
+per buy), Phase 04 (live PSX prices — see below). Ready but not started: 05 (push notification infra),
+06 (sell-target alert fields), 07 (buy alerts + new screen), 08 (Python/GitHub-Actions backend that
+actually fetches prices and sends the pushes). Each brief is self-contained — read the target brief
+plus this file before starting, not the whole chain.
+
+### Phase 04 — live prices
+
+`market_prices/{ticker}` is a **top-level** Firestore collection (not per-user), read-only from the
+client (`firestore.rules` has no client write rule — only the Admin SDK, Phase 08, writes here).
+`domain/entities/market_price.dart` is the domain entity; `MarketPriceRepository.watchPrice`/
+`watchPrices` return it (never the data model — presentation code should never import
+`data/models/market_price_model.dart` directly, same rule as everywhere else in this codebase).
+`FirestoreDataSource.chunkTickers` is a pure static method Firestore's 30-value `whereIn` cap forces —
+call it, don't reinline the chunking logic. `PositionCalculator.unrealizedPL`/`marketValue`/
+`unrealizedPLPercent` all return `0.0` (never `null`) for a missing price or a closed position — see
+their doc comments. Live price only ever renders on open/partial `PositionCard`s, never the closed
+per-buy slices `splitByBuy` produces (there's nothing to mark to market on a position with 0 shares
+held). Dashboard tiles are untouched by design — live valuation lives on `PositionCard` and
+`StockDetailScreen` only, never folded into "Total Portfolio Value" or any portfolio-wide figure.
 
 ### Phase 03A/03B — positions are now the live UI data source
 

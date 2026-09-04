@@ -9,6 +9,8 @@ import 'package:mockito/mockito.dart' as _i1;
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart'
     as _i2;
 import 'package:stock_investment_tracker/data/models/lot_model.dart' as _i4;
+import 'package:stock_investment_tracker/data/models/market_price_model.dart'
+    as _i9;
 import 'package:stock_investment_tracker/data/models/position_model.dart'
     as _i5;
 import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i6;
@@ -251,4 +253,22 @@ class MockFirestoreDataSource extends _i1.Mock
             returnValueForMissingStub: _i3.Future<void>.value(),
           )
           as _i3.Future<void>);
+
+  @override
+  _i3.Stream<_i9.MarketPriceModel?> watchMarketPrice(String? ticker) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchMarketPrice, [ticker]),
+            returnValue: _i3.Stream<_i9.MarketPriceModel?>.empty(),
+          )
+          as _i3.Stream<_i9.MarketPriceModel?>);
+
+  @override
+  _i3.Stream<List<_i9.MarketPriceModel>> watchMarketPrices(
+    List<String>? tickers,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchMarketPrices, [tickers]),
+            returnValue: _i3.Stream<List<_i9.MarketPriceModel>>.empty(),
+          )
+          as _i3.Stream<List<_i9.MarketPriceModel>>);
 }

@@ -90,6 +90,43 @@ class PositionCalculator {
     return _round(_preciseTotalCost(p));
   }
 
+  /// [livePrice] is nullable because a ticker can genuinely have no
+  /// `market_prices` doc (PSX may not list it, or the backend hasn't run
+  /// yet). Deliberately returns `0.0` rather than `null` for both a missing
+  /// price and a closed position (`sharesHeld == 0`) — callers (`PositionCard`,
+  /// `StockDetailScreen`) never need a null-check on the *result*, only on
+  /// whether they had a `livePrice` to pass in in the first place (that's
+  /// what decides whether to show "—" instead of calling this at all).
+  static double unrealizedPL(Position p, double? livePrice) {
+    if (livePrice == null || livePrice == 0.0) return 0.0;
+    final remaining = sharesHeld(p);
+    if (remaining <= 0) return 0.0;
+    final cost = avgCost(p);
+    return _round(remaining * (livePrice - cost));
+  }
+
+  /// See [unrealizedPL]'s doc comment for the null-vs-0.0 decision — same
+  /// rule here.
+  static double marketValue(Position p, double? livePrice) {
+    if (livePrice == null || livePrice == 0.0) return 0.0;
+    final remaining = sharesHeld(p);
+    if (remaining <= 0) return 0.0;
+    return _round(remaining * livePrice);
+  }
+
+  /// See [unrealizedPL]'s doc comment for the null-vs-0.0 decision — same
+  /// rule here.
+  static double unrealizedPLPercent(Position p, double? livePrice) {
+    if (livePrice == null || livePrice == 0.0) return 0.0;
+    final remaining = sharesHeld(p);
+    if (remaining <= 0) return 0.0;
+    final cost = avgCost(p);
+    if (cost <= 0) return 0.0;
+    // Calculate percentage as (livePrice - cost) / cost * 100
+    // Then round to 2dp
+    return _round(((livePrice - cost) / cost) * 100);
+  }
+
   static int holdingDays(Position p) {
     if (p.buys.isEmpty) return 0;
     
