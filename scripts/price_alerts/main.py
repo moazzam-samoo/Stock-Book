@@ -71,10 +71,11 @@ def run(db, price_source=None) -> None:
     missing = sorted(all_tickers - prices.keys())
     print(f"  got prices for: {sorted(prices)!r}")
     if missing:
-        # Not an error: a ticker absent from PSX's screener is deliberately
+        # Not an error: a ticker with no price anywhere (not in the screener
+        # and never traded per the historical endpoint) is deliberately
         # omitted rather than written as 0. But it IS the thing to look at
         # first when a holding shows no live price in the app.
-        print(f"  NOT found in the PSX screener: {missing!r}")
+        print(f"  NO price available anywhere on PSX: {missing!r}")
 
     if prices:
         firestore_io.write_market_prices(db, prices)

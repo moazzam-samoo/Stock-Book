@@ -429,6 +429,44 @@ from PSX's screener. Three rounds of this bug were spent guessing at data the ru
 have reported; for an unattended cron job whose only failure symptom is a "—" in the UI, that log is the
 difference between a diagnosis and a guess.
 
+### Fourth fix (2026-09-05): PSX's screener is not the full listed universe
+
+A third holding (GUSM) showed "—" while STPL and BNL worked. It was neither a typo nor bad data:
+**GUSM is Gulistan Spinning Mills Limited, actively trading — 303,972 shares on 2026-09-04 at a close
+of Rs 10.68 — and simply has no row in PSX's screener table.**
+
+Measured against live data: `psxdata.symbols()` lists 1016 instruments, `screener()` carries 745, and
+**382 listed instruments have no screener price** — 253 debt instruments, 9 ETFs, and **120 plain
+equities**. So "absent from the screener" is a routine condition affecting real, tradeable holdings,
+not an edge case. Task 2's rule ("a ticker missing from the screener → omit it, never substitute 0")
+was right about never inventing a price, but treating the screener as the whole universe left those
+holdings permanently blank.
+
+Fixed with a per-ticker fallback in `PsxdataScreenerSource`: any ticker the screener didn't cover is
+looked up via `psxdata.stocks()` and priced at its most recent **real** close. Three things that
+fallback has to get right, each covered by a test:
+- **Sort by date first** — psxdata returns history unsorted and warns about it; taking the last row
+  blindly yielded a 2016 price.
+- **Ignore zero-volume placeholder rows** — psxdata pads non-trading days with rows whose OHLC is
+  `0.0`; using one would have invented a price of 0 and fired every buy alert watching that ticker.
+- **Never abort the run** — one unavailable ticker returns `None` rather than raising, so it can't
+  take down a run that has good prices for everything else.
+
+`previousClose` from this path is the genuine prior session's close, which is more accurate than the
+screener path's derivation from `change_pct`.
+
+Verified end to end against live PSX: `{'BNL': 6.15, 'GUSM': 10.68, 'STPL': 8.56}`.
+
+Two bugs found while testing this, both worth noting:
+- The original `if df.empty: return {}` guard short-circuited the new fallback, so a temporarily empty
+  screener produced no prices at all even where history was available. An empty screener now falls
+  through to the per-ticker path.
+- Two existing tests were reaching the **real network** (the fallback fired on unpatched tickers),
+  violating this suite's "no credentials, no network" rule. Both now patch `psxdata.stocks`; the suite
+  went from ~8s to ~3.8s as a result, which is how the leak was noticed.
+
+35 Python tests passing.
+
 ### Not done, and cannot be done without you
 
 - **The two manual setup steps below** — generating the service account key and adding the GitHub
