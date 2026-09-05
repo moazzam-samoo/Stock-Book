@@ -18,7 +18,6 @@ class AlertsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(allAlertsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return PopScope(
       canPop: false,
@@ -28,21 +27,27 @@ class AlertsScreen extends ConsumerWidget {
         }
       },
       child: AppScaffold(
+        // Matches Transactions' own add button exactly — same shape, color,
+        // position — rather than an app-bar icon, so "add" looks and behaves
+        // identically everywhere in the app.
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 96.0),
+          child: FloatingActionButton(
+            shape: const CircleBorder(),
+            backgroundColor: isDark
+                ? AppColors.moneyGreen.withOpacity(0.7)
+                : AppColors.moneyGreenOnLight.withOpacity(0.85),
+            elevation: 4,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              AddAlertBottomSheet.show(context);
+            },
+            child: const Icon(Icons.add, color: Colors.white, size: 28),
+          ),
+        ),
         body: Column(
           children: [
-            CustomAppBar(
-              title: 'Buy Alerts',
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    AddAlertBottomSheet.show(context);
-                  },
-                  icon: Icon(Icons.add_alert, color: iconColor),
-                  tooltip: 'New Alert',
-                ),
-              ],
-            ),
+            const CustomAppBar(title: 'Buy Alerts'),
             Expanded(
               child: alertsAsync.when(
                 data: (alerts) {

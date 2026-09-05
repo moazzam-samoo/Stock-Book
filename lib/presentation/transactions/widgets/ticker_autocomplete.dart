@@ -97,37 +97,45 @@ class TickerAutocomplete extends ConsumerWidget {
             child: SizedBox(
               width: MediaQuery.of(context).size.width - 48,
               height: 200,
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: options.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final String option = options.elementAt(index);
-                  
-                  // Look up company name
-                  String? companyName;
-                  if (allTickers.isNotEmpty) {
-                    try {
-                      final ticker = allTickers.firstWhere((t) => t.symbol == option);
-                      companyName = ticker.name;
-                    } catch (_) {}
-                  }
+              // Excludes the newly-mounted list from focus traversal. Without
+              // this, Scrollable's implicit focus node grabs primary focus
+              // the instant this overlay appears (i.e. on the very first
+              // keystroke), which reads as the TextField losing focus and
+              // makes Android dismiss the keyboard. Taps still work fine —
+              // ListTile.onTap doesn't depend on focus.
+              child: ExcludeFocus(
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: options.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final String option = options.elementAt(index);
 
-                  return ListTile(
-                    leading: TickerAvatar(ticker: option, size: 32),
-                    title: Text(option, style: TextStyle(color: primaryTextColor)),
-                    subtitle: companyName != null 
-                        ? Text(
-                            companyName, 
-                            style: AppTypography.caption.copyWith(color: AppColors.neutral400),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ) 
-                        : null,
-                    onTap: () {
-                      onSelected(option);
-                    },
-                  );
-                },
+                    // Look up company name
+                    String? companyName;
+                    if (allTickers.isNotEmpty) {
+                      try {
+                        final ticker = allTickers.firstWhere((t) => t.symbol == option);
+                        companyName = ticker.name;
+                      } catch (_) {}
+                    }
+
+                    return ListTile(
+                      leading: TickerAvatar(ticker: option, size: 32),
+                      title: Text(option, style: TextStyle(color: primaryTextColor)),
+                      subtitle: companyName != null
+                          ? Text(
+                              companyName,
+                              style: AppTypography.caption.copyWith(color: AppColors.neutral400),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : null,
+                      onTap: () {
+                        onSelected(option);
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ),
