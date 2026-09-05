@@ -223,7 +223,7 @@ void main() {
   );
 
   testWidgets(
-    'market closed: relabels the line "Closed at" and shows no Live badge',
+    'market closed: keeps the "Live Price" label and appends a red "at Closed" suffix, no Live badge',
     (tester) async {
       await tester.pumpWidget(wrap(
         PositionCard(position: position, showStockDetailNavigation: false),
@@ -232,8 +232,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(findRichTextContaining('Closed at'), findsOneWidget);
-      expect(findRichTextContaining('Live Price'), findsNothing);
+      expect(findRichTextContaining('Live Price'), findsOneWidget);
+      expect(findRichTextContaining('at Closed'), findsOneWidget);
       expect(find.text('Live'), findsNothing);
     },
   );
@@ -250,7 +250,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findRichTextContaining('Live Price'), findsOneWidget);
-      expect(findRichTextContaining('Closed at'), findsNothing);
+      expect(findRichTextContaining('at Closed'), findsNothing);
       expect(find.text('Live'), findsNothing);
       // With a live price present, unrealized P/L should now render.
       expect(findRichTextContaining('Unrealized'), findsOneWidget);

@@ -112,10 +112,11 @@ def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, dict]) ->
         if token is None:
             continue  # no fcmToken means the user hasn't granted permission — not an error
 
-        # `price` is included so the notification can show what actually
-        # fired — repeat alerts for the same ticker would otherwise all
-        # render identical generic text, with no way to tell whether this
-        # one is a new high or a duplicate of the last.
+        # The notification shows targetPrice (what the user actually set),
+        # not the live price that triggered it — those two only coincide by
+        # chance. `price` still rides along for internal bookkeeping
+        # (lastAlertPrice, see mark_sell_alert_sent) but the client no
+        # longer displays it.
         firestore_io.send_push(
             token,
             {
@@ -123,6 +124,7 @@ def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, dict]) ->
                 "ticker": ticker,
                 "positionId": position["id"],
                 "price": str(price),
+                "targetPrice": str(position.get("targetPrice")),
             },
         )
         # Push first, then flip the flag — a flag write failing after a
@@ -153,6 +155,7 @@ def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, dict]
                 "ticker": ticker,
                 "alertId": alert["id"],
                 "price": str(price),
+                "targetPrice": str(alert.get("targetPrice")),
             },
         )
         firestore_io.mark_buy_alert_sent(db, uid, alert["id"], price)

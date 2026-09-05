@@ -258,6 +258,17 @@ class StockDetailScreen extends ConsumerWidget {
                                       ],
                                     ),
                                   ],
+                                  if (isMarketOpen == false && livePrice != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'at Closed',
+                                      style: TextStyle(
+                                        color: AppColors.alertRed,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                               if (livePrice != null) ...[

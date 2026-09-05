@@ -19,7 +19,8 @@ import 'package:logger/logger.dart';
 ///   "ticker": "ENGRO",
 ///   "positionId": "...",
 ///   "alertId": "...",
-///   "price": "123.45"
+///   "price": "123.45",
+///   "targetPrice": "120.00"
 /// }
 /// ```
 ///
@@ -30,11 +31,10 @@ import 'package:logger/logger.dart';
 /// background, terminated) has to build its own notification from `data`, and
 /// that's what the functions in this file do.
 ///
-/// `price` matters more than it looks: alerts are not one-shot (see
-/// alerts.py's REPEAT_ALERT_STEP_PERCENT) — the same ticker can notify
-/// multiple times as it keeps moving in the user's favor. Without the actual
-/// price in each one, repeat notifications for the same ticker would render
-/// identical text, with no way to tell a new high from a duplicate.
+/// The notification shows `targetPrice` (what the user actually set), not
+/// `price` (the live price that made this fire) — those two only coincide by
+/// chance, and showing the live price read as a bug: the user wants to see
+/// the number they set, not whatever the market happened to be at.
 
 const String _androidNotificationChannelId = 'stock_alerts';
 const String _androidNotificationChannelName = 'Stock Alerts';
@@ -60,22 +60,22 @@ NotificationContent? buildNotificationContent(Map<String, dynamic> data) {
   final ticker = data['ticker'] as String?;
   if (ticker == null || ticker.isEmpty) return null;
 
-  // FCM data payloads are always strings — a malformed/absent price falls
-  // back to a still-useful, if less specific, message rather than showing
-  // nothing or crashing on untrusted input.
-  final priceValue = double.tryParse(data['price']?.toString() ?? '');
-  final priceText = priceValue != null ? ' at ${AppCurrencyFormatter.format(priceValue)}' : '';
+  // FCM data payloads are always strings — a malformed/absent target price
+  // falls back to a still-useful, if less specific, message rather than
+  // showing nothing or crashing on untrusted input.
+  final targetValue = double.tryParse(data['targetPrice']?.toString() ?? '');
+  final targetText = targetValue != null ? ' at ${AppCurrencyFormatter.format(targetValue)}' : '';
 
   switch (type) {
     case 'sell':
       return NotificationContent(
-        title: 'Sell target hit',
-        body: '$ticker has reached your target price$priceText.',
+        title: '$ticker hits your Sell target',
+        body: '$ticker has reached your target price$targetText.',
       );
     case 'buy':
       return NotificationContent(
-        title: 'Buy target hit',
-        body: '$ticker has dropped to your target price$priceText.',
+        title: '$ticker hits your Buy target',
+        body: '$ticker has dropped to your target price$targetText.',
       );
     default:
       return null;
