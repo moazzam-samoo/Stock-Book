@@ -152,6 +152,21 @@ class PushNotificationService {
 
   bool _isInitialized = false;
 
+  // Process-lifetime, not instance-lifetime: a new PushNotificationService is
+  // constructed for every signed-in user (pushNotificationServiceProvider
+  // depends on userRepositoryProvider), but getInitialMessage() and
+  // getNotificationAppLaunchDetails() both describe how the OS process was
+  // launched — that fact doesn't change on a logout/login inside the same
+  // running app. Without this guard, switching accounts replayed whatever
+  // notification originally cold-started the app and re-routed to its
+  // ticker, even for a brand-new account with no such position.
+  static bool _coldStartRouteHandled = false;
+
+  @visibleForTesting
+  static void resetColdStartRouteHandledForTesting() {
+    _coldStartRouteHandled = false;
+  }
+
   PushNotificationService({
     FirebaseMessaging? firebaseMessaging,
     FlutterLocalNotificationsPlugin? localNotifications,
@@ -217,19 +232,22 @@ class PushNotificationService {
       //      (via the background handler above, or _onForegroundMessage).
       //      This is what actually fires today. FCM's own getInitialMessage
       //      has no visibility into a locally-shown notification at all.
-      final initialMessage = await _firebaseMessaging.getInitialMessage();
-      if (initialMessage != null) {
-        // Defer routing slightly to allow app to fully mount
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _routeMessage(initialMessage);
-        });
-      } else {
-        final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
-        final payload = launchDetails?.notificationResponse?.payload;
-        if (launchDetails?.didNotificationLaunchApp == true && payload != null) {
+      if (!_coldStartRouteHandled) {
+        _coldStartRouteHandled = true;
+        final initialMessage = await _firebaseMessaging.getInitialMessage();
+        if (initialMessage != null) {
+          // Defer routing slightly to allow app to fully mount
           Future.delayed(const Duration(milliseconds: 500), () {
-            _routeFromPayload(payload);
+            _routeMessage(initialMessage);
           });
+        } else {
+          final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+          final payload = launchDetails?.notificationResponse?.payload;
+          if (launchDetails?.didNotificationLaunchApp == true && payload != null) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              _routeFromPayload(payload);
+            });
+          }
         }
       }
 
