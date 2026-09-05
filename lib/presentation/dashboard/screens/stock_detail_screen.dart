@@ -12,10 +12,12 @@ import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/market_status_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
+import 'package:stock_investment_tracker/providers/ticker_providers.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 
@@ -41,6 +43,18 @@ class StockDetailScreen extends ConsumerWidget {
     // market itself is open right now, via the same rule the Dashboard clock
     // and position_card.dart use — null means "don't know", never guessed.
     final isMarketOpen = currentlyOpen(ref.watch(watchMarketStatusProvider).valueOrNull);
+    // Legacy positions created before ticker normalization existed can still
+    // carry a dirty stored ticker (e.g. a trailing space — the exact "BNL "
+    // vs "BNL" bug fixed earlier for price lookups). The PSX reference list
+    // is always clean, so normalize both sides here rather than assuming the
+    // route param matches it exactly.
+    final normalizedTicker = FirestoreDataSource.normalizeTicker(ticker);
+    final companyName = ref
+        .watch(allTickersProvider)
+        .valueOrNull
+        ?.where((t) => FirestoreDataSource.normalizeTicker(t.symbol) == normalizedTicker)
+        .firstOrNull
+        ?.name;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
@@ -189,23 +203,55 @@ class StockDetailScreen extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            Hero(
-                              tag: 'avatar_$ticker',
-                              child: TickerAvatar(ticker: ticker, size: 80),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              ticker,
-                              style: AppTypography.h1.copyWith(
-                                color: primaryTextColor,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (summary != null) ...[
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Left: avatar + ticker name, with the full
+                                // company name as a subtitle underneath.
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Hero(
+                                        tag: 'avatar_$ticker',
+                                        child: TickerAvatar(ticker: ticker, size: 48),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              ticker,
+                                              style: AppTypography.h1.copyWith(
+                                                color: primaryTextColor,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            if (companyName != null && companyName.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 2.0),
+                                                child: Text(
+                                                  companyName,
+                                                  style: AppTypography.caption.copyWith(
+                                                    color: isDark ? Colors.white54 : Colors.black54,
+                                                    fontSize: 12,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Right: just the status tag — the market
+                                // data card lives full-width below now.
+                                if (summary != null) ...[
+                                  const SizedBox(width: 12),
                                   StatusBadge(
                                     status: summary.status == LotStatus.open
                                         ? TradeStatus.open
@@ -215,116 +261,146 @@ class StockDetailScreen extends ConsumerWidget {
                                         : TradeStatus.closed,
                                   ),
                                 ],
-                              ),
-                              const SizedBox(height: 12),
-                              // Live Price
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
-                                    style: AppTypography.h1.copyWith(
-                                      color: livePriceModel == null
-                                          ? (isDark ? Colors.white54 : Colors.black38)
-                                          : primaryTextColor,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 32,
-                                    ),
+                              ],
+                            ),
+                            if (summary != null) ...[
+                              const SizedBox(height: 16),
+                              // Price card: price + open/closed status +
+                              // unrealized P/L all grouped into one bordered
+                              // box, matching the stats box below instead of
+                              // floating loose on the bare background.
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20,
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: containerBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: borderColor,
+                                    width: 1.2,
                                   ),
-                                  if (isMarketOpen == true && livePrice != null) ...[
-                                    const SizedBox(width: 8),
+                                  boxShadow: isDark
+                                      ? null
+                                      : [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.04),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                ),
+                                child: Column(
+                                  children: [
                                     Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
                                       children: [
-                                        Container(
-                                          width: 7,
-                                          height: 7,
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Color(0xFF00FF7F),
+                                        Text(
+                                          livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
+                                          style: AppTypography.h1.copyWith(
+                                            color: livePriceModel == null
+                                                ? (isDark ? Colors.white54 : Colors.black38)
+                                                : primaryTextColor,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 32,
                                           ),
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Live',
-                                          style: TextStyle(
-                                            color: const Color(0xFF00FF7F),
-                                            fontWeight: FontWeight.bold,
+                                        if (isMarketOpen == true && livePrice != null) ...[
+                                          const SizedBox(width: 8),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 7,
+                                                height: 7,
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Color(0xFF00FF7F),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Live',
+                                                style: TextStyle(
+                                                  color: const Color(0xFF00FF7F),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                        if (isMarketOpen == false && livePrice != null) ...[
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'at Closed',
+                                            style: TextStyle(
+                                              color: AppColors.alertRed,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (livePrice != null) ...[
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4.0),
+                                        child: Text(
+                                          // Market closed: this price is a known
+                                          // closing price, not a live one — say so
+                                          // rather than implying it's still moving.
+                                          isMarketOpen == false ? 'Closing Price' : 'Current Market Price',
+                                          style: AppTypography.caption.copyWith(
+                                            color: isDark ? Colors.white54 : Colors.black54,
                                             fontSize: 12,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                  if (isMarketOpen == false && livePrice != null) ...[
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'at Closed',
-                                      style: TextStyle(
-                                        color: AppColors.alertRed,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
                                       ),
-                                    ),
+                                      if (livePriceModel != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 2.0),
+                                          child: Text(
+                                            'As of ${DateFormat('h:mm a').format(livePriceModel.updatedAt)}',
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white54 : Colors.black54,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 16),
+                                      Builder(builder: (context) {
+                                        // Unrealized P/L across every cycle still
+                                        // held for this ticker — a closed cycle
+                                        // always contributes 0 (PositionCalculator
+                                        // guards on sharesHeld == 0), so summing
+                                        // over all of stockPositions is safe.
+                                        final totalUnrealizedPL = stockPositions.fold<double>(
+                                          0.0,
+                                          (sum, p) => sum + PositionCalculator.unrealizedPL(p, livePrice),
+                                        );
+                                        final isUnrealizedProfit = totalUnrealizedPL >= 0;
+                                        final unrealizedColor = isUnrealizedProfit
+                                            ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                            : AppColors.alertRed;
+                                        return Text(
+                                          '${isUnrealizedProfit ? "+" : "-"}${AppCurrencyFormatter.format(totalUnrealizedPL.abs())} Unrealized',
+                                          style: AppTypography.body.copyWith(
+                                            color: unrealizedColor,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15,
+                                          ),
+                                        );
+                                      }),
+                                    ],
                                   ],
-                                ],
-                              ),
-                              if (livePrice != null) ...[
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Text(
-                                    // Market closed: this price is a known
-                                    // closing price, not a live one — say so
-                                    // rather than implying it's still moving.
-                                    isMarketOpen == false ? 'Closing Price' : 'Current Market Price',
-                                    style: AppTypography.caption.copyWith(
-                                      color: isDark ? Colors.white54 : Colors.black54,
-                                      fontSize: 12,
-                                    ),
-                                  ),
                                 ),
-                                if (livePriceModel != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2.0),
-                                    child: Text(
-                                      'As of ${DateFormat('h:mm a').format(livePriceModel.updatedAt)}',
-                                      style: TextStyle(
-                                        color: isDark ? Colors.white54 : Colors.black54,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(height: 16),
-                                Builder(builder: (context) {
-                                  // Unrealized P/L across every cycle still
-                                  // held for this ticker — a closed cycle
-                                  // always contributes 0 (PositionCalculator
-                                  // guards on sharesHeld == 0), so summing
-                                  // over all of stockPositions is safe.
-                                  final totalUnrealizedPL = stockPositions.fold<double>(
-                                    0.0,
-                                    (sum, p) => sum + PositionCalculator.unrealizedPL(p, livePrice),
-                                  );
-                                  final isUnrealizedProfit = totalUnrealizedPL >= 0;
-                                  final unrealizedColor = isUnrealizedProfit
-                                      ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
-                                      : AppColors.alertRed;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Text(
-                                      '${isUnrealizedProfit ? "+" : "-"}${AppCurrencyFormatter.format(totalUnrealizedPL.abs())} Unrealized',
-                                      style: AppTypography.body.copyWith(
-                                        color: unrealizedColor,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ],
-                              const SizedBox(height: 24),
+                              ),
+                              const SizedBox(height: 16),
                               Container(
                                     padding: const EdgeInsets.all(
                                       AppSpacing.md,
