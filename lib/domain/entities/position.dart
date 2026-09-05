@@ -12,6 +12,11 @@ class Position extends Equatable {
   final double? targetPrice;
   final bool targetAlertSent;
   final DateTime? targetAlertSentAt;
+  // The price the last sell notification actually fired at. Re-notifying
+  // once the target is crossed isn't one-shot: once true, the position keeps
+  // firing again each further 1% climb (tracking realised profit as it
+  // grows), rather than going silent after the first alert.
+  final double? lastAlertPrice;
   final List<PositionBuy> buys;
   final List<PositionSale> sales;
 
@@ -24,6 +29,7 @@ class Position extends Equatable {
     this.targetPrice,
     this.targetAlertSent = false,
     this.targetAlertSentAt,
+    this.lastAlertPrice,
     this.buys = const [],
     this.sales = const [],
   });
@@ -39,6 +45,7 @@ class Position extends Equatable {
     bool? targetAlertSent,
     DateTime? targetAlertSentAt,
     bool clearTargetAlertSentAt = false,
+    double? lastAlertPrice,
     List<PositionBuy>? buys,
     List<PositionSale>? sales,
   }) {
@@ -54,6 +61,11 @@ class Position extends Equatable {
       targetPrice: newTargetPrice,
       targetAlertSent: targetPriceChanged ? false : (targetAlertSent ?? this.targetAlertSent),
       targetAlertSentAt: targetPriceChanged ? null : (clearTargetAlertSentAt ? null : (targetAlertSentAt ?? this.targetAlertSentAt)),
+      // A changed target starts the "how far past the target has it moved
+      // since the last alert" tracking fresh — otherwise a new, lower target
+      // would inherit a stale high-water mark from the old one and could
+      // silently suppress a notification that should fire immediately.
+      lastAlertPrice: targetPriceChanged ? null : (lastAlertPrice ?? this.lastAlertPrice),
       buys: buys ?? this.buys,
       sales: sales ?? this.sales,
     );
@@ -69,6 +81,7 @@ class Position extends Equatable {
         targetPrice,
         targetAlertSent,
         targetAlertSentAt,
+        lastAlertPrice,
         buys,
         sales,
       ];

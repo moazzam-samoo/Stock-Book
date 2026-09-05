@@ -143,6 +143,7 @@ abstract class PositionModel with _$PositionModel {
     double? targetPrice,
     @Default(false) bool targetAlertSent,
     @TimestampConverter() DateTime? targetAlertSentAt,
+    double? lastAlertPrice,
     @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)
     @Default([]) List<PositionBuyModel> buys,
     @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)
@@ -190,6 +191,7 @@ extension PositionModelExtension on PositionModel {
       targetPrice: targetPrice,
       targetAlertSent: targetAlertSent,
       targetAlertSentAt: targetAlertSentAt,
+      lastAlertPrice: lastAlertPrice,
       buys: buys.map((b) => b.toEntity()).toList(),
       sales: sales.map((s) => s.toEntity()).toList(),
     );
@@ -205,6 +207,7 @@ extension PositionModelExtension on PositionModel {
       targetPrice: entity.targetPrice,
       targetAlertSent: entity.targetAlertSent,
       targetAlertSentAt: entity.targetAlertSentAt,
+      lastAlertPrice: entity.lastAlertPrice,
       buys: entity.buys.map((b) => PositionBuyModelExtension.fromEntity(b)).toList(),
       sales: entity.sales.map((s) => PositionSaleModelExtension.fromEntity(s)).toList(),
     );

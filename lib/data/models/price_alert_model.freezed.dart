@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PriceAlertModel {
 
- String get id; String get ticker; double get targetPrice; double get tolerancePercent; bool get isActive; bool get alertSent;@TimestampConverter() DateTime? get alertSentAt;@TimestampConverter() DateTime get createdAt;
+ String get id; String get ticker; double get targetPrice; double get tolerancePercent; bool get isActive; bool get alertSent;@TimestampConverter() DateTime? get alertSentAt; double? get lastAlertPrice;@TimestampConverter() DateTime get createdAt;
 /// Create a copy of PriceAlertModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $PriceAlertModelCopyWith<PriceAlertModel> get copyWith => _$PriceAlertModelCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PriceAlertModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.tolerancePercent, tolerancePercent) || other.tolerancePercent == tolerancePercent)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.alertSent, alertSent) || other.alertSent == alertSent)&&(identical(other.alertSentAt, alertSentAt) || other.alertSentAt == alertSentAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PriceAlertModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.tolerancePercent, tolerancePercent) || other.tolerancePercent == tolerancePercent)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.alertSent, alertSent) || other.alertSent == alertSent)&&(identical(other.alertSentAt, alertSentAt) || other.alertSentAt == alertSentAt)&&(identical(other.lastAlertPrice, lastAlertPrice) || other.lastAlertPrice == lastAlertPrice)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ticker,targetPrice,tolerancePercent,isActive,alertSent,alertSentAt,createdAt);
+int get hashCode => Object.hash(runtimeType,id,ticker,targetPrice,tolerancePercent,isActive,alertSent,alertSentAt,lastAlertPrice,createdAt);
 
 @override
 String toString() {
-  return 'PriceAlertModel(id: $id, ticker: $ticker, targetPrice: $targetPrice, tolerancePercent: $tolerancePercent, isActive: $isActive, alertSent: $alertSent, alertSentAt: $alertSentAt, createdAt: $createdAt)';
+  return 'PriceAlertModel(id: $id, ticker: $ticker, targetPrice: $targetPrice, tolerancePercent: $tolerancePercent, isActive: $isActive, alertSent: $alertSent, alertSentAt: $alertSentAt, lastAlertPrice: $lastAlertPrice, createdAt: $createdAt)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $PriceAlertModelCopyWith<$Res>  {
   factory $PriceAlertModelCopyWith(PriceAlertModel value, $Res Function(PriceAlertModel) _then) = _$PriceAlertModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String ticker, double targetPrice, double tolerancePercent, bool isActive, bool alertSent,@TimestampConverter() DateTime? alertSentAt,@TimestampConverter() DateTime createdAt
+ String id, String ticker, double targetPrice, double tolerancePercent, bool isActive, bool alertSent,@TimestampConverter() DateTime? alertSentAt, double? lastAlertPrice,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -62,7 +62,7 @@ class _$PriceAlertModelCopyWithImpl<$Res>
 
 /// Create a copy of PriceAlertModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? targetPrice = null,Object? tolerancePercent = null,Object? isActive = null,Object? alertSent = null,Object? alertSentAt = freezed,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? targetPrice = null,Object? tolerancePercent = null,Object? isActive = null,Object? alertSent = null,Object? alertSentAt = freezed,Object? lastAlertPrice = freezed,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
@@ -71,7 +71,8 @@ as double,tolerancePercent: null == tolerancePercent ? _self.tolerancePercent : 
 as double,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,alertSent: null == alertSent ? _self.alertSent : alertSent // ignore: cast_nullable_to_non_nullable
 as bool,alertSentAt: freezed == alertSentAt ? _self.alertSentAt : alertSentAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,lastAlertPrice: freezed == lastAlertPrice ? _self.lastAlertPrice : lastAlertPrice // ignore: cast_nullable_to_non_nullable
+as double?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ticker,  double targetPrice,  double tolerancePercent,  bool isActive,  bool alertSent, @TimestampConverter()  DateTime? alertSentAt, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ticker,  double targetPrice,  double tolerancePercent,  bool isActive,  bool alertSent, @TimestampConverter()  DateTime? alertSentAt,  double? lastAlertPrice, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PriceAlertModel() when $default != null:
-return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_that.isActive,_that.alertSent,_that.alertSentAt,_that.createdAt);case _:
+return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_that.isActive,_that.alertSent,_that.alertSentAt,_that.lastAlertPrice,_that.createdAt);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ticker,  double targetPrice,  double tolerancePercent,  bool isActive,  bool alertSent, @TimestampConverter()  DateTime? alertSentAt, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ticker,  double targetPrice,  double tolerancePercent,  bool isActive,  bool alertSent, @TimestampConverter()  DateTime? alertSentAt,  double? lastAlertPrice, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _PriceAlertModel():
-return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_that.isActive,_that.alertSent,_that.alertSentAt,_that.createdAt);case _:
+return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_that.isActive,_that.alertSent,_that.alertSentAt,_that.lastAlertPrice,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ticker,  double targetPrice,  double tolerancePercent,  bool isActive,  bool alertSent, @TimestampConverter()  DateTime? alertSentAt, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ticker,  double targetPrice,  double tolerancePercent,  bool isActive,  bool alertSent, @TimestampConverter()  DateTime? alertSentAt,  double? lastAlertPrice, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _PriceAlertModel() when $default != null:
-return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_that.isActive,_that.alertSent,_that.alertSentAt,_that.createdAt);case _:
+return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_that.isActive,_that.alertSent,_that.alertSentAt,_that.lastAlertPrice,_that.createdAt);case _:
   return null;
 
 }
@@ -213,7 +214,7 @@ return $default(_that.id,_that.ticker,_that.targetPrice,_that.tolerancePercent,_
 
 
 class _PriceAlertModel implements PriceAlertModel {
-  const _PriceAlertModel({required this.id, required this.ticker, required this.targetPrice, this.tolerancePercent = 1.0, this.isActive = true, this.alertSent = false, @TimestampConverter() this.alertSentAt, @TimestampConverter() required this.createdAt});
+  const _PriceAlertModel({required this.id, required this.ticker, required this.targetPrice, this.tolerancePercent = 1.0, this.isActive = true, this.alertSent = false, @TimestampConverter() this.alertSentAt, this.lastAlertPrice, @TimestampConverter() required this.createdAt});
   
 
 @override final  String id;
@@ -223,6 +224,7 @@ class _PriceAlertModel implements PriceAlertModel {
 @override@JsonKey() final  bool isActive;
 @override@JsonKey() final  bool alertSent;
 @override@TimestampConverter() final  DateTime? alertSentAt;
+@override final  double? lastAlertPrice;
 @override@TimestampConverter() final  DateTime createdAt;
 
 /// Create a copy of PriceAlertModel
@@ -235,16 +237,16 @@ _$PriceAlertModelCopyWith<_PriceAlertModel> get copyWith => __$PriceAlertModelCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PriceAlertModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.tolerancePercent, tolerancePercent) || other.tolerancePercent == tolerancePercent)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.alertSent, alertSent) || other.alertSent == alertSent)&&(identical(other.alertSentAt, alertSentAt) || other.alertSentAt == alertSentAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PriceAlertModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.tolerancePercent, tolerancePercent) || other.tolerancePercent == tolerancePercent)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.alertSent, alertSent) || other.alertSent == alertSent)&&(identical(other.alertSentAt, alertSentAt) || other.alertSentAt == alertSentAt)&&(identical(other.lastAlertPrice, lastAlertPrice) || other.lastAlertPrice == lastAlertPrice)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ticker,targetPrice,tolerancePercent,isActive,alertSent,alertSentAt,createdAt);
+int get hashCode => Object.hash(runtimeType,id,ticker,targetPrice,tolerancePercent,isActive,alertSent,alertSentAt,lastAlertPrice,createdAt);
 
 @override
 String toString() {
-  return 'PriceAlertModel(id: $id, ticker: $ticker, targetPrice: $targetPrice, tolerancePercent: $tolerancePercent, isActive: $isActive, alertSent: $alertSent, alertSentAt: $alertSentAt, createdAt: $createdAt)';
+  return 'PriceAlertModel(id: $id, ticker: $ticker, targetPrice: $targetPrice, tolerancePercent: $tolerancePercent, isActive: $isActive, alertSent: $alertSent, alertSentAt: $alertSentAt, lastAlertPrice: $lastAlertPrice, createdAt: $createdAt)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$PriceAlertModelCopyWith<$Res> implements $PriceAlertModel
   factory _$PriceAlertModelCopyWith(_PriceAlertModel value, $Res Function(_PriceAlertModel) _then) = __$PriceAlertModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ticker, double targetPrice, double tolerancePercent, bool isActive, bool alertSent,@TimestampConverter() DateTime? alertSentAt,@TimestampConverter() DateTime createdAt
+ String id, String ticker, double targetPrice, double tolerancePercent, bool isActive, bool alertSent,@TimestampConverter() DateTime? alertSentAt, double? lastAlertPrice,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -272,7 +274,7 @@ class __$PriceAlertModelCopyWithImpl<$Res>
 
 /// Create a copy of PriceAlertModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ticker = null,Object? targetPrice = null,Object? tolerancePercent = null,Object? isActive = null,Object? alertSent = null,Object? alertSentAt = freezed,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ticker = null,Object? targetPrice = null,Object? tolerancePercent = null,Object? isActive = null,Object? alertSent = null,Object? alertSentAt = freezed,Object? lastAlertPrice = freezed,Object? createdAt = null,}) {
   return _then(_PriceAlertModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
@@ -281,7 +283,8 @@ as double,tolerancePercent: null == tolerancePercent ? _self.tolerancePercent : 
 as double,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,alertSent: null == alertSent ? _self.alertSent : alertSent // ignore: cast_nullable_to_non_nullable
 as bool,alertSentAt: freezed == alertSentAt ? _self.alertSentAt : alertSentAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,lastAlertPrice: freezed == lastAlertPrice ? _self.lastAlertPrice : lastAlertPrice // ignore: cast_nullable_to_non_nullable
+as double?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }

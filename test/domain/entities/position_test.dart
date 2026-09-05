@@ -18,6 +18,7 @@ void main() {
       targetPrice: 15.0,
       targetAlertSent: true,
       targetAlertSentAt: DateTime(2026, 1, 2),
+      lastAlertPrice: 15.20,
     );
 
     test('retains alert state if targetPrice is not changed', () {
@@ -28,10 +29,15 @@ void main() {
       expect(updated.targetPrice, 15.0);
       expect(updated.targetAlertSent, true);
       expect(updated.targetAlertSentAt, isNotNull);
+      expect(updated.lastAlertPrice, 15.20);
       expect(updated.status, PositionStatus.partiallySold);
     });
 
-    test('resets alert state if targetPrice is changed to a new value', () {
+    test('resets alert state (including lastAlertPrice) if targetPrice changes', () {
+      // A changed target must start the repeat-alert tracking fresh —
+      // otherwise a new, lower target would inherit a stale high-water mark
+      // from the old one and could silently suppress an alert that should
+      // fire immediately.
       final updated = basePosition.copyWith(
         targetPrice: 20.0,
       );
@@ -39,6 +45,7 @@ void main() {
       expect(updated.targetPrice, 20.0);
       expect(updated.targetAlertSent, false);
       expect(updated.targetAlertSentAt, isNull);
+      expect(updated.lastAlertPrice, isNull);
     });
 
     test('clears targetPrice and alert state if clearTargetPrice is true', () {
@@ -49,6 +56,7 @@ void main() {
       expect(updated.targetPrice, isNull);
       expect(updated.targetAlertSent, false);
       expect(updated.targetAlertSentAt, isNull);
+      expect(updated.lastAlertPrice, isNull);
     });
 
     test('retains alert state when only shares/date-affecting fields change', () {

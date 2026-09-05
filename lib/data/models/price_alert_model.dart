@@ -25,6 +25,7 @@ abstract class PriceAlertModel with _$PriceAlertModel {
     @Default(true) bool isActive,
     @Default(false) bool alertSent,
     @TimestampConverter() DateTime? alertSentAt,
+    double? lastAlertPrice,
     @TimestampConverter() required DateTime createdAt,
   }) = _PriceAlertModel;
 
@@ -38,6 +39,7 @@ abstract class PriceAlertModel with _$PriceAlertModel {
       isActive: (json['isActive'] as bool?) ?? true,
       alertSent: (json['alertSent'] as bool?) ?? false,
       alertSentAt: json['alertSentAt'] != null ? _parseDate(json['alertSentAt']) : null,
+      lastAlertPrice: (json['lastAlertPrice'] as num?)?.toDouble(),
       createdAt: _parseDate(json['createdAt']),
     );
   }
@@ -51,6 +53,7 @@ abstract class PriceAlertModel with _$PriceAlertModel {
       isActive: entity.isActive,
       alertSent: entity.alertSent,
       alertSentAt: entity.alertSentAt,
+      lastAlertPrice: entity.lastAlertPrice,
       createdAt: entity.createdAt,
     );
   }
@@ -66,6 +69,7 @@ extension PriceAlertModelExtension on PriceAlertModel {
       'isActive': isActive,
       'alertSent': alertSent,
       'alertSentAt': alertSentAt != null ? Timestamp.fromDate(alertSentAt!) : null,
+      'lastAlertPrice': lastAlertPrice,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -79,6 +83,7 @@ extension PriceAlertModelExtension on PriceAlertModel {
       isActive: isActive,
       alertSent: alertSent,
       alertSentAt: alertSentAt,
+      lastAlertPrice: lastAlertPrice,
       createdAt: createdAt,
     );
   }

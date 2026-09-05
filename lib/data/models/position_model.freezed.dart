@@ -550,7 +550,7 @@ as double?,
 /// @nodoc
 mixin _$PositionModel {
 
- String get id; String get ticker; String get status;@TimestampConverter() DateTime get openedAt;@TimestampConverter() DateTime? get closedAt; double? get targetPrice; bool get targetAlertSent;@TimestampConverter() DateTime? get targetAlertSentAt;@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> get buys;@JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) List<PositionSaleModel> get sales;
+ String get id; String get ticker; String get status;@TimestampConverter() DateTime get openedAt;@TimestampConverter() DateTime? get closedAt; double? get targetPrice; bool get targetAlertSent;@TimestampConverter() DateTime? get targetAlertSentAt; double? get lastAlertPrice;@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> get buys;@JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) List<PositionSaleModel> get sales;
 /// Create a copy of PositionModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -563,16 +563,16 @@ $PositionModelCopyWith<PositionModel> get copyWith => _$PositionModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PositionModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.status, status) || other.status == status)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.targetAlertSent, targetAlertSent) || other.targetAlertSent == targetAlertSent)&&(identical(other.targetAlertSentAt, targetAlertSentAt) || other.targetAlertSentAt == targetAlertSentAt)&&const DeepCollectionEquality().equals(other.buys, buys)&&const DeepCollectionEquality().equals(other.sales, sales));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PositionModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.status, status) || other.status == status)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.targetAlertSent, targetAlertSent) || other.targetAlertSent == targetAlertSent)&&(identical(other.targetAlertSentAt, targetAlertSentAt) || other.targetAlertSentAt == targetAlertSentAt)&&(identical(other.lastAlertPrice, lastAlertPrice) || other.lastAlertPrice == lastAlertPrice)&&const DeepCollectionEquality().equals(other.buys, buys)&&const DeepCollectionEquality().equals(other.sales, sales));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,ticker,status,openedAt,closedAt,targetPrice,targetAlertSent,targetAlertSentAt,const DeepCollectionEquality().hash(buys),const DeepCollectionEquality().hash(sales));
+int get hashCode => Object.hash(runtimeType,id,ticker,status,openedAt,closedAt,targetPrice,targetAlertSent,targetAlertSentAt,lastAlertPrice,const DeepCollectionEquality().hash(buys),const DeepCollectionEquality().hash(sales));
 
 @override
 String toString() {
-  return 'PositionModel(id: $id, ticker: $ticker, status: $status, openedAt: $openedAt, closedAt: $closedAt, targetPrice: $targetPrice, targetAlertSent: $targetAlertSent, targetAlertSentAt: $targetAlertSentAt, buys: $buys, sales: $sales)';
+  return 'PositionModel(id: $id, ticker: $ticker, status: $status, openedAt: $openedAt, closedAt: $closedAt, targetPrice: $targetPrice, targetAlertSent: $targetAlertSent, targetAlertSentAt: $targetAlertSentAt, lastAlertPrice: $lastAlertPrice, buys: $buys, sales: $sales)';
 }
 
 
@@ -583,7 +583,7 @@ abstract mixin class $PositionModelCopyWith<$Res>  {
   factory $PositionModelCopyWith(PositionModel value, $Res Function(PositionModel) _then) = _$PositionModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String ticker, String status,@TimestampConverter() DateTime openedAt,@TimestampConverter() DateTime? closedAt, double? targetPrice, bool targetAlertSent,@TimestampConverter() DateTime? targetAlertSentAt,@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> buys,@JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) List<PositionSaleModel> sales
+ String id, String ticker, String status,@TimestampConverter() DateTime openedAt,@TimestampConverter() DateTime? closedAt, double? targetPrice, bool targetAlertSent,@TimestampConverter() DateTime? targetAlertSentAt, double? lastAlertPrice,@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> buys,@JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) List<PositionSaleModel> sales
 });
 
 
@@ -600,7 +600,7 @@ class _$PositionModelCopyWithImpl<$Res>
 
 /// Create a copy of PositionModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? status = null,Object? openedAt = null,Object? closedAt = freezed,Object? targetPrice = freezed,Object? targetAlertSent = null,Object? targetAlertSentAt = freezed,Object? buys = null,Object? sales = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? status = null,Object? openedAt = null,Object? closedAt = freezed,Object? targetPrice = freezed,Object? targetAlertSent = null,Object? targetAlertSentAt = freezed,Object? lastAlertPrice = freezed,Object? buys = null,Object? sales = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
@@ -610,7 +610,8 @@ as DateTime,closedAt: freezed == closedAt ? _self.closedAt : closedAt // ignore:
 as DateTime?,targetPrice: freezed == targetPrice ? _self.targetPrice : targetPrice // ignore: cast_nullable_to_non_nullable
 as double?,targetAlertSent: null == targetAlertSent ? _self.targetAlertSent : targetAlertSent // ignore: cast_nullable_to_non_nullable
 as bool,targetAlertSentAt: freezed == targetAlertSentAt ? _self.targetAlertSentAt : targetAlertSentAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,buys: null == buys ? _self.buys : buys // ignore: cast_nullable_to_non_nullable
+as DateTime?,lastAlertPrice: freezed == lastAlertPrice ? _self.lastAlertPrice : lastAlertPrice // ignore: cast_nullable_to_non_nullable
+as double?,buys: null == buys ? _self.buys : buys // ignore: cast_nullable_to_non_nullable
 as List<PositionBuyModel>,sales: null == sales ? _self.sales : sales // ignore: cast_nullable_to_non_nullable
 as List<PositionSaleModel>,
   ));
@@ -697,10 +698,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ticker,  String status, @TimestampConverter()  DateTime openedAt, @TimestampConverter()  DateTime? closedAt,  double? targetPrice,  bool targetAlertSent, @TimestampConverter()  DateTime? targetAlertSentAt, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys, @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ticker,  String status, @TimestampConverter()  DateTime openedAt, @TimestampConverter()  DateTime? closedAt,  double? targetPrice,  bool targetAlertSent, @TimestampConverter()  DateTime? targetAlertSentAt,  double? lastAlertPrice, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys, @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PositionModel() when $default != null:
-return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt,_that.targetPrice,_that.targetAlertSent,_that.targetAlertSentAt,_that.buys,_that.sales);case _:
+return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt,_that.targetPrice,_that.targetAlertSent,_that.targetAlertSentAt,_that.lastAlertPrice,_that.buys,_that.sales);case _:
   return orElse();
 
 }
@@ -718,10 +719,10 @@ return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ticker,  String status, @TimestampConverter()  DateTime openedAt, @TimestampConverter()  DateTime? closedAt,  double? targetPrice,  bool targetAlertSent, @TimestampConverter()  DateTime? targetAlertSentAt, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys, @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ticker,  String status, @TimestampConverter()  DateTime openedAt, @TimestampConverter()  DateTime? closedAt,  double? targetPrice,  bool targetAlertSent, @TimestampConverter()  DateTime? targetAlertSentAt,  double? lastAlertPrice, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys, @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales)  $default,) {final _that = this;
 switch (_that) {
 case _PositionModel():
-return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt,_that.targetPrice,_that.targetAlertSent,_that.targetAlertSentAt,_that.buys,_that.sales);case _:
+return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt,_that.targetPrice,_that.targetAlertSent,_that.targetAlertSentAt,_that.lastAlertPrice,_that.buys,_that.sales);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -738,10 +739,10 @@ return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ticker,  String status, @TimestampConverter()  DateTime openedAt, @TimestampConverter()  DateTime? closedAt,  double? targetPrice,  bool targetAlertSent, @TimestampConverter()  DateTime? targetAlertSentAt, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys, @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ticker,  String status, @TimestampConverter()  DateTime openedAt, @TimestampConverter()  DateTime? closedAt,  double? targetPrice,  bool targetAlertSent, @TimestampConverter()  DateTime? targetAlertSentAt,  double? lastAlertPrice, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys, @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales)?  $default,) {final _that = this;
 switch (_that) {
 case _PositionModel() when $default != null:
-return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt,_that.targetPrice,_that.targetAlertSent,_that.targetAlertSentAt,_that.buys,_that.sales);case _:
+return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt,_that.targetPrice,_that.targetAlertSent,_that.targetAlertSentAt,_that.lastAlertPrice,_that.buys,_that.sales);case _:
   return null;
 
 }
@@ -753,7 +754,7 @@ return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt
 @JsonSerializable()
 
 class _PositionModel implements PositionModel {
-  const _PositionModel({required this.id, required this.ticker, required this.status, @TimestampConverter() required this.openedAt, @TimestampConverter() this.closedAt, this.targetPrice, this.targetAlertSent = false, @TimestampConverter() this.targetAlertSentAt, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) final  List<PositionBuyModel> buys = const [], @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) final  List<PositionSaleModel> sales = const []}): _buys = buys,_sales = sales;
+  const _PositionModel({required this.id, required this.ticker, required this.status, @TimestampConverter() required this.openedAt, @TimestampConverter() this.closedAt, this.targetPrice, this.targetAlertSent = false, @TimestampConverter() this.targetAlertSentAt, this.lastAlertPrice, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) final  List<PositionBuyModel> buys = const [], @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) final  List<PositionSaleModel> sales = const []}): _buys = buys,_sales = sales;
   factory _PositionModel.fromJson(Map<String, dynamic> json) => _$PositionModelFromJson(json);
 
 @override final  String id;
@@ -764,6 +765,7 @@ class _PositionModel implements PositionModel {
 @override final  double? targetPrice;
 @override@JsonKey() final  bool targetAlertSent;
 @override@TimestampConverter() final  DateTime? targetAlertSentAt;
+@override final  double? lastAlertPrice;
  final  List<PositionBuyModel> _buys;
 @override@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> get buys {
   if (_buys is EqualUnmodifiableListView) return _buys;
@@ -792,16 +794,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PositionModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.status, status) || other.status == status)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.targetAlertSent, targetAlertSent) || other.targetAlertSent == targetAlertSent)&&(identical(other.targetAlertSentAt, targetAlertSentAt) || other.targetAlertSentAt == targetAlertSentAt)&&const DeepCollectionEquality().equals(other._buys, _buys)&&const DeepCollectionEquality().equals(other._sales, _sales));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PositionModel&&(identical(other.id, id) || other.id == id)&&(identical(other.ticker, ticker) || other.ticker == ticker)&&(identical(other.status, status) || other.status == status)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.closedAt, closedAt) || other.closedAt == closedAt)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.targetAlertSent, targetAlertSent) || other.targetAlertSent == targetAlertSent)&&(identical(other.targetAlertSentAt, targetAlertSentAt) || other.targetAlertSentAt == targetAlertSentAt)&&(identical(other.lastAlertPrice, lastAlertPrice) || other.lastAlertPrice == lastAlertPrice)&&const DeepCollectionEquality().equals(other._buys, _buys)&&const DeepCollectionEquality().equals(other._sales, _sales));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,ticker,status,openedAt,closedAt,targetPrice,targetAlertSent,targetAlertSentAt,const DeepCollectionEquality().hash(_buys),const DeepCollectionEquality().hash(_sales));
+int get hashCode => Object.hash(runtimeType,id,ticker,status,openedAt,closedAt,targetPrice,targetAlertSent,targetAlertSentAt,lastAlertPrice,const DeepCollectionEquality().hash(_buys),const DeepCollectionEquality().hash(_sales));
 
 @override
 String toString() {
-  return 'PositionModel(id: $id, ticker: $ticker, status: $status, openedAt: $openedAt, closedAt: $closedAt, targetPrice: $targetPrice, targetAlertSent: $targetAlertSent, targetAlertSentAt: $targetAlertSentAt, buys: $buys, sales: $sales)';
+  return 'PositionModel(id: $id, ticker: $ticker, status: $status, openedAt: $openedAt, closedAt: $closedAt, targetPrice: $targetPrice, targetAlertSent: $targetAlertSent, targetAlertSentAt: $targetAlertSentAt, lastAlertPrice: $lastAlertPrice, buys: $buys, sales: $sales)';
 }
 
 
@@ -812,7 +814,7 @@ abstract mixin class _$PositionModelCopyWith<$Res> implements $PositionModelCopy
   factory _$PositionModelCopyWith(_PositionModel value, $Res Function(_PositionModel) _then) = __$PositionModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ticker, String status,@TimestampConverter() DateTime openedAt,@TimestampConverter() DateTime? closedAt, double? targetPrice, bool targetAlertSent,@TimestampConverter() DateTime? targetAlertSentAt,@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> buys,@JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) List<PositionSaleModel> sales
+ String id, String ticker, String status,@TimestampConverter() DateTime openedAt,@TimestampConverter() DateTime? closedAt, double? targetPrice, bool targetAlertSent,@TimestampConverter() DateTime? targetAlertSentAt, double? lastAlertPrice,@JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) List<PositionBuyModel> buys,@JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) List<PositionSaleModel> sales
 });
 
 
@@ -829,7 +831,7 @@ class __$PositionModelCopyWithImpl<$Res>
 
 /// Create a copy of PositionModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ticker = null,Object? status = null,Object? openedAt = null,Object? closedAt = freezed,Object? targetPrice = freezed,Object? targetAlertSent = null,Object? targetAlertSentAt = freezed,Object? buys = null,Object? sales = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ticker = null,Object? status = null,Object? openedAt = null,Object? closedAt = freezed,Object? targetPrice = freezed,Object? targetAlertSent = null,Object? targetAlertSentAt = freezed,Object? lastAlertPrice = freezed,Object? buys = null,Object? sales = null,}) {
   return _then(_PositionModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
@@ -839,7 +841,8 @@ as DateTime,closedAt: freezed == closedAt ? _self.closedAt : closedAt // ignore:
 as DateTime?,targetPrice: freezed == targetPrice ? _self.targetPrice : targetPrice // ignore: cast_nullable_to_non_nullable
 as double?,targetAlertSent: null == targetAlertSent ? _self.targetAlertSent : targetAlertSent // ignore: cast_nullable_to_non_nullable
 as bool,targetAlertSentAt: freezed == targetAlertSentAt ? _self.targetAlertSentAt : targetAlertSentAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,buys: null == buys ? _self._buys : buys // ignore: cast_nullable_to_non_nullable
+as DateTime?,lastAlertPrice: freezed == lastAlertPrice ? _self.lastAlertPrice : lastAlertPrice // ignore: cast_nullable_to_non_nullable
+as double?,buys: null == buys ? _self._buys : buys // ignore: cast_nullable_to_non_nullable
 as List<PositionBuyModel>,sales: null == sales ? _self._sales : sales // ignore: cast_nullable_to_non_nullable
 as List<PositionSaleModel>,
   ));

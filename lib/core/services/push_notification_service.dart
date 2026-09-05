@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../firebase_options.dart';
+import '../utils/currency_formatter.dart';
 import 'package:logger/logger.dart';
 
 /// Service responsible for handling Firebase Cloud Messaging (FCM) push notifications.
@@ -17,7 +18,8 @@ import 'package:logger/logger.dart';
 ///   "type": "sell" | "buy",
 ///   "ticker": "ENGRO",
 ///   "positionId": "...",
-///   "alertId": "..."
+///   "alertId": "...",
+///   "price": "123.45"
 /// }
 /// ```
 ///
@@ -27,6 +29,12 @@ import 'package:logger/logger.dart';
 /// That means nothing shows up for free: every visible state (foreground,
 /// background, terminated) has to build its own notification from `data`, and
 /// that's what the functions in this file do.
+///
+/// `price` matters more than it looks: alerts are not one-shot (see
+/// alerts.py's REPEAT_ALERT_STEP_PERCENT) — the same ticker can notify
+/// multiple times as it keeps moving in the user's favor. Without the actual
+/// price in each one, repeat notifications for the same ticker would render
+/// identical text, with no way to tell a new high from a duplicate.
 
 const String _androidNotificationChannelId = 'stock_alerts';
 const String _androidNotificationChannelName = 'Stock Alerts';
@@ -52,16 +60,22 @@ NotificationContent? buildNotificationContent(Map<String, dynamic> data) {
   final ticker = data['ticker'] as String?;
   if (ticker == null || ticker.isEmpty) return null;
 
+  // FCM data payloads are always strings — a malformed/absent price falls
+  // back to a still-useful, if less specific, message rather than showing
+  // nothing or crashing on untrusted input.
+  final priceValue = double.tryParse(data['price']?.toString() ?? '');
+  final priceText = priceValue != null ? ' at ${AppCurrencyFormatter.format(priceValue)}' : '';
+
   switch (type) {
     case 'sell':
       return NotificationContent(
         title: 'Sell target hit',
-        body: '$ticker has reached your target price.',
+        body: '$ticker has reached your target price$priceText.',
       );
     case 'buy':
       return NotificationContent(
         title: 'Buy target hit',
-        body: '$ticker has dropped to your target price.',
+        body: '$ticker has dropped to your target price$priceText.',
       );
     default:
       return null;
