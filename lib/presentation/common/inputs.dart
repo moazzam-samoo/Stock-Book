@@ -75,8 +75,12 @@ class NumericInput extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       validator: validator,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      // Not `^\d*\.?\d*`: that pattern anchors to the start of the string,
+      // which on Android interacts badly with the IME's composing region and
+      // silently blocks backspace — typing works but deleting does nothing.
+      // A plain per-character allow-list has no anchor to conflict with.
       inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
       ],
     );
   }

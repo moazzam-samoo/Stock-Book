@@ -349,18 +349,27 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (widget.position.targetAlertSent)
-                              WidgetSpan(
-                                alignment: PlaceholderAlignment.middle,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 6),
-                                  child: Icon(
-                                    Icons.notifications_active,
-                                    size: 14,
-                                    color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
-                                  ),
+                            // Always shown once a target exists — dim/outline
+                            // means "armed, watching for this price"; solid
+                            // green means "already notified you at least
+                            // once". Previously this icon only ever appeared
+                            // once fired, which read as "no alert is set" for
+                            // a target that just hadn't been hit yet.
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Icon(
+                                  widget.position.targetAlertSent
+                                      ? Icons.notifications_active
+                                      : Icons.notifications_none_rounded,
+                                  size: 14,
+                                  color: widget.position.targetAlertSent
+                                      ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                      : AppColors.neutral500,
                                 ),
                               ),
+                            ),
                           ],
                           isDark: isDark,
                         ),
