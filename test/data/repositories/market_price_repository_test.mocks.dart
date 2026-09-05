@@ -7,7 +7,7 @@ import 'dart:async' as _i3;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart'
-    as _i10;
+    as _i11;
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart'
     as _i2;
 import 'package:stock_investment_tracker/data/models/lot_model.dart' as _i4;
@@ -15,6 +15,8 @@ import 'package:stock_investment_tracker/data/models/market_price_model.dart'
     as _i9;
 import 'package:stock_investment_tracker/data/models/position_model.dart'
     as _i5;
+import 'package:stock_investment_tracker/data/models/price_alert_model.dart'
+    as _i10;
 import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i6;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
     as _i8;
@@ -273,12 +275,47 @@ class MockFirestoreDataSource extends _i1.Mock
             returnValue: _i3.Stream<List<_i9.MarketPriceModel>>.empty(),
           )
           as _i3.Stream<List<_i9.MarketPriceModel>>);
+
+  @override
+  _i3.Stream<List<_i10.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllPriceAlerts, [uid]),
+            returnValue: _i3.Stream<List<_i10.PriceAlertModel>>.empty(),
+          )
+          as _i3.Stream<List<_i10.PriceAlertModel>>);
+
+  @override
+  _i3.Future<void> addPriceAlert(String? uid, _i10.PriceAlertModel? alert) =>
+      (super.noSuchMethod(
+            Invocation.method(#addPriceAlert, [uid, alert]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updatePriceAlert(String? uid, _i10.PriceAlertModel? alert) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePriceAlert, [uid, alert]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deletePriceAlert(String? uid, String? alertId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deletePriceAlert, [uid, alertId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }
 
 /// A class which mocks [HiveDataSource].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockHiveDataSource extends _i1.Mock implements _i10.HiveDataSource {
+class MockHiveDataSource extends _i1.Mock implements _i11.HiveDataSource {
   MockHiveDataSource() {
     _i1.throwOnMissingStub(this);
   }

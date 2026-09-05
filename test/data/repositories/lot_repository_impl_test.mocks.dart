@@ -13,6 +13,8 @@ import 'package:stock_investment_tracker/data/models/market_price_model.dart'
     as _i9;
 import 'package:stock_investment_tracker/data/models/position_model.dart'
     as _i5;
+import 'package:stock_investment_tracker/data/models/price_alert_model.dart'
+    as _i10;
 import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i6;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
     as _i8;
@@ -271,4 +273,39 @@ class MockFirestoreDataSource extends _i1.Mock
             returnValue: _i3.Stream<List<_i9.MarketPriceModel>>.empty(),
           )
           as _i3.Stream<List<_i9.MarketPriceModel>>);
+
+  @override
+  _i3.Stream<List<_i10.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllPriceAlerts, [uid]),
+            returnValue: _i3.Stream<List<_i10.PriceAlertModel>>.empty(),
+          )
+          as _i3.Stream<List<_i10.PriceAlertModel>>);
+
+  @override
+  _i3.Future<void> addPriceAlert(String? uid, _i10.PriceAlertModel? alert) =>
+      (super.noSuchMethod(
+            Invocation.method(#addPriceAlert, [uid, alert]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updatePriceAlert(String? uid, _i10.PriceAlertModel? alert) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePriceAlert, [uid, alert]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deletePriceAlert(String? uid, String? alertId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deletePriceAlert, [uid, alertId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }

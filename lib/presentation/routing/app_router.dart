@@ -10,6 +10,7 @@ import '../dashboard/screens/dashboard_screen.dart';
 import '../dashboard/screens/stock_detail_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../transactions/screens/transactions_screen.dart';
+import '../alerts/screens/alerts_screen.dart';
 import '../splash/screens/splash_screen.dart';
 
 import '../common/swipeable_navigation_shell.dart';
@@ -110,6 +111,14 @@ GoRouter appRouter(AppRouterRef ref) {
               GoRoute(
                 path: '/transactions',
                 builder: (context, state) => const TransactionsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/alerts',
+                builder: (context, state) => const AlertsScreen(),
               ),
             ],
           ),

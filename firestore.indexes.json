@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "price_alerts",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "alertSent", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "positions",
+      "fieldPath": "status",
+      "indexes": [
+        { "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" },
+        { "queryScope": "COLLECTION", "order": "ASCENDING" }
+      ]
+    }
+  ]
+}

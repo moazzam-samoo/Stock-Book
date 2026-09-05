@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_typography.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -63,10 +62,16 @@ class AppBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(1),
               ),
               _NavItem(
-                icon: Icons.settings,
-                label: 'Settings',
+                icon: Icons.notifications_none,
+                label: 'Alerts',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
+              ),
+              _NavItem(
+                icon: Icons.settings,
+                label: 'Settings',
+                isSelected: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
             ],
           ),
@@ -96,41 +101,36 @@ class _NavItem extends StatelessWidget {
         ? const Color(0xFF64748B)
         : const Color(0xFF9CA3AF);
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        padding: isSelected
-            ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
-            : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight).withOpacity(0.6)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isSelected ? Colors.white : unselectedIconColor,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: AppTypography.body.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
+    return Semantics(
+      label: label,
+      selected: isSelected,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          padding: isSelected
+              ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
+              : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight)
+                      .withOpacity(0.6)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: isSelected ? Colors.white : unselectedIconColor,
               ),
             ],
-          ],
+          ),
         ),
       ),
     );

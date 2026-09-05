@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/data/models/position_model.dart';
 import 'package:stock_investment_tracker/data/models/sale_model.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
 import 'package:stock_investment_tracker/data/models/withdrawal_model.dart';
+import 'package:stock_investment_tracker/data/models/price_alert_model.dart';
 
 class FirestoreDataSource {
   final FirebaseFirestore _firestore;
@@ -374,5 +375,57 @@ class FirestoreDataSource {
     return Rx.combineLatestList(streams).map((lists) {
       return lists.expand((element) => element).toList();
     });
+  }
+
+  // --- Price Alerts ---
+
+  Stream<List<PriceAlertModel>> watchAllPriceAlerts(String uid) {
+    return _firestore
+        .collection(FirestorePaths.priceAlerts(uid))
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return PriceAlertModel.fromJson(data);
+            }).toList());
+  }
+
+  Future<void> addPriceAlert(String uid, PriceAlertModel alert) async {
+    final json = alert.toJson()..remove('id');
+    try {
+      await _firestore
+          .collection(FirestorePaths.priceAlerts(uid))
+          .doc(alert.id)
+          .set(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
+  Future<void> updatePriceAlert(String uid, PriceAlertModel alert) async {
+    final json = alert.toJson()..remove('id');
+    try {
+      await _firestore
+          .collection(FirestorePaths.priceAlerts(uid))
+          .doc(alert.id)
+          .update(json)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
+  }
+
+  Future<void> deletePriceAlert(String uid, String alertId) async {
+    try {
+      await _firestore
+          .collection(FirestorePaths.priceAlerts(uid))
+          .doc(alertId)
+          .delete()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timeout or offline write persisted locally
+    }
   }
 }

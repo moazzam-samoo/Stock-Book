@@ -184,6 +184,58 @@ No `firestore.indexes.json` entry needed — this is a single fixed-path documen
 
 ---
 
+## Task 7 — Tickers reference list (added 2026-09-05, for Phase 09)
+
+Every ticker-entry field in the app (Favorites, buy/sell transactions, buy alerts) is currently
+free-text — the user must know and type the exact symbol from memory, because nothing in this app
+has ever known the full list of PSX-listed companies. Phase 09 builds a real searchable picker on the
+client; this task is what feeds it.
+
+`scripts/price_alerts/tickers_source.py`:
+
+```python
+def fetch_listed_companies() -> list[dict]
+    # [{ "symbol": "UBL", "name": "United Bank Limited", "sector": "..." }, ...]
+```
+
+**Confirmed against `psxdata==1.1.0`'s actual source (2026-09-05): `screener()` has no company-name
+column** (only `symbol`, a numeric `sector` code, and price/volume fields) — but the library ships a
+dedicated `psxdata.symbols()` function returning exactly `symbol`, `name`, `sector_name` for every
+listed instrument, via a separate endpoint (`/symbols`, JSON) from screener's (`/screener`, HTML
+table). Use that; it's a real second request, not free, but it's the library's own purpose-built
+answer to this — no need to scrape PSX's homepage a second time. Give it its own try/except (same
+reasoning as Task 6's homepage scrape being independent of Task 2's screener call): a `/symbols`
+failure must not take down price fetching, and vice versa.
+
+**Refresh cadence: once a day is plenty, not every 15-minute run.** This list changes only on a new
+listing/delisting — gate the write behind something like "only run on the first invocation after
+00:00 PKT" (or simplest: always compute it since it's cheap, but only *write* if it differs from what's
+already there, to avoid a pointless write every 15 minutes). Don't add a second cron schedule for this;
+piggyback on the existing one.
+
+Write to a single document, not a collection-per-ticker (this is a few hundred entries, always read as
+a whole list, never queried by field):
+
+```
+tickers/all
+{ "companies": [{ "symbol": "UBL", "name": "United Bank Limited", "sector": "..." }, ...],
+  "updatedAt": SERVER_TIMESTAMP }
+```
+
+`firestore.rules` — same pattern as `market_prices`/`market_status`: top-level, read-only, only the
+backend (Admin SDK) writes:
+
+```
+match /tickers/{doc} {
+  allow read: if request.auth != null;
+}
+```
+
+No `firestore.indexes.json` entry needed — single fixed-path document, not a query, same as
+`market_status/current`.
+
+---
+
 ## Required tests
 
 `scripts/price_alerts/tests/` with `pytest` — no credentials, no network.
@@ -205,6 +257,8 @@ No `firestore.indexes.json` entry needed — this is a single fixed-path documen
 | 13 | `fetch_market_status()` parses "Closed" | `{"isOpen": False, "label": "Closed"}` |
 | 14 | **Homepage fetch/parse failure** | no `market_status/current` write this run — never a guessed value |
 | 15 | A price-fetch failure does not block the market-status write, and vice versa | the two are independent |
+| 16 | `fetch_listed_companies()` returns symbol+name for every screener row | matches a recorded fixture |
+| 17 | `tickers/all` is only written when its content actually changed | no pointless write every 15 minutes |
 
 Test 10 is the one that protects against the scraping dependency breaking silently. Commit a real
 captured `screener()` sample as a fixture.
@@ -213,15 +267,19 @@ captured `screener()` sample as a fixture.
 
 ## Acceptance criteria
 
-- [ ] `pytest` green
-- [ ] `workflow_dispatch` run succeeds against the real project
-- [ ] `market_prices` populated; app (Phase 04) shows live prices
-- [ ] `market_status/current` populated; app (Phase 04B) shows the correct Open/Closed clock
+- [x] `pytest` green (26/26, see Implementation notes)
+- [ ] `workflow_dispatch` run succeeds against the real project — **your turn, needs your credentials**
+- [ ] `market_prices` populated; app (Phase 04) shows live prices — depends on the above
+- [ ] `market_status/current` populated; app (Phase 04B) shows the correct Open/Closed clock — depends on the above
 - [ ] A deliberately low sell target fires **once**, deep-links correctly, and does **not** re-fire
-      on the next run
-- [ ] A buy alert near a real price fires with correct tolerance behaviour
-- [ ] Both composite indexes committed to `firestore.indexes.json`
-- [ ] No secret committed anywhere — check the diff before pushing
+      on the next run — depends on the above
+- [ ] A buy alert near a real price fires with correct tolerance behaviour — depends on the above
+- [x] Both composite indexes committed to `firestore.indexes.json` — best-effort, not yet validated
+      against a live `FailedPrecondition`, see Implementation notes
+- [x] No secret committed anywhere — checked the diff; `.gitignore` fixed to actually cover the
+      brief's own `service-account.json` filename
+- [ ] `tickers/all` populated with the full symbol+name list; Phase 09's picker can read it — depends
+      on a real run
 
 ## Manual setup (Moazzam's, not yours — list in report)
 
@@ -233,3 +291,65 @@ captured `screener()` sample as a fixture.
 
 Any Flutter code. Re-arming fired alerts. Historical price storage. Intraday data (PSX does not
 expose historical intraday archives publicly).
+
+---
+
+## Implementation notes (2026-09-05)
+
+Implemented directly (not handed to a separate coding agent this time).
+
+**`psxdata`'s actual API was verified against a real, live install**, not assumed from documentation:
+- `psxdata.screener()` really does return one request, ~745 rows today, columns `symbol`, `sector`
+  (numeric code), `listed_in`, `market_cap`, `price`, `change_pct`, `change_1y_pct`, `pe_ratio`,
+  `dividend_yield`, `free_float`, `volume_avg_30d`. No company-name column, confirming Task 7's
+  decision to use `psxdata.symbols()` instead.
+- `psxdata.symbols()` returns `symbol`, `name`, `sector_name`, `is_etf`, `is_debt`, `is_gem` for ~1016
+  instruments — exactly Task 7's need, no second homepage scrape required.
+- `firebase_admin` (7.5.0 resolved) API calls in `firestore_io.py` — `collection_group().where().stream()`,
+  `messaging.Message`/`messaging.send`, `firestore.SERVER_TIMESTAMP`, `credentials.Certificate` — all
+  checked against the real installed library's signatures, not guessed.
+- `requirements.txt` pinned to the versions actually resolved and tested against: `firebase-admin==7.5.0`,
+  `requests==2.34.2`, `beautifulsoup4==4.15.0`, `psxdata==1.1.0`.
+
+**Market status scraping (Task 6)**: fetched the live PSX homepage once to confirm the actual text
+("Market Status" / "Open" or "Closed" under "Market Highlights"). Rather than hard-coding a brittle
+CSS-selector path to specific HTML nesting (which wasn't independently verifiable without raw HTML
+access), `_parse_market_status_label` flattens the page to plain visible text and regex-matches
+`Market Status\W{0,10}(Open|Closed)` — resilient to markup/nesting changes, still specific enough not
+to false-match unrelated page text. This is inherently the most fragile part of the whole backend (any
+future homepage redesign can break it) — that's why it has its own try/except and fails closed (skip
+the write, never guess), exactly as the brief specified.
+
+**Test fixtures are real captured data**, not hand-invented: `tests/fixtures/screener_sample.json` and
+`symbols_sample.json` are actual subsets of live `psxdata.screener()`/`psxdata.symbols()` output
+(ENGRO, HUBC, LUCK, OGDC, UBL), captured 2026-09-05. This is what makes test 10 (the contract test) a
+real regression guard — if a future `psxdata` upgrade changes what column name holds the price or
+symbol, `fetch_prices()`'s hard-coded column access breaks against this same real data, failing in CI.
+
+**All 17 required tests pass** (26 total, including a few extra edge cases): 7 for `alerts.py`'s pure
+logic, 4 for `price_source.py` (including the contract test), 3 for `firestore_io.py`'s collection-group
+query filtering, 5 for `main.py`'s orchestration (missing-token skip, independence between price/status
+steps, tickers-doc change-detection), 5 for `market_status_source.py`, 2 for `tickers_source.py`.
+
+**`firestore.indexes.json` is a best-effort construction, not yet validated against a live
+`FailedPrecondition` error** — I have no credentials to run this against the real Firestore project.
+Contains a composite index for `price_alerts` (`isActive` + `alertSent`, `COLLECTION_GROUP` scope) and a
+`fieldOverrides` entry enabling `positions.status` for collection-group queries. **Before relying on
+this**: complete the manual setup below, run `workflow_dispatch` once, and if Firestore still throws
+`FailedPrecondition` with a console link, use the console's own suggested index and update this file to
+match — don't assume mine is exactly right.
+
+**`.gitignore` gap fixed in passing**: it already had `*service_account*.json` (underscore) but the
+brief's own Task 5 names the file `service-account.json` (hyphen), which didn't match. Added
+`*service-account*.json` and a Python section (`__pycache__/`, `.venv/`, `.pytest_cache/`).
+
+### Not done, and cannot be done without you
+
+- **The two manual setup steps below** — generating the service account key and adding the GitHub
+  secret. Nothing here works at all until you do both.
+- **A real `workflow_dispatch` run against the live project** — I have no credentials to trigger or
+  observe one. This is the main thing to verify next.
+- **The composite indexes' exact correctness** — see above; Firestore's console is the actual source of
+  truth if my best-effort JSON is wrong.
+- **A deliberately-low sell target actually firing once and not re-firing** — needs a real position, a
+  real device, and a real scheduled/dispatched run.

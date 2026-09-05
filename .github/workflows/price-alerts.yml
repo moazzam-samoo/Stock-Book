@@ -1,0 +1,44 @@
+name: Price alerts
+
+on:
+  schedule:
+    # Every 15 minutes, 09:15-15:30 PKT (04:15-10:30 UTC), Mon-Fri.
+    # Pakistan does not observe DST, so this offset is stable year-round.
+    #
+    # GitHub's cron scheduler can run several minutes late under load —
+    # fine at 15-minute granularity, not fine if you need second-precision
+    # timing.
+    #
+    # Scheduled workflows are auto-disabled by GitHub after 60 days with no
+    # repository activity at all. If this repo goes quiet, alerts stop
+    # firing silently, with no error anywhere in this workflow's own logs
+    # (it simply never runs). The app's own staleness indicator (Phase 04)
+    # is the user-facing mitigation; a monthly no-op commit is a cheap
+    # backstop if that's not enough.
+    - cron: '*/15 4-10 * * 1-5'
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r scripts/price_alerts/requirements.txt
+
+      - name: Write service account credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > service-account.json
+
+      - name: Run price alerts
+        env:
+          FIREBASE_SERVICE_ACCOUNT_PATH: service-account.json
+        run: python scripts/price_alerts/main.py
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f service-account.json

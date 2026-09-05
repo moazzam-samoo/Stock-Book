@@ -18,6 +18,8 @@ import 'package:stock_investment_tracker/data/repositories/market_status_reposit
 import 'package:stock_investment_tracker/domain/repositories/market_status_repository.dart';
 import 'package:stock_investment_tracker/domain/repositories/user_repository.dart';
 import 'package:stock_investment_tracker/data/repositories/user_repository_impl.dart';
+import 'package:stock_investment_tracker/domain/repositories/price_alert_repository.dart';
+import 'package:stock_investment_tracker/data/repositories/price_alert_repository_impl.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 
 final firebaseFirestoreProvider = Provider<FirebaseFirestore?>((ref) {
@@ -126,4 +128,11 @@ final userRepositoryProvider = Provider<UserRepository?>((ref) {
     uid: uid,
     firestore: firestore,
   );
+});
+
+final priceAlertRepositoryProvider = Provider<PriceAlertRepository?>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  final firestoreSource = ref.watch(firestoreDataSourceProvider);
+  if (uid == null || firestoreSource == null) return null;
+  return PriceAlertRepositoryImpl(firestoreSource, uid);
 });

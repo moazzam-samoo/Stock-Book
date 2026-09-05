@@ -1,0 +1,70 @@
+{
+  "_captured": "Real subset of psxdata.screener()'s live output, captured 2026-09-05 against psxdata==1.1.0. Used by the contract test (test_price_source.py) so a future psxdata upgrade that renames/drops the 'symbol' or 'price' columns fails this test in CI rather than silently omitting every price in production.",
+  "rows": [
+    {
+      "symbol": "ENGRO",
+      "sector": 809.0,
+      "listed_in": "",
+      "market_cap": null,
+      "price": 485.38,
+      "change_pct": 1.48,
+      "change_1y_pct": 0.0,
+      "pe_ratio": 0.0,
+      "dividend_yield": 0.0,
+      "free_float": null,
+      "volume_avg_30d": 2272600.0
+    },
+    {
+      "symbol": "HUBC",
+      "sector": 824.0,
+      "listed_in": "ALLSHR,KMI30,KMIALLSHR,KSE100,KSE100PR,KSE30,MII30,MZNPI,NBPPGI,NITPGI,PSXDIV20,UPP9",
+      "market_cap": null,
+      "price": 207.44,
+      "change_pct": 0.35,
+      "change_1y_pct": 16.71,
+      "pe_ratio": 11.0,
+      "dividend_yield": 8.57,
+      "free_float": null,
+      "volume_avg_30d": 4712545.0
+    },
+    {
+      "symbol": "LUCK",
+      "sector": 804.0,
+      "listed_in": "ACI,ALLSHR,KMI30,KMIALLSHR,KSE100,KSE100PR,KSE30,MII30,MZNPI,NBPPGI,NITPGI,UPP9",
+      "market_cap": null,
+      "price": 433.12,
+      "change_pct": 0.42,
+      "change_1y_pct": -4.37,
+      "pe_ratio": 13.61,
+      "dividend_yield": 1.06,
+      "free_float": null,
+      "volume_avg_30d": 1539438.0
+    },
+    {
+      "symbol": "OGDC",
+      "sector": 820.0,
+      "listed_in": "ALLSHR,KMI30,KMIALLSHR,KSE100,KSE100PR,KSE30,MII30,MZNPI,NBPPGI,NITPGI,OGTI",
+      "market_cap": null,
+      "price": 328.8,
+      "change_pct": 0.54,
+      "change_1y_pct": 21.6,
+      "pe_ratio": 8.42,
+      "dividend_yield": 4.34,
+      "free_float": null,
+      "volume_avg_30d": 3828287.0
+    },
+    {
+      "symbol": "UBL",
+      "sector": 807.0,
+      "listed_in": "ALLSHR,BKTI,JSGBKTI,JSMFI,KSE100,KSE100PR,KSE30,NBPPGI,NITPGI,PSXDIV20,UPP9",
+      "market_cap": null,
+      "price": 440.83,
+      "change_pct": -0.54,
+      "change_1y_pct": 14.74,
+      "pe_ratio": 7.4,
+      "dividend_yield": 7.15,
+      "free_float": null,
+      "volume_avg_30d": 1687441.0
+    }
+  ]
+}
