@@ -357,4 +357,23 @@ class MockHiveDataSource extends _i1.Mock implements _i11.HiveDataSource {
             ),
           )
           as _i3.Future<Map<String, _i9.MarketPriceModel>>);
+
+  @override
+  _i3.Future<void> saveTickers(List<dynamic>? tickers) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveTickers, [tickers]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<List<Map<String, dynamic>>> getTickers() =>
+      (super.noSuchMethod(
+            Invocation.method(#getTickers, []),
+            returnValue: _i3.Future<List<Map<String, dynamic>>>.value(
+              <Map<String, dynamic>>[],
+            ),
+          )
+          as _i3.Future<List<Map<String, dynamic>>>);
 }

@@ -68,6 +68,14 @@ void main() {
     
     when(mockFirebaseMessaging.getInitialMessage()).thenAnswer((_) async => null);
 
+    // initialize() checks this whenever getInitialMessage() is null — a cold
+    // start caused by tapping a notification the app displayed itself (the
+    // only kind that actually happens, since the backend only ever sends
+    // data-only messages). Defaulting to "no", so existing tests that only
+    // care about other things don't trip a MissingStubError on this new path.
+    when(mockLocalNotifications.getNotificationAppLaunchDetails())
+        .thenAnswer((_) async => const NotificationAppLaunchDetails(false));
+
     when(mockUserRepository.savePushToken(any)).thenAnswer((_) async => {});
 
     // Without this, an unstubbed push() throws MissingStubError inside
@@ -218,5 +226,103 @@ void main() {
     addTearDown(container.dispose);
 
     expect(container.read(pushNotificationServiceProvider), isNull);
+  });
+
+  group('buildNotificationContent (pure — no notification field, ever, in production)', () {
+    // The backend deliberately sends data-only messages — no `notification`
+    // field. This function is the entire reason anything shows up at all,
+    // in every app state; a bug here means a real alert fires and nothing
+    // visible happens, silently.
+    test('sell payload produces a sell-specific title and body', () {
+      final content = buildNotificationContent({'type': 'sell', 'ticker': 'ENGRO'});
+      expect(content, isNotNull);
+      expect(content!.title, contains('Sell'));
+      expect(content.body, contains('ENGRO'));
+    });
+
+    test('buy payload produces a buy-specific title and body', () {
+      final content = buildNotificationContent({'type': 'buy', 'ticker': 'HUBC'});
+      expect(content, isNotNull);
+      expect(content!.title, contains('Buy'));
+      expect(content.body, contains('HUBC'));
+    });
+
+    test('an unrecognised type shows nothing rather than a garbled notification', () {
+      expect(buildNotificationContent({'type': 'unknown', 'ticker': 'ENGRO'}), isNull);
+    });
+
+    test('a missing ticker shows nothing', () {
+      expect(buildNotificationContent({'type': 'sell'}), isNull);
+    });
+
+    test('an empty ticker shows nothing', () {
+      expect(buildNotificationContent({'type': 'sell', 'ticker': ''}), isNull);
+    });
+  });
+
+  group('foreground display for the real (data-only) payload', () {
+    // Regression: _onForegroundMessage used to gate on message.notification
+    // != null. The backend never sets that field, so this path silently did
+    // nothing for every real alert while the app was open — the bug this
+    // whole file's rewrite exists to fix.
+    test('a data-only message still shows a local notification', () async {
+      final msg = RemoteMessage(data: {'type': 'sell', 'ticker': 'ENGRO'});
+      when(mockLocalNotifications.show(
+        id: anyNamed('id'),
+        title: anyNamed('title'),
+        body: anyNamed('body'),
+        notificationDetails: anyNamed('notificationDetails'),
+        payload: anyNamed('payload'),
+      )).thenAnswer((_) async {});
+
+      service.handleForegroundMessageForTesting(msg);
+
+      // Capturing two named params in one verify() interleaves both into a
+      // single flat list ([title, body] for this one call) — not one value.
+      final captured = verify(mockLocalNotifications.show(
+        id: anyNamed('id'),
+        title: captureAnyNamed('title'),
+        body: captureAnyNamed('body'),
+        notificationDetails: anyNamed('notificationDetails'),
+        payload: anyNamed('payload'),
+      )).captured;
+      expect(captured, hasLength(2));
+      expect(captured[0], contains('Sell'));
+      expect(captured[1], contains('ENGRO'));
+    });
+
+    test('a malformed data-only message shows nothing, not an exception', () {
+      final msg = RemoteMessage(data: {'type': 'unknown'});
+      expect(() => service.handleForegroundMessageForTesting(msg), returnsNormally);
+      verifyNever(mockLocalNotifications.show(
+        id: anyNamed('id'),
+        title: anyNamed('title'),
+        body: anyNamed('body'),
+        notificationDetails: anyNamed('notificationDetails'),
+        payload: anyNamed('payload'),
+      ));
+    });
+  });
+
+  test(
+      '9. cold start via a locally-shown notification (app was fully '
+      'terminated) routes correctly — distinct from getInitialMessage, which '
+      'only ever fires for a `notification` field this app never sends', () {
+    when(mockLocalNotifications.getNotificationAppLaunchDetails()).thenAnswer(
+      (_) async => NotificationAppLaunchDetails(
+        true,
+        notificationResponse: const NotificationResponse(
+          notificationResponseType: NotificationResponseType.selectedNotification,
+          payload: '{"type":"buy","ticker":"PSO"}',
+        ),
+      ),
+    );
+
+    service.initialize();
+
+    return Future.delayed(const Duration(milliseconds: 600), () {
+      verify(mockGoRouter.push('/stock/PSO')).called(1);
+      verifyNever(mockGoRouter.go(any));
+    });
   });
 }

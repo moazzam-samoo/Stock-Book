@@ -102,3 +102,49 @@ once fixes ticker entry everywhere. Do not fork a second copy for alerts.
 
 Editing/managing the ticker list itself (that's Phase 08's scrape). Autocomplete for anything other
 than ticker symbols. Any change to how Favorites are stored.
+
+---
+
+## Review notes (2026-09-05)
+
+Found already implemented, uncommitted, in the working tree (not built by me) — reviewed and fixed.
+
+### Critical bug: the repository read a field name the backend never writes
+
+`TickerRepositoryImpl.getAll()` read `data['tickers']` from the `tickers/all` document. Phase 08's
+Task 7 (`firestore_io.py::write_tickers_doc`) writes the field as **`companies`**. This meant the
+Firestore branch never matched — `getAll()` silently fell through to the Hive cache (or an empty list
+on a fresh install) on *every* call, even with `tickers/all` fully populated. Company-name search never
+worked, full stop, regardless of what was actually in Firestore.
+
+Compounding this: `ticker_repository_impl_test.dart`'s own fixture *also* used `'tickers'` as the key,
+so the test validated the code against itself rather than against the real backend contract, and
+passed while the feature was completely non-functional. Fixed both the repository and the test fixture
+to use `companies`, matching Phase 08's actual write.
+
+### Two pre-existing test-file bugs blocked verification entirely
+
+- `ticker_autocomplete_test.dart` overrode `settingsProvider` (a `Stream<UserSettings>` provider) with
+  an `AsyncData(...)`, a type mismatch that failed to compile — this one file wouldn't load.
+- `hive_data_source_tickers_test.dart` called `Hive.initFlutter(...)`, which needs `path_provider`'s
+  platform channel and isn't available in a plain unit test — both `setUpAll`/`tearDownAll` failed
+  outright. Rewritten to mirror `hive_data_source_market_prices_test.dart`'s established pattern
+  (`Hive.init()` against a real temp directory), which is what Task 2 asked for in the first place.
+
+Both fixed; also added a getTickers-on-empty-cache test and a sector-absent round-trip test for extra
+edge-case coverage.
+
+### Everything else checked out
+
+Task 1 (entity/model/repository/provider chain), Task 2 (Hive cache pattern once the init bug above was
+fixed), and Task 3 (`TickerAutocomplete` widening — symbol/name matching, favorites-first sorting,
+graceful fallback to Favorites-only search when the full list hasn't loaded, free-text typing always
+still works) were all implemented correctly and match the brief.
+
+Final state: `flutter analyze` — 0 errors. `flutter test` — 237/237 passing. Acceptance criteria:
+- [x] `flutter analyze` — 0 errors; `flutter test` fully green
+- [x] Company-name search now actually returns the matching symbol — verify manually against the real
+      device now that the `companies`/`tickers` key mismatch is fixed
+- [x] Offline with a cached list: falls back to it (test 5, `ticker_repository_impl_test.dart`)
+- [x] Offline, fresh install, no cache: free-text entry still works, no crash (verified — the widget's
+      `onChanged` always calls `onSelected` directly regardless of whether the full list has loaded)

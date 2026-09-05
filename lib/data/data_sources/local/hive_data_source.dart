@@ -54,6 +54,26 @@ class HiveDataSource {
     return {};
   }
 
+  // Tickers
+  Future<void> saveTickers(List<dynamic> tickers) async {
+    final box = await Hive.openBox('tickers_cache');
+    await box.put('tickers', tickers);
+  }
+
+  Future<List<Map<String, dynamic>>> getTickers() async {
+    final box = await Hive.openBox('tickers_cache');
+    final data = box.get('tickers');
+    if (data != null && data is List) {
+      return data.map((e) {
+        if (e is Map) {
+          return _sanitizeMap(Map<String, dynamic>.from(e));
+        }
+        return <String, dynamic>{};
+      }).toList();
+    }
+    return [];
+  }
+
   Map<String, dynamic> _sanitizeMap(Map<String, dynamic> map) {
     final sanitized = <String, dynamic>{};
     map.forEach((key, value) {
