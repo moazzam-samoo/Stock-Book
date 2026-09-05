@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/core/services/data_export_service.dart'
 import 'package:url_launcher/url_launcher.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/providers/workflow_trigger_providers.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
@@ -71,6 +72,11 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSectionTitle(context, 'PROFIT WITHDRAWALS'),
                       const SizedBox(height: 12),
                       _buildWithdrawalsSection(context, ref, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'PRICE REFRESH'),
+                      const SizedBox(height: 12),
+                      _buildPriceRefreshSection(context, ref, isDark),
                       const SizedBox(height: 28),
 
                       _buildSectionTitle(context, 'COMPANY INFO'),
@@ -444,6 +450,162 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Lets the user supply their own GitHub token so pull-to-refresh can ask
+  /// the backend to run immediately instead of waiting for its 5-minute
+  /// schedule (which is also idle outside market hours and at weekends).
+  ///
+  /// The token is stored only in the device keystore — it is never committed
+  /// and never built into the app, which is the whole reason it's entered
+  /// here rather than shipped as a constant.
+  Widget _buildPriceRefreshSection(BuildContext context, WidgetRef ref, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final hasTokenAsync = ref.watch(hasGithubTokenProvider);
+    final hasToken = hasTokenAsync.valueOrNull ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? null
+            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  hasToken ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+                  size: 20,
+                  color: hasToken
+                      ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight)
+                      : AppColors.neutral500,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    hasToken ? 'On-demand refresh enabled' : 'On-demand refresh off',
+                    style: AppTypography.body.copyWith(
+                      color: primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              hasToken
+                  ? 'Pull down on Transactions to fetch prices right away. Prices also refresh automatically every 5 minutes while the market is open.'
+                  : 'Prices refresh automatically every 5 minutes while the market is open. Add a GitHub token to also refresh on demand by pulling down on Transactions.',
+              style: AppTypography.caption.copyWith(color: AppColors.neutral500, fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showGithubTokenDialog(context, ref),
+                    icon: const Icon(Icons.key_outlined, size: 18),
+                    label: Text(hasToken ? 'Replace token' : 'Add token'),
+                  ),
+                ),
+                if (hasToken) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final result = await ref.read(triggerWorkflowProvider)();
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(result.message),
+                            backgroundColor:
+                                result.isSuccess ? AppColors.moneyGreenOnLight : AppColors.dangerRed,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.play_arrow_outlined, size: 18),
+                      label: const Text('Test'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (hasToken)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () async {
+                    await ref.read(secureTokenStorageProvider).deleteGithubToken();
+                    ref.invalidate(hasGithubTokenProvider);
+                  },
+                  child: const Text('Remove token', style: TextStyle(color: AppColors.dangerRed)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGithubTokenDialog(BuildContext context, WidgetRef ref) {
+    var token = '';
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('GitHub token'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Create a fine-grained token on GitHub with access to only the '
+              'Stock-Book repository, and only the "Actions" permission set to '
+              'read and write. Paste it below.\n\n'
+              'It is stored encrypted on this device only — never uploaded, and '
+              'never included in the app itself.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              autofocus: true,
+              obscureText: true,
+              decoration: const InputDecoration(
+                hintText: 'github_pat_...',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (val) => token = val,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final trimmed = token.trim();
+              if (trimmed.isEmpty) return;
+              Navigator.pop(dialogCtx);
+              await ref.read(secureTokenStorageProvider).writeGithubToken(trimmed);
+              ref.invalidate(hasGithubTokenProvider);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

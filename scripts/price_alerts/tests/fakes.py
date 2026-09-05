@@ -28,7 +28,13 @@ class _FakeQuery:
     def __init__(self, docs: list[dict]):
         self._docs = docs
 
-    def where(self, field, op, value):
+    def where(self, field=None, op=None, value=None, *, filter=None):  # noqa: A002
+        # Accepts both the legacy positional form and the FieldFilter keyword
+        # form the real client now wants, so this fake keeps matching whichever
+        # firestore_io actually uses.
+        if filter is not None:
+            field, op, value = filter.field_path, filter.op_string, filter.value
+
         if op == "in":
             filtered = [d for d in self._docs if d["data"].get(field) in value]
         elif op == "==":
