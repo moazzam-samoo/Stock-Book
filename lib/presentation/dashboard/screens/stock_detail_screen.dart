@@ -14,6 +14,7 @@ import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart'
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/market_status_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
@@ -36,7 +37,10 @@ class StockDetailScreen extends ConsumerWidget {
     final marketPriceAsync = ref.watch(watchMarketPriceProvider(ticker));
     final livePriceModel = marketPriceAsync.valueOrNull;
     final livePrice = livePriceModel?.price;
-    final isPriceStale = livePriceModel != null && DateTime.now().difference(livePriceModel.updatedAt).inHours >= 1;
+    // Replaces the old time-since-last-fetch "(Stale)" marker: whether the
+    // market itself is open right now, via the same rule the Dashboard clock
+    // and position_card.dart use — null means "don't know", never guessed.
+    final isMarketOpen = currentlyOpen(ref.watch(watchMarketStatusProvider).valueOrNull);
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
@@ -222,22 +226,36 @@ class StockDetailScreen extends ConsumerWidget {
                                   Text(
                                     livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
                                     style: AppTypography.h1.copyWith(
-                                      color: (livePriceModel == null || isPriceStale)
+                                      color: livePriceModel == null
                                           ? (isDark ? Colors.white54 : Colors.black38)
                                           : primaryTextColor,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 32,
                                     ),
                                   ),
-                                  if (livePriceModel != null && isPriceStale) ...[
+                                  if (isMarketOpen == true && livePrice != null) ...[
                                     const SizedBox(width: 8),
-                                    Text(
-                                      '(Stale)',
-                                      style: TextStyle(
-                                        color: AppColors.alertRed,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(0xFF00FF7F),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Live',
+                                          style: TextStyle(
+                                            color: const Color(0xFF00FF7F),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ],
@@ -246,7 +264,10 @@ class StockDetailScreen extends ConsumerWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Text(
-                                    'Current Market Price',
+                                    // Market closed: this price is a known
+                                    // closing price, not a live one — say so
+                                    // rather than implying it's still moving.
+                                    isMarketOpen == false ? 'Closing Price' : 'Current Market Price',
                                     style: AppTypography.caption.copyWith(
                                       color: isDark ? Colors.white54 : Colors.black54,
                                       fontSize: 12,

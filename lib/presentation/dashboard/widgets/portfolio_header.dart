@@ -160,13 +160,13 @@ class _MarketClockState extends ConsumerState<_MarketClock> {
   @override
   Widget build(BuildContext context) {
     final status = ref.watch(watchMarketStatusProvider).valueOrNull;
+    final isOpen = currentlyOpen(status);
 
-    if (status == null || DateTime.now().difference(status.checkedAt).inMinutes > 30) {
+    if (isOpen == null) {
       if (widget.lastSyncTime == null) return const SizedBox.shrink();
       return _buildLegacySync(widget.lastSyncTime!);
     }
 
-    final isOpen = status.isOpen;
     final color = isOpen ? const Color(0xFF00FF7F) : AppColors.alertRed;
     final text = isOpen ? 'Market Open' : 'Market Closed';
 
