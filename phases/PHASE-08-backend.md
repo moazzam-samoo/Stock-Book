@@ -124,7 +124,7 @@ FCM `data` values must all be **strings**. A float or None here fails at send ti
 ```yaml
 on:
   schedule:
-    - cron: '*/15 4-10 * * 1-5'   # 09:15–15:30 PKT; Pakistan has no DST
+    - cron: '*/5 4-10 * * 1-5'   # 09:15–15:30 PKT; Pakistan has no DST (updated 2026-09-05 from */15)
   workflow_dispatch: {}
 ```
 
