@@ -1,8 +1,13 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/repositories/user_repository.dart';
+import '../../firebase_options.dart';
+import '../utils/currency_formatter.dart';
 import 'package:logger/logger.dart';
 
 /// Service responsible for handling Firebase Cloud Messaging (FCM) push notifications.
@@ -13,9 +18,131 @@ import 'package:logger/logger.dart';
 ///   "type": "sell" | "buy",
 ///   "ticker": "ENGRO",
 ///   "positionId": "...",
-///   "alertId": "..."
+///   "alertId": "...",
+///   "price": "123.45"
 /// }
 /// ```
+///
+/// The backend sends this as a **data-only** message — deliberately no
+/// `notification` field, so this contract (not FCM's own auto-display) is the
+/// single source of truth for what the user sees and where a tap routes.
+/// That means nothing shows up for free: every visible state (foreground,
+/// background, terminated) has to build its own notification from `data`, and
+/// that's what the functions in this file do.
+///
+/// `price` matters more than it looks: alerts are not one-shot (see
+/// alerts.py's REPEAT_ALERT_STEP_PERCENT) — the same ticker can notify
+/// multiple times as it keeps moving in the user's favor. Without the actual
+/// price in each one, repeat notifications for the same ticker would render
+/// identical text, with no way to tell a new high from a duplicate.
+
+const String _androidNotificationChannelId = 'stock_alerts';
+const String _androidNotificationChannelName = 'Stock Alerts';
+const String _androidNotificationChannelDescription =
+    'Notifications for stock price alerts and updates';
+
+/// Human-readable title/body derived from the payload contract above.
+class NotificationContent {
+  final String title;
+  final String body;
+  const NotificationContent({required this.title, required this.body});
+}
+
+/// Pure and top-level so it's usable from both the running app and the
+/// background isolate below, and directly unit-testable without touching
+/// Firebase or a widget tree.
+///
+/// Returns null for a malformed/unrecognised payload — untrusted input (it
+/// arrives from outside the app) must degrade to "show nothing", never to a
+/// confusing notification with blank or garbled text.
+NotificationContent? buildNotificationContent(Map<String, dynamic> data) {
+  final type = data['type'] as String?;
+  final ticker = data['ticker'] as String?;
+  if (ticker == null || ticker.isEmpty) return null;
+
+  // FCM data payloads are always strings — a malformed/absent price falls
+  // back to a still-useful, if less specific, message rather than showing
+  // nothing or crashing on untrusted input.
+  final priceValue = double.tryParse(data['price']?.toString() ?? '');
+  final priceText = priceValue != null ? ' at ${AppCurrencyFormatter.format(priceValue)}' : '';
+
+  switch (type) {
+    case 'sell':
+      return NotificationContent(
+        title: 'Sell target hit',
+        body: '$ticker has reached your target price$priceText.',
+      );
+    case 'buy':
+      return NotificationContent(
+        title: 'Buy target hit',
+        body: '$ticker has dropped to your target price$priceText.',
+      );
+    default:
+      return null;
+  }
+}
+
+NotificationDetails _notificationDetails() {
+  const androidDetails = AndroidNotificationDetails(
+    _androidNotificationChannelId,
+    _androidNotificationChannelName,
+    channelDescription: _androidNotificationChannelDescription,
+    importance: Importance.max,
+    priority: Priority.high,
+    sound: RawResourceAndroidNotificationSound('stock_alert'),
+  );
+  const iosDetails = DarwinNotificationDetails(sound: 'stock_alert.wav');
+  return const NotificationDetails(android: androidDetails, iOS: iosDetails);
+}
+
+InitializationSettings _initializationSettings() {
+  // 'ic_launcher' only exists as a mipmap resource (the adaptive launcher
+  // icon) — flutter_local_notifications requires a drawable, which only
+  // 'ic_launcher_foreground' (the adaptive icon's foreground layer) is.
+  const androidInit = AndroidInitializationSettings('ic_launcher_foreground');
+  const iosInit = DarwinInitializationSettings();
+  return const InitializationSettings(android: androidInit, iOS: iosInit);
+}
+
+/// Fires when a data-only FCM message arrives while the app is backgrounded
+/// *or fully terminated*. Android/iOS spin up a throwaway isolate purely to
+/// run this — nothing else in the app is alive, which is why it must be a
+/// top-level function (not a method) and reinitialise everything it needs
+/// from scratch, including Firebase itself.
+///
+/// This is the missing piece that made push alerts invisible whenever the
+/// app was closed: without a registered background handler, a data-only
+/// message (which is all the backend ever sends) has no automatic display at
+/// all — FCM's own system-tray rendering only ever triggers for a
+/// `notification` field, which this payload deliberately doesn't have.
+///
+/// [localNotifications] is test-only injection — an optional named parameter
+/// keeps this assignable to FCM's required `Future<void> Function(RemoteMessage)`
+/// handler signature, so production registration is unaffected.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(
+  RemoteMessage message, {
+  FlutterLocalNotificationsPlugin? localNotifications,
+}) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
+
+  final content = buildNotificationContent(message.data);
+  if (content == null) return;
+
+  final notifications = localNotifications ?? FlutterLocalNotificationsPlugin();
+  await notifications.initialize(settings: _initializationSettings());
+  await notifications.show(
+    id: message.hashCode,
+    title: content.title,
+    body: content.body,
+    notificationDetails: _notificationDetails(),
+    payload: jsonEncode(message.data),
+  );
+}
+
 class PushNotificationService {
   final FirebaseMessaging _firebaseMessaging;
   final UserRepository _userRepository;
@@ -56,15 +183,9 @@ class PushNotificationService {
         return;
       }
 
-      // 2. Setup Local Notifications (for foreground display on Android)
-      // 'ic_launcher' only exists as a mipmap resource (the adaptive launcher
-      // icon) — flutter_local_notifications requires a drawable, which only
-      // 'ic_launcher_foreground' (the adaptive icon's foreground layer) is.
-      const androidInit = AndroidInitializationSettings('ic_launcher_foreground');
-      const iosInit = DarwinInitializationSettings();
-      const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+      // 2. Setup Local Notifications (for foreground + background display)
       await _localNotifications.initialize(
-        settings: initSettings,
+        settings: _initializationSettings(),
         onDidReceiveNotificationResponse: _onLocalNotificationTapped,
       );
 
@@ -83,13 +204,33 @@ class PushNotificationService {
       // 5. Listen to background taps
       FirebaseMessaging.onMessageOpenedApp.listen(_routeMessage);
 
-      // 6. Handle cold start from terminated state
+      // 6. Handle cold start. Two distinct origins, since this app only ever
+      // sends data-only messages:
+      //
+      //   A) FirebaseMessaging.getInitialMessage() — the app was launched by
+      //      tapping an OS-auto-displayed notification. Never actually
+      //      happens with this payload contract today (that requires a
+      //      `notification` field), but costs nothing to keep as a defensive
+      //      fallback in case that ever changes.
+      //   B) _localNotifications.getNotificationAppLaunchDetails() — the app
+      //      was launched by tapping a notification *we* displayed manually
+      //      (via the background handler above, or _onForegroundMessage).
+      //      This is what actually fires today. FCM's own getInitialMessage
+      //      has no visibility into a locally-shown notification at all.
       final initialMessage = await _firebaseMessaging.getInitialMessage();
       if (initialMessage != null) {
         // Defer routing slightly to allow app to fully mount
         Future.delayed(const Duration(milliseconds: 500), () {
           _routeMessage(initialMessage);
         });
+      } else {
+        final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+        final payload = launchDetails?.notificationResponse?.payload;
+        if (launchDetails?.didNotificationLaunchApp == true && payload != null) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            _routeFromPayload(payload);
+          });
+        }
       }
 
       _isInitialized = true;
@@ -98,42 +239,47 @@ class PushNotificationService {
     }
   }
 
+  /// `FirebaseMessaging.onMessage` is a static stream, which Mockito cannot
+  /// intercept — this exists purely so a test can drive the same logic
+  /// `_onForegroundMessage` runs with a synthetic [RemoteMessage], without
+  /// needing the real stream.
+  @visibleForTesting
+  void handleForegroundMessageForTesting(RemoteMessage message) => _onForegroundMessage(message);
+
   void _onForegroundMessage(RemoteMessage message) {
+    // The backend never sets `notification` (see the payload contract at the
+    // top of this file) — content is always built from `data`. Reading
+    // `message.notification` first is kept only as a defensive fallback for
+    // a manually-sent test message (e.g. Firebase Console), which does
+    // attach one; production alerts never take that branch.
     final notification = message.notification;
+    final content = notification != null
+        ? NotificationContent(title: notification.title ?? '', body: notification.body ?? '')
+        : buildNotificationContent(message.data);
 
-    if (notification != null) {
-      // Use standard system sound or custom sound if provided
-      const androidDetails = AndroidNotificationDetails(
-        'stock_alerts', // Channel ID
-        'Stock Alerts', // Channel Name
-        channelDescription: 'Notifications for stock price alerts and updates',
-        importance: Importance.max,
-        priority: Priority.high,
-        sound: RawResourceAndroidNotificationSound('stock_alert'),
-      );
-      const iosDetails = DarwinNotificationDetails(
-        sound: 'stock_alert.wav',
-      );
-      const notificationDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);
+    if (content == null) return;
 
-      _localNotifications.show(
-        id: notification.hashCode,
-        title: notification.title,
-        body: notification.body,
-        notificationDetails: notificationDetails,
-        payload: jsonEncode(message.data),
-      );
-    }
+    _localNotifications.show(
+      id: message.hashCode,
+      title: content.title,
+      body: content.body,
+      notificationDetails: _notificationDetails(),
+      payload: jsonEncode(message.data),
+    );
   }
 
   void _onLocalNotificationTapped(NotificationResponse response) {
     if (response.payload != null) {
-      try {
-        final data = jsonDecode(response.payload!) as Map<String, dynamic>;
-        _routeData(data);
-      } catch (e) {
-        _logger.e('Error parsing local notification payload: $e');
-      }
+      _routeFromPayload(response.payload!);
+    }
+  }
+
+  void _routeFromPayload(String payload) {
+    try {
+      final data = jsonDecode(payload) as Map<String, dynamic>;
+      _routeData(data);
+    } catch (e) {
+      _logger.e('Error parsing local notification payload: $e');
     }
   }
 

@@ -16,4 +16,7 @@ class FirestorePaths {
 
   // Market Status
   static String marketStatus() => 'market_status/current';
+
+  // Tickers
+  static String tickersDoc() => 'tickers/all';
 }

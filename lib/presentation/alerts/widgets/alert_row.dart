@@ -131,7 +131,12 @@ class AlertRow extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              alert.isActive ? 'ACTIVE' : 'TRIGGERED',
+                              // Alerts aren't one-shot: a fired alert stays
+                              // ACTIVE so it can keep notifying on a further
+                              // move (see PriceAlert.lastAlertPrice) —
+                              // "TRIGGERED" would now be a permanent, wrong
+                              // label the moment it first fired.
+                              alert.isActive ? 'ACTIVE' : 'PAUSED',
                               style: AppTypography.caption.copyWith(
                                 color: alert.isActive
                                     ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight)
@@ -142,6 +147,14 @@ class AlertRow extends ConsumerWidget {
                               ),
                             ),
                           ),
+                          if (alert.alertSent) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.notifications_active,
+                              size: 14,
+                              color: isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight,
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           Text(
                             '≤ ${AppCurrencyFormatter.format(threshold)}',
@@ -150,7 +163,19 @@ class AlertRow extends ConsumerWidget {
                               fontSize: 12,
                             ),
                           ),
-                          if (alert.alertSentAt != null) ...[
+                          if (alert.lastAlertPrice != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              // Shows the price the alert actually last fired
+                              // at — the useful number when it can fire
+                              // repeatedly, not just whether it ever did.
+                              '· last: ${AppCurrencyFormatter.format(alert.lastAlertPrice!)}',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.neutral500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ] else if (alert.alertSentAt != null) ...[
                             const SizedBox(width: 8),
                             Text(
                               '· ${dateFormat.format(alert.alertSentAt!)}',

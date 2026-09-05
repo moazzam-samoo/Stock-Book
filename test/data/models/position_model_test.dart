@@ -112,6 +112,30 @@ void main() {
       expect(decoded.targetAlertSentAt, isNull);
     });
 
+    test('lastAlertPrice round-trips, and defaults to null when absent (a '
+        'position that has never fired, or one written before this field existed)', () {
+      final withPrice = PositionModel(
+        id: 'pos6',
+        ticker: 'ENGRO',
+        status: 'open',
+        openedAt: DateTime.parse('2026-08-10T00:00:00.000Z'),
+        buys: const [],
+        sales: const [],
+        lastAlertPrice: 15.20,
+      );
+      expect(PositionModel.fromJson(withPrice.toJson()).lastAlertPrice, 15.20);
+
+      final withoutPrice = PositionModel(
+        id: 'pos7',
+        ticker: 'ENGRO',
+        status: 'open',
+        openedAt: DateTime.parse('2026-08-10T00:00:00.000Z'),
+        buys: const [],
+        sales: const [],
+      );
+      expect(PositionModel.fromJson(withoutPrice.toJson()).lastAlertPrice, isNull);
+    });
+
     test('defaults targetAlertSent/targetAlertSentAt when reading a pre-Phase-06 '
         'doc that lacks both fields entirely', () {
       final legacyJson = <String, dynamic>{
@@ -130,6 +154,7 @@ void main() {
 
       expect(decoded.targetAlertSent, false);
       expect(decoded.targetAlertSentAt, isNull);
+      expect(decoded.lastAlertPrice, isNull);
       expect(decoded.targetPrice, 30.0);
     });
 

@@ -23,6 +23,7 @@ _PositionModel _$PositionModelFromJson(
     json['targetAlertSentAt'],
     const TimestampConverter().fromJson,
   ),
+  lastAlertPrice: (json['lastAlertPrice'] as num?)?.toDouble(),
   buys: json['buys'] == null ? const [] : _buysFromJson(json['buys'] as List?),
   sales: json['sales'] == null
       ? const []
@@ -45,6 +46,7 @@ Map<String, dynamic> _$PositionModelToJson(_PositionModel instance) =>
         instance.targetAlertSentAt,
         const TimestampConverter().toJson,
       ),
+      'lastAlertPrice': instance.lastAlertPrice,
       'buys': _buysToJson(instance.buys),
       'sales': _salesToJson(instance.sales),
     };

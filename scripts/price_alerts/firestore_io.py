@@ -6,7 +6,6 @@ Kept separate from alerts.py (pure decision logic) and main.py
 
 import firebase_admin
 from firebase_admin import credentials, firestore, messaging
-from google.cloud.firestore_v1.base_query import FieldFilter
 
 
 def init_firestore(service_account_path: str):
@@ -62,15 +61,23 @@ def get_held_positions(db) -> list[dict]:
 
 
 def get_watched_alerts(db) -> list[dict]:
-    """Every active, not-yet-sent buy alert, across all users."""
-    query = (
-        db.collection_group("price_alerts")
-        .where(filter=FieldFilter("isActive", "==", True))
-        .where(filter=FieldFilter("alertSent", "==", False))
-    )
+    """Every active buy alert, across all users.
+
+    No longer filters `alertSent == False` at the query level — alerts are
+    not one-shot, so an alert that has already fired must stay watched for a
+    further drop (alerts.py's should_fire_buy is what actually decides
+    whether *this* run fires again). Filtering only `isActive` in Python
+    (rather than a Firestore `where`) mirrors get_held_positions' same
+    reasoning: per-user alert counts are tiny, so reading them all is free,
+    and it keeps this one rule authoritative in one place instead of split
+    between a query clause and this function's docstring.
+    """
+    query = db.collection_group("price_alerts")
     results = []
     for doc in query.stream():
         data = doc.to_dict()
+        if not data.get("isActive", False):
+            continue
         data["id"] = doc.id
         data["uid"] = doc.reference.parent.parent.id
         results.append(data)
@@ -135,22 +142,30 @@ def send_push(token: str, data: dict) -> None:
     messaging.send(message)
 
 
-def mark_sell_alert_sent(db, uid: str, position_id: str) -> None:
+def mark_sell_alert_sent(db, uid: str, position_id: str, price: float) -> None:
+    """`price` becomes `lastAlertPrice` — the baseline the *next* repeat fire
+    is measured against (alerts.py's REPEAT_ALERT_STEP_PERCENT), not just a
+    record of what happened this time."""
     ref = db.collection("users").document(uid).collection("positions").document(position_id)
     ref.update(
         {
             "targetAlertSent": True,
             "targetAlertSentAt": firestore.SERVER_TIMESTAMP,
+            "lastAlertPrice": price,
         }
     )
 
 
-def mark_buy_alert_sent(db, uid: str, alert_id: str) -> None:
+def mark_buy_alert_sent(db, uid: str, alert_id: str, price: float) -> None:
+    """Deliberately does NOT set isActive: False — a buy alert stays live so
+    it can keep re-firing on a continued further drop; only editing the
+    alert's target/tolerance (the client's PriceAlert.copyWith re-arm rule)
+    or deleting it ends the alert now."""
     ref = db.collection("users").document(uid).collection("price_alerts").document(alert_id)
     ref.update(
         {
             "alertSent": True,
-            "isActive": False,
             "alertSentAt": firestore.SERVER_TIMESTAMP,
+            "lastAlertPrice": price,
         }
     )

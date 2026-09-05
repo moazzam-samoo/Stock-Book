@@ -19,3 +19,14 @@ Stream<MarketStatus?> watchMarketStatus(WatchMarketStatusRef ref) {
 
   return repository.watchStatus();
 }
+
+/// Whether the market is confidently open right now, or `null` if the status
+/// itself is missing/too old to trust (mirrors `_MarketClock`'s own 30-minute
+/// freshness rule) — callers must treat `null` as "don't know", never guess
+/// open or closed from a stale reading.
+bool? currentlyOpen(MarketStatus? status) {
+  if (status == null || DateTime.now().difference(status.checkedAt).inMinutes > 30) {
+    return null;
+  }
+  return status.isOpen;
+}

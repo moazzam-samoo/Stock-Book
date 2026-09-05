@@ -8,9 +8,20 @@ import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
 import 'package:stock_investment_tracker/domain/entities/market_price.dart';
 import 'package:stock_investment_tracker/domain/enums/position_status.dart';
+import 'package:stock_investment_tracker/domain/entities/market_status.dart';
 import 'package:stock_investment_tracker/domain/repositories/market_price_repository.dart';
+import 'package:stock_investment_tracker/domain/repositories/market_status_repository.dart';
+import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
+
+class _FakeMarketStatusRepository implements MarketStatusRepository {
+  final MarketStatus? status;
+  _FakeMarketStatusRepository(this.status);
+
+  @override
+  Stream<MarketStatus?> watchStatus() => Stream.value(status);
+}
 
 /// PositionCard renders several of its detail lines as raw `RichText` (not
 /// the `Text`/`Text.rich` widgets `find.text`/`find.textContaining` look
@@ -36,11 +47,19 @@ void main() {
     ],
   );
 
-  Widget wrap(Widget child, {MarketPriceRepository? marketPriceRepository}) {
+  Widget wrap(Widget child, {MarketPriceRepository? marketPriceRepository, MarketStatus? marketStatus}) {
     return ProviderScope(
       overrides: [
         if (marketPriceRepository != null)
           marketPriceRepositoryProvider.overrideWithValue(marketPriceRepository),
+        // Unset (null) by default: isMarketOpen resolves to null ("unknown"),
+        // matching every test that doesn't care about the open/closed badge
+        // — only tests that explicitly pass marketStatus exercise it.
+        authStateProvider.overrideWith((ref) => Stream.value(null)),
+        currentUserIdProvider.overrideWith((ref) => 'test-uid'),
+        marketStatusRepositoryProvider.overrideWithValue(
+          _FakeMarketStatusRepository(marketStatus),
+        ),
       ],
       child: MaterialApp(
         // PositionCard is always inside a scrolling parent in production
@@ -188,34 +207,51 @@ void main() {
   );
 
   testWidgets(
-    'test 11: a stale updatedAt is visually marked, a fresh one is not',
+    'market open: shows the green "Live" badge next to the price',
     (tester) async {
       await tester.pumpWidget(wrap(
         PositionCard(position: position, showStockDetailNavigation: false),
-        marketPriceRepository: _FakeMarketPriceRepository(
-          price: 9.0,
-          updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
-        ),
+        marketPriceRepository: _FakeMarketPriceRepository(price: 9.0, updatedAt: DateTime.now()),
+        marketStatus: MarketStatus(isOpen: true, label: 'Open', checkedAt: DateTime.now()),
       ));
       await tester.pumpAndSettle();
 
-      expect(findRichTextContaining('(Stale)'), findsOneWidget);
+      expect(findRichTextContaining('Live Price'), findsOneWidget);
+      expect(find.text('Live'), findsOneWidget);
+      expect(findRichTextContaining('Unrealized'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'a fresh live price shows no staleness marker',
+    'market closed: relabels the line "Closed at" and shows no Live badge',
     (tester) async {
       await tester.pumpWidget(wrap(
         PositionCard(position: position, showStockDetailNavigation: false),
-        marketPriceRepository: _FakeMarketPriceRepository(
-          price: 9.0,
-          updatedAt: DateTime.now(),
-        ),
+        marketPriceRepository: _FakeMarketPriceRepository(price: 9.0, updatedAt: DateTime.now()),
+        marketStatus: MarketStatus(isOpen: false, label: 'Closed', checkedAt: DateTime.now()),
       ));
       await tester.pumpAndSettle();
 
-      expect(findRichTextContaining('(Stale)'), findsNothing);
+      expect(findRichTextContaining('Closed at'), findsOneWidget);
+      expect(findRichTextContaining('Live Price'), findsNothing);
+      expect(find.text('Live'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'market status unknown (stale/missing): falls back to plain "Live Price", no badge either way',
+    (tester) async {
+      await tester.pumpWidget(wrap(
+        PositionCard(position: position, showStockDetailNavigation: false),
+        marketPriceRepository: _FakeMarketPriceRepository(price: 9.0, updatedAt: DateTime.now()),
+        // marketStatus intentionally omitted (null) — the same "don't know,
+        // don't guess" case as a missing or >30-minutes-old status doc.
+      ));
+      await tester.pumpAndSettle();
+
+      expect(findRichTextContaining('Live Price'), findsOneWidget);
+      expect(findRichTextContaining('Closed at'), findsNothing);
+      expect(find.text('Live'), findsNothing);
       // With a live price present, unrealized P/L should now render.
       expect(findRichTextContaining('Unrealized'), findsOneWidget);
     },
@@ -239,7 +275,8 @@ void main() {
   );
 
   testWidgets(
-    'Phase 04B test 5: a stale price shows BOTH the stale marker and the "As of HH:mm" caption',
+    'Phase 04B test 5: an old updatedAt still shows the "As of HH:mm" caption '
+    '(the old (Stale) text marker was replaced by the market open/closed badge above)',
     (tester) async {
       final updatedAt = DateTime.now().subtract(const Duration(hours: 3));
       await tester.pumpWidget(wrap(
@@ -248,7 +285,6 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(findRichTextContaining('(Stale)'), findsOneWidget);
       expect(findRichTextContaining('As of'), findsOneWidget);
       expect(findRichTextContaining(DateFormat('h:mm a').format(updatedAt)), findsOneWidget);
     },

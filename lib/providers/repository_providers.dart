@@ -21,6 +21,8 @@ import 'package:stock_investment_tracker/data/repositories/user_repository_impl.
 import 'package:stock_investment_tracker/domain/repositories/price_alert_repository.dart';
 import 'package:stock_investment_tracker/data/repositories/price_alert_repository_impl.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
+import 'package:stock_investment_tracker/domain/repositories/ticker_repository.dart';
+import 'package:stock_investment_tracker/data/repositories/ticker_repository_impl.dart';
 
 final firebaseFirestoreProvider = Provider<FirebaseFirestore?>((ref) {
   try {
@@ -135,4 +137,14 @@ final priceAlertRepositoryProvider = Provider<PriceAlertRepository?>((ref) {
   final firestoreSource = ref.watch(firestoreDataSourceProvider);
   if (uid == null || firestoreSource == null) return null;
   return PriceAlertRepositoryImpl(firestoreSource, uid);
+});
+
+final tickerRepositoryProvider = Provider<TickerRepository?>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  final firestore = ref.watch(firebaseFirestoreProvider);
+  if (uid == null || firestore == null) return null;
+  return TickerRepositoryImpl(
+    firestore: firestore,
+    hiveDataSource: ref.watch(hiveDataSourceProvider),
+  );
 });

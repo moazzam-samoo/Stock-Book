@@ -66,7 +66,10 @@ def test_get_held_positions_attaches_uid_and_doc_id():
     assert result["id"] == "p1"
 
 
-def test_get_watched_alerts_filters_active_and_unsent():
+def test_get_watched_alerts_filters_only_on_active():
+    """Alerts aren't one-shot: an alert that has already fired (alertSent:
+    True) must stay watched for a further favorable move, so it must NOT be
+    excluded the way an inactive/paused/deleted alert is."""
     db = FakeDb(
         price_alerts=[
             {"id": "a1", "uid": "u1", "data": {"isActive": True, "alertSent": False, "ticker": "GUSM"}},
@@ -76,4 +79,4 @@ def test_get_watched_alerts_filters_active_and_unsent():
     )
     results = firestore_io.get_watched_alerts(db)
     tickers = {r["ticker"] for r in results}
-    assert tickers == {"GUSM"}
+    assert tickers == {"GUSM", "PPL"}

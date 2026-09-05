@@ -4,6 +4,7 @@ import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
+import 'package:stock_investment_tracker/providers/ticker_providers.dart';
 
 class TickerAutocomplete extends ConsumerWidget {
   final ValueChanged<String> onSelected;
@@ -26,6 +27,7 @@ class TickerAutocomplete extends ConsumerWidget {
 
     final settings = ref.watch(settingsProvider).valueOrNull;
     final favorites = settings?.favorites ?? [];
+    final allTickers = ref.watch(allTickersProvider).valueOrNull ?? [];
 
     return RawAutocomplete<String>(
       textEditingController: controller,
@@ -34,9 +36,29 @@ class TickerAutocomplete extends ConsumerWidget {
         if (textEditingValue.text.isEmpty) {
           return const Iterable<String>.empty();
         }
-        return favorites.where((String option) {
-          return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+        
+        final query = textEditingValue.text.toLowerCase();
+        
+        if (allTickers.isEmpty) {
+          return favorites.where((String option) {
+            return option.toLowerCase().contains(query);
+          });
+        }
+        
+        final matches = allTickers.where((t) {
+          return t.symbol.toLowerCase().contains(query) || 
+                 t.name.toLowerCase().contains(query);
+        }).map((t) => t.symbol).toList();
+        
+        matches.sort((a, b) {
+          final aFav = favorites.contains(a);
+          final bFav = favorites.contains(b);
+          if (aFav && !bFav) return -1;
+          if (!aFav && bFav) return 1;
+          return a.compareTo(b);
         });
+        
+        return matches;
       },
       onSelected: onSelected,
       fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
@@ -75,19 +97,45 @@ class TickerAutocomplete extends ConsumerWidget {
             child: SizedBox(
               width: MediaQuery.of(context).size.width - 48,
               height: 200,
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: options.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final String option = options.elementAt(index);
-                  return ListTile(
-                    leading: TickerAvatar(ticker: option, size: 32),
-                    title: Text(option, style: TextStyle(color: primaryTextColor)),
-                    onTap: () {
-                      onSelected(option);
-                    },
-                  );
-                },
+              // Excludes the newly-mounted list from focus traversal. Without
+              // this, Scrollable's implicit focus node grabs primary focus
+              // the instant this overlay appears (i.e. on the very first
+              // keystroke), which reads as the TextField losing focus and
+              // makes Android dismiss the keyboard. Taps still work fine —
+              // ListTile.onTap doesn't depend on focus.
+              child: ExcludeFocus(
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: options.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final String option = options.elementAt(index);
+
+                    // Look up company name
+                    String? companyName;
+                    if (allTickers.isNotEmpty) {
+                      try {
+                        final ticker = allTickers.firstWhere((t) => t.symbol == option);
+                        companyName = ticker.name;
+                      } catch (_) {}
+                    }
+
+                    return ListTile(
+                      leading: TickerAvatar(ticker: option, size: 32),
+                      title: Text(option, style: TextStyle(color: primaryTextColor)),
+                      subtitle: companyName != null
+                          ? Text(
+                              companyName,
+                              style: AppTypography.caption.copyWith(color: AppColors.neutral400),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : null,
+                      onTap: () {
+                        onSelected(option);
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ),

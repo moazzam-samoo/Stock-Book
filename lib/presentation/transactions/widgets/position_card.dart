@@ -20,6 +20,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_buy_bottom_sheet.dart';
 import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/market_status_providers.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 
@@ -102,7 +103,11 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final marketPriceAsync = !isClosed ? ref.watch(watchMarketPriceProvider(widget.position.ticker)) : null;
     final livePriceModel = marketPriceAsync?.valueOrNull;
     final livePrice = livePriceModel?.price;
-    final isPriceStale = livePriceModel != null && DateTime.now().difference(livePriceModel.updatedAt).inHours >= 1;
+    // Replaces the old time-since-last-fetch "(Stale)" marker: whether the
+    // *market itself* is open right now is more useful than how long ago the
+    // price was fetched, and it's the same currentlyOpen() rule the
+    // Dashboard clock already uses — null means "don't know", never guessed.
+    final isMarketOpen = currentlyOpen(ref.watch(watchMarketStatusProvider).valueOrNull);
 
     return GestureDetector(
       onTapDown: (details) => _tapDownPosition = details.globalPosition,
@@ -218,24 +223,51 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                       if (!isClosed)
                         _BulletDetail(
                           icon: Icons.show_chart_outlined,
-                          label: 'Live Price: ',
+                          // Market closed: relabel the line "Closed at" so a
+                          // held price reads as a known closing price, not a
+                          // live one going stale. Market open (or unknown):
+                          // keep "Live Price" — the green dot below is what
+                          // actually confirms live trading, so an unknown
+                          // status doesn't falsely claim "Closed".
+                          label: isMarketOpen == false && livePrice != null ? 'Closed at ' : 'Live Price: ',
                           isDark: isDark,
                           valueSpans: [
                             TextSpan(
                               text: livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
                               style: TextStyle(
-                                color: (livePriceModel == null || isPriceStale) 
-                                    ? (isDark ? Colors.white54 : Colors.black38) // dimmed
+                                color: livePriceModel == null
+                                    ? (isDark ? Colors.white54 : Colors.black38) // dimmed: no data at all
                                     : (isDark ? Colors.white : Colors.black87),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (livePriceModel != null && isPriceStale)
-                              TextSpan(
-                                text: ' (Stale)',
-                                style: TextStyle(
-                                  color: AppColors.alertRed,
-                                  fontSize: 10,
+                            if (isMarketOpen == true && livePrice != null)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Color(0xFF00FF7F),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Live',
+                                        style: AppTypography.caption.copyWith(
+                                          color: const Color(0xFF00FF7F),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                           ],

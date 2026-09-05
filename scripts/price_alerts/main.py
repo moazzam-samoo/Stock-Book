@@ -112,14 +112,23 @@ def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, dict]) ->
         if token is None:
             continue  # no fcmToken means the user hasn't granted permission — not an error
 
+        # `price` is included so the notification can show what actually
+        # fired — repeat alerts for the same ticker would otherwise all
+        # render identical generic text, with no way to tell whether this
+        # one is a new high or a duplicate of the last.
         firestore_io.send_push(
             token,
-            {"type": "sell", "ticker": ticker, "positionId": position["id"]},
+            {
+                "type": "sell",
+                "ticker": ticker,
+                "positionId": position["id"],
+                "price": str(price),
+            },
         )
         # Push first, then flip the flag — a flag write failing after a
         # successful send means at most one duplicate notification; the
         # reverse order can silently tell nobody at all.
-        firestore_io.mark_sell_alert_sent(db, uid, position["id"])
+        firestore_io.mark_sell_alert_sent(db, uid, position["id"], price)
 
 
 def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, dict]) -> None:
@@ -139,9 +148,14 @@ def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, dict]
 
         firestore_io.send_push(
             token,
-            {"type": "buy", "ticker": ticker, "alertId": alert["id"]},
+            {
+                "type": "buy",
+                "ticker": ticker,
+                "alertId": alert["id"],
+                "price": str(price),
+            },
         )
-        firestore_io.mark_buy_alert_sent(db, uid, alert["id"])
+        firestore_io.mark_buy_alert_sent(db, uid, alert["id"], price)
 
 
 def _run_tickers_refresh_step(db) -> None:
