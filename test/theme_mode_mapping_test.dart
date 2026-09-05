@@ -19,12 +19,12 @@ void main() {
       expect(themeModeFrom('dark'), ThemeMode.dark);
     });
 
-    test('null falls back to ThemeMode.dark (settings still loading)', () {
-      expect(themeModeFrom(null), ThemeMode.dark);
+    test('null falls back to ThemeMode.light (settings still loading)', () {
+      expect(themeModeFrom(null), ThemeMode.light);
     });
 
-    test('an unrecognised string falls back to ThemeMode.dark', () {
-      expect(themeModeFrom('sepia'), ThemeMode.dark);
+    test('an unrecognised string falls back to ThemeMode.light', () {
+      expect(themeModeFrom('sepia'), ThemeMode.light);
     });
   });
 }

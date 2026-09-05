@@ -28,7 +28,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
         favorites: [],
         startingCapital: 0.0,
         currency: 'PKR',
-        themeMode: 'dark',
+        themeMode: 'light',
       );
     }
 
@@ -42,7 +42,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
         favorites: [],
         startingCapital: 0.0,
         currency: 'PKR',
-        themeMode: 'dark',
+        themeMode: 'light',
       );
     });
   }
@@ -118,7 +118,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       favorites: [],
       startingCapital: 0.0,
       currency: 'PKR',
-      themeMode: 'dark',
+      themeMode: 'light',
     );
   }
 }

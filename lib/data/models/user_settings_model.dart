@@ -10,7 +10,7 @@ abstract class UserSettingsModel with _$UserSettingsModel {
     @Default([]) List<String> favorites,
     @Default(0.0) double startingCapital,
     @Default('PKR') String currency,
-    @Default('dark') String themeMode,
+    @Default('light') String themeMode,
     @Default({}) Map<String, int> stockColors,
   }) = _UserSettingsModel;
 
