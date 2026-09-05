@@ -402,6 +402,33 @@ are indistinguishable on screen. Worth remembering if a third symptom ever appea
 tell you which of the three it is, so check the document shape and the exact document ID before
 assuming.
 
+### Third fix (2026-09-05): the two sides disagreed on what "still holding" means
+
+After the first two fixes, STPL showed a live price correctly but a second holding (BNL, an older
+migrated position) still showed "—" and still had no `market_prices` document at all.
+
+Root cause: `PositionModel.toEntity()`'s status switch has a `default:` branch mapping **any**
+unrecognised status string to `PositionStatus.open`. The app's own filter then defines "still holding"
+as `status != PositionStatus.closed`. So a position carrying a legacy, differently-cased, empty, or
+missing status renders an OPEN badge and sits in the Open tab — while this backend's
+`where("status", "in", ["open", "partiallySold"])` allow-list matched none of those and skipped the
+document entirely. The holding then never gets a price fetched and its sell alert can never fire, with
+nothing visibly wrong on either side.
+
+Fixed by mirroring the client's actual definition instead of enumerating positive cases:
+`firestore_io.is_still_held()` returns `status.strip().lower() != "closed"`, and treats a
+missing/malformed status as held (exactly as the client's `default:` branch does). The collection-group
+query no longer filters server-side — the "not closed" rule is authoritative and lives in one place, and
+per-user position counts are tiny so reading them all is free. This also means the `positions.status`
+`fieldOverrides` entry in `firestore.indexes.json` is no longer required by any query.
+
+**Also added permanent diagnostic logging to `main.py`** — every run now prints the positions and alerts
+it found, their raw tickers *and statuses* via `repr()` (so whitespace and casing are visible, both
+having caused real failures here), which tickers it requested, which got prices, and which were absent
+from PSX's screener. Three rounds of this bug were spent guessing at data the run itself could simply
+have reported; for an unattended cron job whose only failure symptom is a "—" in the UI, that log is the
+difference between a diagnosis and a guess.
+
 ### Not done, and cannot be done without you
 
 - **The two manual setup steps below** — generating the service account key and adding the GitHub

@@ -3,6 +3,38 @@ from fakes import FakeDb
 import firestore_io
 
 
+def test_a_position_with_an_unrecognised_status_is_still_treated_as_held():
+    """The Dart client's PositionModel.toEntity() maps any unrecognised
+    status to `open` via its `default:` branch, so such a position shows an
+    OPEN badge in the app. An `in ["open","partiallySold"]` allow-list query
+    would silently skip it — the holding would show a live price of "—"
+    forever and its sell alert could never fire, with nothing visibly wrong.
+    Regression for a real case (a migrated position the backend never saw)."""
+    db = FakeDb(
+        positions=[
+            {"id": "p1", "uid": "u1", "data": {"status": "Open", "ticker": "BNL"}},
+            {"id": "p2", "uid": "u1", "data": {"status": "", "ticker": "PSO"}},
+            {"id": "p3", "uid": "u1", "data": {"ticker": "PPL"}},  # no status at all
+        ]
+    )
+
+    tickers = {r["ticker"] for r in firestore_io.get_held_positions(db)}
+
+    assert tickers == {"BNL", "PSO", "PPL"}
+
+
+def test_closed_positions_are_excluded_regardless_of_casing():
+    db = FakeDb(
+        positions=[
+            {"id": "p1", "uid": "u1", "data": {"status": "closed", "ticker": "AAA"}},
+            {"id": "p2", "uid": "u1", "data": {"status": "CLOSED", "ticker": "BBB"}},
+            {"id": "p3", "uid": "u1", "data": {"status": " Closed ", "ticker": "CCC"}},
+        ]
+    )
+
+    assert firestore_io.get_held_positions(db) == []
+
+
 def test_11_partially_sold_position_is_included_in_held_tickers_query():
     """A status == "open" filter alone would wrongly exclude a
     partially-sold position that still holds shares and can still carry a

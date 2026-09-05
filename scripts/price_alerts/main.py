@@ -35,6 +35,14 @@ def run(db, price_source=None) -> None:
     positions = firestore_io.get_held_positions(db)
     watched_alerts = firestore_io.get_watched_alerts(db)
 
+    # Logged with repr() deliberately: stray whitespace and case are exactly
+    # the failure modes that have bitten here, and both are invisible in
+    # plain output. This is an unattended cron job — a run log that doesn't
+    # say what it actually saw makes every failure a guessing game.
+    print(f"Found {len(positions)} held position(s), {len(watched_alerts)} active alert(s)")
+    print(f"  raw position tickers: {[(p.get('ticker'), p.get('status')) for p in positions]!r}")
+    print(f"  raw alert tickers:    {[a.get('ticker') for a in watched_alerts]!r}")
+
     # A stored ticker can carry stray whitespace or lowercase from the app's
     # free-text ticker entry (it has never been strictly validated). PSX's
     # screener only ever knows the clean symbol, so an unnormalised "BNL "
@@ -47,6 +55,7 @@ def run(db, price_source=None) -> None:
     held_tickers = {p["ticker"] for p in positions if p["ticker"]}
     watched_tickers = {a["ticker"] for a in watched_alerts if a["ticker"]}
     all_tickers = held_tickers | watched_tickers
+    print(f"  requesting prices for: {sorted(all_tickers)!r}")
 
     prices: dict[str, dict] = {}
     try:
@@ -58,6 +67,14 @@ def run(db, price_source=None) -> None:
         # tickers list are independent and should still be attempted.
         print(f"Price fetch failed, skipping price-dependent steps this run: {e}", file=sys.stderr)
         prices = {}
+
+    missing = sorted(all_tickers - prices.keys())
+    print(f"  got prices for: {sorted(prices)!r}")
+    if missing:
+        # Not an error: a ticker absent from PSX's screener is deliberately
+        # omitted rather than written as 0. But it IS the thing to look at
+        # first when a holding shows no live price in the app.
+        print(f"  NOT found in the PSX screener: {missing!r}")
 
     if prices:
         firestore_io.write_market_prices(db, prices)
