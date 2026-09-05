@@ -48,17 +48,17 @@ class StockTrackerApp extends ConsumerWidget {
 }
 
 /// Maps the persisted `themeMode` string onto Flutter's [ThemeMode].
-/// Falls back to dark, which is both the stored default and what the app
+/// Falls back to light, which is both the stored default and what the app
 /// shows while settings are still loading.
 @visibleForTesting
 ThemeMode themeModeFrom(String? themeMode) {
   switch (themeMode) {
-    case 'light':
-      return ThemeMode.light;
+    case 'dark':
+      return ThemeMode.dark;
     case 'system':
       return ThemeMode.system;
-    case 'dark':
+    case 'light':
     default:
-      return ThemeMode.dark;
+      return ThemeMode.light;
   }
 }

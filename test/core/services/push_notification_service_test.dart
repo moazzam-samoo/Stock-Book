@@ -28,6 +28,12 @@ void main() {
   late PushNotificationService service;
 
   setUp(() {
+    // _coldStartRouteHandled is a process-lifetime static guard (fixes a real
+    // bug: switching accounts within one running app replayed the original
+    // cold-start notification's route). Each test here represents its own
+    // independent process launch, so it must start unhandled every time.
+    PushNotificationService.resetColdStartRouteHandledForTesting();
+
     mockFirebaseMessaging = MockFirebaseMessaging();
     mockUserRepository = MockUserRepository();
     mockGoRouter = MockGoRouter();
@@ -324,5 +330,43 @@ void main() {
       verify(mockGoRouter.push('/stock/PSO')).called(1);
       verifyNever(mockGoRouter.go(any));
     });
+  });
+
+  test(
+      '10. a second PushNotificationService created in the same process '
+      '(e.g. after switching accounts) does not replay the original stale '
+      'cold-start route — regression: this used to fire on every new login, '
+      'sending even a brand-new empty account to whatever ticker the app '
+      'was originally cold-started from', () async {
+    when(mockLocalNotifications.getNotificationAppLaunchDetails()).thenAnswer(
+      (_) async => NotificationAppLaunchDetails(
+        true,
+        notificationResponse: const NotificationResponse(
+          notificationResponseType: NotificationResponseType.selectedNotification,
+          payload: '{"type":"sell","ticker":"STPL"}',
+        ),
+      ),
+    );
+
+    // First instance: a real cold start, must route.
+    await service.initialize();
+    await Future.delayed(const Duration(milliseconds: 600));
+    verify(mockGoRouter.push('/stock/STPL')).called(1);
+
+    // Second instance in the SAME process (what
+    // pushNotificationServiceProvider constructs on a fresh login) sees the
+    // exact same stale launch details, but must not route again.
+    final secondRouter = MockGoRouter();
+    final secondService = PushNotificationService(
+      firebaseMessaging: mockFirebaseMessaging,
+      localNotifications: mockLocalNotifications,
+      userRepository: mockUserRepository,
+      router: secondRouter,
+    );
+    await secondService.initialize();
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    verifyNever(secondRouter.push(any));
+    verifyNever(secondRouter.go(any));
   });
 }

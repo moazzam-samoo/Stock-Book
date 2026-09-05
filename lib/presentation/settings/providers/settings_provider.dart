@@ -11,7 +11,7 @@ Stream<UserSettings> settings(SettingsRef ref) async* {
     favorites: [],
     startingCapital: 0.0,
     currency: 'PKR',
-    themeMode: 'dark',
+    themeMode: 'light',
   );
 
   if (repo == null) {

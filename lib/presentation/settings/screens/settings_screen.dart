@@ -21,6 +21,7 @@ import 'package:stock_investment_tracker/presentation/dashboard/providers/dashbo
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -79,12 +80,9 @@ class SettingsScreen extends ConsumerWidget {
                       _buildPriceRefreshSection(context, ref, isDark),
                       const SizedBox(height: 28),
 
-                      _buildSectionTitle(context, 'COMPANY INFO'),
+                      _buildSectionTitle(context, 'ABOUT US'),
                       const SizedBox(height: 12),
                       _buildCompanySection(context, isDark),
-                      const SizedBox(height: 28),
-
-                      _buildSectionTitle(context, 'DEVELOPER INFO'),
                       const SizedBox(height: 12),
                       _buildDeveloperSection(context, isDark),
                       const SizedBox(height: 28),
@@ -186,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
                 ).animate(key: ValueKey(ticker)).fade(duration: 200.ms).scale(duration: 200.ms, begin: const Offset(0.8, 0.8));
               })),
               InkWell(
-                onTap: () => _showAddTickerDialog(context, ref),
+                onTap: () => _showAddTickerDialog(context),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -618,78 +616,58 @@ class SettingsScreen extends ConsumerWidget {
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor),
         boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                ClipRRect(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/icon/android-chrome-192x192.png',
+              width: 52,
+              height: 52,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.brandIndigo,
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    'assets/icon/android-chrome-192x192.png',
-                    width: 48,
-                    height: 48,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.brandIndigo,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.business_rounded, color: Colors.white),
-                    ),
-                  ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Coding District',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Software Engineering & AI Solutions',
-                        style: TextStyle(fontSize: 12, color: AppColors.neutral500),
-                      ),
-                    ],
-                  ),
+                child: const Icon(Icons.business_rounded, color: Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Coding District',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                ),
+                const Text(
+                  'Software Engineering & AI Solutions',
+                  style: TextStyle(fontSize: 11, color: AppColors.neutral500),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: borderColor),
-          _buildLinkTile(
-            context,
+          _buildIconLinkButton(
             icon: Icons.language_rounded,
-            title: 'Company Website',
-            subtitle: 'codingdistrict.com',
             onTap: () => _launchURL('https://codingdistrict.com'),
             isDark: isDark,
-            borderColor: borderColor,
           ),
-          Divider(height: 1, color: borderColor),
-          _buildLinkTile(
-            context,
+          const SizedBox(width: 8),
+          _buildIconLinkButton(
             icon: Icons.business_center_rounded,
-            title: 'LinkedIn Company Page',
-            subtitle: 'linkedin.com/company/codingdistrict',
             onTap: () => _launchURL('https://www.linkedin.com/company/codingdistrict/'),
             isDark: isDark,
-            borderColor: borderColor,
           ),
         ],
       ),
@@ -702,112 +680,82 @@ class SettingsScreen extends ConsumerWidget {
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor),
         boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.brandIndigo,
-                  child: const Text(
-                    'MS',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: Image.asset(
+              'assets/icon/dev.png',
+              width: 52,
+              height: 52,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => CircleAvatar(
+                radius: 26,
+                backgroundColor: AppColors.brandIndigo,
+                child: const Text(
+                  'MS',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Moazzam Samoo',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Lead Developer & Architect',
-                        style: TextStyle(fontSize: 12, color: AppColors.neutral500),
-                      ),
-                    ],
-                  ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Moazzam Samoo',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                ),
+                const Text(
+                  'Lead Developer & Architect',
+                  style: TextStyle(fontSize: 11, color: AppColors.neutral500),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: borderColor),
-          _buildLinkTile(
-            context,
+          _buildIconLinkButton(
             icon: Icons.person_pin_rounded,
-            title: 'Developer Portfolio',
-            subtitle: 'moazzam-samoo.web.app',
             onTap: () => _launchURL('https://moazzam-samoo.web.app/'),
             isDark: isDark,
-            borderColor: borderColor,
           ),
-          Divider(height: 1, color: borderColor),
-          _buildLinkTile(
-            context,
+          const SizedBox(width: 8),
+          _buildIconLinkButton(
             icon: Icons.link_rounded,
-            title: 'LinkedIn Profile',
-            subtitle: 'linkedin.com/in/moazzam-samoo',
-            onTap: () => _launchURL('https://www.linkedin.com/in/moazzam-samoo?utm_source=share_via&utm_content=profile&utm_medium=member_android'),
+            onTap: () => _launchURL(
+              'https://www.linkedin.com/in/moazzam-samoo?utm_source=share_via&utm_content=profile&utm_medium=member_android',
+            ),
             isDark: isDark,
-            borderColor: borderColor,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLinkTile(
-    BuildContext context, {
+  Widget _buildIconLinkButton({
     required IconData icon,
-    required String title,
-    required String subtitle,
     required VoidCallback onTap,
     required bool isDark,
-    required Color borderColor,
   }) {
-    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: AppColors.brandIndigo),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.neutral500),
-          ],
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.brandIndigo.withOpacity(isDark ? 0.18 : 0.1),
+          shape: BoxShape.circle,
         ),
+        child: Icon(icon, size: 18, color: AppColors.brandIndigo),
       ),
     );
   }
@@ -921,38 +869,10 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddTickerDialog(BuildContext context, WidgetRef ref) {
-    String ticker = '';
+  void _showAddTickerDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Favorite Stock'),
-        content: TextField(
-          autofocus: true,
-          textCapitalization: TextCapitalization.characters,
-          decoration: const InputDecoration(
-            hintText: 'e.g. SYS',
-          ),
-          onChanged: (val) => ticker = val,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final cleanTicker = ticker.trim().toUpperCase();
-              if (cleanTicker.isNotEmpty) {
-                Navigator.pop(context);
-                await ref.read(settingsControllerProvider.notifier).addFavorite(cleanTicker);
-                ref.invalidate(settingsProvider);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (context) => const _AddFavoriteDialog(),
     );
   }
 
@@ -1029,6 +949,63 @@ class SettingsScreen extends ConsumerWidget {
         ),
       );
     }
+  }
+}
+
+class _AddFavoriteDialog extends ConsumerStatefulWidget {
+  const _AddFavoriteDialog();
+
+  @override
+  ConsumerState<_AddFavoriteDialog> createState() => _AddFavoriteDialogState();
+}
+
+class _AddFavoriteDialogState extends ConsumerState<_AddFavoriteDialog> {
+  final _tickerController = TextEditingController();
+  final _tickerFocusNode = FocusNode();
+  String _ticker = '';
+
+  @override
+  void dispose() {
+    _tickerController.dispose();
+    _tickerFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Favorite Stock'),
+      // Same search-by-symbol-or-company-name mechanism as Add Buy/Add
+      // Alert, instead of a plain text field with no suggestions — this
+      // is the only way a user finds a stock's real ticker without
+      // already knowing it.
+      content: TickerAutocomplete(
+        controller: _tickerController,
+        focusNode: _tickerFocusNode,
+        onSelected: (val) {
+          setState(() {
+            _ticker = val.trim().toUpperCase();
+          });
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            final cleanTicker = _ticker.trim().toUpperCase();
+            if (cleanTicker.isNotEmpty) {
+              Navigator.pop(context);
+              await ref.read(settingsControllerProvider.notifier).addFavorite(cleanTicker);
+              ref.invalidate(settingsProvider);
+            }
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    );
   }
 }
 

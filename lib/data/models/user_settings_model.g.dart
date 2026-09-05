@@ -15,7 +15,7 @@ _UserSettingsModel _$UserSettingsModelFromJson(Map<String, dynamic> json) =>
           const [],
       startingCapital: (json['startingCapital'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'PKR',
-      themeMode: json['themeMode'] as String? ?? 'dark',
+      themeMode: json['themeMode'] as String? ?? 'light',
       stockColors:
           (json['stockColors'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, (e as num).toInt()),
