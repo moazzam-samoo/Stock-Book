@@ -369,6 +369,39 @@ it cost a full round-trip through a real device test to catch. `market_status` a
 both new schemas with no prior consumer to mismatch, so they weren't at the same risk — `market_prices`
 was the one place an existing, already-shipped Dart model was silently depended upon.
 
+### Second critical fix (2026-09-05): ticker whitespace, and a non-defensive model
+
+After the schema fix above, the app *still* showed "—" for everything. Two more causes, found from a
+screenshot: the position card renders `'${ticker} · '`, and the gap after "BNL" was visibly wider than
+after "STPL" — the stored ticker was literally `"BNL "`, with a trailing space, from free-text ticker
+entry that has never been validated.
+
+That single stray space broke both sides independently:
+- **Backend**: `df["symbol"].isin({"BNL "})` matches nothing in the screener, so BNL never got a price
+  fetched at all — which is exactly the "one of my two stocks is missing" symptom.
+- **Client**: `watchMarketPrice(ticker)` looked up `market_prices/"BNL "` — a document ID that will
+  never exist, no matter what the backend writes.
+
+Fixed on both sides with matching normalisation (`trim().toUpperCase()` /
+`.strip().upper()`), deliberately mirrored so they can't drift:
+- `FirestoreDataSource.normalizeTicker` — applied in `watchMarketPrice` and `watchMarketPrices`, so
+  **existing** bad data resolves without anyone editing Firestore by hand.
+- `main.py::_normalize_ticker` — applied to positions and alerts before the price lookup.
+- `AddBuyController.submit` — normalises at the single write path, so new bad values can't be created.
+
+Separately, `MarketPriceModel.fromJson` was **not** defensive, unlike every sibling model that AGENTS.md
+§4.1 requires it to match: `(json['previousClose'] as num).toDouble()` throws on a null cast. Because
+`fromJson` runs inside the price stream's `.map()`, one malformed document errored the *entire* stream —
+so every ticker showed "—", perfectly disguised as "no data". Now both `price` and `previousClose` parse
+null-safely (`previousClose` defaults to `price`, i.e. "no known day change", never a fake 0 that would
+render as a −100% move).
+
+**Why this took two rounds to find**: the first fix was correct but incomplete, and both failure modes
+produce the *identical* "—" in the UI — a crashed parse, a missing document, and genuinely absent data
+are indistinguishable on screen. Worth remembering if a third symptom ever appears here: the UI cannot
+tell you which of the three it is, so check the document shape and the exact document ID before
+assuming.
+
 ### Not done, and cannot be done without you
 
 - **The two manual setup steps below** — generating the service account key and adding the GitHub

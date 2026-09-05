@@ -329,10 +329,18 @@ class FirestoreDataSource {
   }
 
   // MARKET PRICES
+
+  /// `market_prices` document IDs are always the clean PSX symbol, but a
+  /// position's stored `ticker` can carry stray whitespace or lowercase from
+  /// free-text entry (the ticker field has never been strictly validated).
+  /// Looking up the raw value silently finds nothing and shows "—" forever,
+  /// so every lookup normalises first.
+  static String normalizeTicker(String ticker) => ticker.trim().toUpperCase();
+
   Stream<MarketPriceModel?> watchMarketPrice(String ticker) {
     return _firestore
         .collection(FirestorePaths.marketPrices())
-        .doc(ticker)
+        .doc(normalizeTicker(ticker))
         .snapshots()
         .map((snapshot) {
       if (!snapshot.exists || snapshot.data() == null) return null;
@@ -358,7 +366,9 @@ class FirestoreDataSource {
   Stream<List<MarketPriceModel>> watchMarketPrices(List<String> tickers) {
     if (tickers.isEmpty) return Stream.value([]);
 
-    final chunks = chunkTickers(tickers);
+    final chunks = chunkTickers(
+      tickers.map(normalizeTicker).toSet().toList(),
+    );
 
     final streams = chunks.map((chunk) {
       return _firestore

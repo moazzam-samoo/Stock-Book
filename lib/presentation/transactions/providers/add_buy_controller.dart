@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
@@ -30,6 +31,12 @@ class AddBuyController extends _$AddBuyController {
         state = const AsyncData(null);
         return;
       }
+
+      // Ticker entry is free text, so a stray space or lowercase can be
+      // saved verbatim — and then never matches the clean PSX symbol the
+      // backend writes prices under, leaving that holding permanently
+      // showing "—". Normalise once, here, at the only write path.
+      ticker = FirestoreDataSource.normalizeTicker(ticker);
 
       final positions = ref.read(allPositionsProvider).valueOrNull ?? [];
       final openPosition = PositionCalculator.findOpenPosition(

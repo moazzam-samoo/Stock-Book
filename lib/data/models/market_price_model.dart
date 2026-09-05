@@ -25,10 +25,19 @@ abstract class MarketPriceModel with _$MarketPriceModel {
       parsedDate = DateTime.now();
     }
 
+    // Defensive parsing per AGENTS.md §4.1: a document written with a field
+    // missing must degrade to a usable value, never throw. `fromJson` runs
+    // inside the market-price stream's `.map()`, so a single bad document
+    // used to error the whole stream — every ticker in the app showed "—",
+    // indistinguishable from "no data", with the real cause invisible.
+    final price = (json['price'] as num?)?.toDouble() ?? 0.0;
     return MarketPriceModel(
       ticker: (json['ticker'] as String?) ?? '',
-      price: (json['price'] as num).toDouble(),
-      previousClose: (json['previousClose'] as num).toDouble(),
+      price: price,
+      // No previousClose (or a malformed one) means "no day change known",
+      // which is price itself — not a crash, and not a fake 0 that would
+      // render as a -100% day move.
+      previousClose: (json['previousClose'] as num?)?.toDouble() ?? price,
       updatedAt: parsedDate,
     );
   }

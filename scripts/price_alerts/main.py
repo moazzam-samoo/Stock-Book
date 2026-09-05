@@ -20,14 +20,32 @@ from market_status_source import fetch_market_status
 from tickers_source import fetch_listed_companies
 
 
+def _normalize_ticker(ticker) -> str:
+    """Mirrors the Dart client's FirestoreDataSource.normalizeTicker — both
+    sides must agree, or the backend writes market_prices/BNL while the app
+    looks up market_prices/'BNL ' and finds nothing."""
+    if not isinstance(ticker, str):
+        return ""
+    return ticker.strip().upper()
+
+
 def run(db, price_source=None) -> None:
     price_source = price_source or PsxdataScreenerSource()
 
     positions = firestore_io.get_held_positions(db)
     watched_alerts = firestore_io.get_watched_alerts(db)
 
-    held_tickers = {p["ticker"] for p in positions if p.get("ticker")}
-    watched_tickers = {a["ticker"] for a in watched_alerts if a.get("ticker")}
+    # A stored ticker can carry stray whitespace or lowercase from the app's
+    # free-text ticker entry (it has never been strictly validated). PSX's
+    # screener only ever knows the clean symbol, so an unnormalised "BNL "
+    # matches nothing and that holding silently never gets a price at all.
+    for p in positions:
+        p["ticker"] = _normalize_ticker(p.get("ticker"))
+    for a in watched_alerts:
+        a["ticker"] = _normalize_ticker(a.get("ticker"))
+
+    held_tickers = {p["ticker"] for p in positions if p["ticker"]}
+    watched_tickers = {a["ticker"] for a in watched_alerts if a["ticker"]}
     all_tickers = held_tickers | watched_tickers
 
     prices: dict[str, dict] = {}
