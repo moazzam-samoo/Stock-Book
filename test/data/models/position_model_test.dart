@@ -91,6 +91,48 @@ void main() {
       expect(decoded.targetPrice, isNull);
     });
 
+    test('targetAlertSent/targetAlertSentAt round-trip with a null timestamp', () {
+      final position = PositionModel(
+        id: 'pos4',
+        ticker: 'PSO',
+        status: 'open',
+        openedAt: DateTime.parse('2026-08-10T00:00:00.000Z'),
+        buys: const [],
+        sales: const [],
+        targetAlertSent: false,
+      );
+
+      final json = position.toJson();
+      expect(json['targetAlertSent'], false);
+      expect(json.containsKey('targetAlertSentAt'), isTrue);
+      expect(json['targetAlertSentAt'], isNull);
+
+      final decoded = PositionModel.fromJson(json);
+      expect(decoded.targetAlertSent, false);
+      expect(decoded.targetAlertSentAt, isNull);
+    });
+
+    test('defaults targetAlertSent/targetAlertSentAt when reading a pre-Phase-06 '
+        'doc that lacks both fields entirely', () {
+      final legacyJson = <String, dynamic>{
+        'id': 'pos5',
+        'ticker': 'HUBC',
+        'status': 'open',
+        'openedAt': Timestamp.fromDate(DateTime.parse('2026-08-10T00:00:00.000Z')),
+        'targetPrice': 30.0,
+        'buys': <Map<String, dynamic>>[],
+        'sales': <Map<String, dynamic>>[],
+        // targetAlertSent / targetAlertSentAt intentionally absent, as any
+        // position written before this phase would be.
+      };
+
+      final decoded = PositionModel.fromJson(legacyJson);
+
+      expect(decoded.targetAlertSent, false);
+      expect(decoded.targetAlertSentAt, isNull);
+      expect(decoded.targetPrice, 30.0);
+    });
+
     // PositionBuyModel / PositionSaleModel have hand-written fromJson (like
     // sale_model.dart / withdrawal_model.dart), so per AGENTS.md §4.1 they
     // must tolerate a Firestore Timestamp *or* an ISO-8601 string for their

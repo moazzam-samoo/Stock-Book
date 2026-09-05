@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
+// ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'position_model.dart';
@@ -9,7 +9,6 @@ part of 'position_model.dart';
 // FreezedGenerator
 // **************************************************************************
 
-// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -64,7 +63,7 @@ class _$PositionBuyModelCopyWithImpl<$Res>
 /// Create a copy of PositionBuyModel
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? date = null,Object? shares = null,Object? pricePerShare = null,}) {
-  return _then(PositionBuyModel(
+  return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,shares: null == shares ? _self.shares : shares // ignore: cast_nullable_to_non_nullable
@@ -330,7 +329,7 @@ class _$PositionSaleModelCopyWithImpl<$Res>
 /// Create a copy of PositionSaleModel
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? date = null,Object? shares = null,Object? pricePerShare = null,Object? costBasisAtSale = freezed,}) {
-  return _then(PositionSaleModel(
+  return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,shares: null == shares ? _self.shares : shares // ignore: cast_nullable_to_non_nullable
@@ -602,7 +601,7 @@ class _$PositionModelCopyWithImpl<$Res>
 /// Create a copy of PositionModel
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ticker = null,Object? status = null,Object? openedAt = null,Object? closedAt = freezed,Object? targetPrice = freezed,Object? targetAlertSent = null,Object? targetAlertSentAt = freezed,Object? buys = null,Object? sales = null,}) {
-  return _then(PositionModel(
+  return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ticker: null == ticker ? _self.ticker : ticker // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -754,7 +753,7 @@ return $default(_that.id,_that.ticker,_that.status,_that.openedAt,_that.closedAt
 @JsonSerializable()
 
 class _PositionModel implements PositionModel {
-  const _PositionModel({required this.id, required this.ticker, required this.status, @TimestampConverter() required this.openedAt, @TimestampConverter() this.closedAt, this.targetPrice, this.targetAlertSent = false, @TimestampConverter() this.targetAlertSentAt, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson)  List<PositionBuyModel> buys = const [], @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson)  List<PositionSaleModel> sales = const []}): _buys = buys,_sales = sales;
+  const _PositionModel({required this.id, required this.ticker, required this.status, @TimestampConverter() required this.openedAt, @TimestampConverter() this.closedAt, this.targetPrice, this.targetAlertSent = false, @TimestampConverter() this.targetAlertSentAt, @JsonKey(toJson: _buysToJson, fromJson: _buysFromJson) final  List<PositionBuyModel> buys = const [], @JsonKey(toJson: _salesToJson, fromJson: _salesFromJson) final  List<PositionSaleModel> sales = const []}): _buys = buys,_sales = sales;
   factory _PositionModel.fromJson(Map<String, dynamic> json) => _$PositionModelFromJson(json);
 
 @override final  String id;

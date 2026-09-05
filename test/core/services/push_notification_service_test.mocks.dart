@@ -3,14 +3,13 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'dart:async' as _i11;
 
 import 'package:firebase_core/firebase_core.dart' as _i2;
 import 'package:firebase_messaging/firebase_messaging.dart' as _i10;
 import 'package:firebase_messaging_platform_interface/firebase_messaging_platform_interface.dart'
     as _i3;
-import 'package:flutter/widgets.dart' as _i6;
+import 'package:flutter/widgets.dart' as _i5;
 import 'package:flutter_local_notifications/src/flutter_local_notifications_plugin.dart'
     as _i16;
 import 'package:flutter_local_notifications/src/initialization_settings.dart'
@@ -21,13 +20,13 @@ import 'package:flutter_local_notifications/src/platform_specifics/android/sched
     as _i21;
 import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart'
     as _i18;
-import 'package:go_router/src/configuration.dart' as _i5;
-import 'package:go_router/src/delegate.dart' as _i7;
-import 'package:go_router/src/information_provider.dart' as _i8;
+import 'package:go_router/src/configuration.dart' as _i4;
+import 'package:go_router/src/delegate.dart' as _i6;
+import 'package:go_router/src/information_provider.dart' as _i7;
 import 'package:go_router/src/match.dart' as _i15;
-import 'package:go_router/src/parser.dart' as _i9;
+import 'package:go_router/src/parser.dart' as _i8;
 import 'package:go_router/src/router.dart' as _i13;
-import 'package:go_router/src/state.dart' as _i4;
+import 'package:go_router/src/state.dart' as _i9;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i14;
 import 'package:stock_investment_tracker/domain/repositories/user_repository.dart'
@@ -47,7 +46,6 @@ import 'package:timezone/timezone.dart' as _i20;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
-// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeFirebaseApp_0 extends _i1.SmartFake implements _i2.FirebaseApp {
   _FakeFirebaseApp_0(Object parent, Invocation parentInvocation)
@@ -60,38 +58,38 @@ class _FakeNotificationSettings_1 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeGoRouterState_2 extends _i1.SmartFake implements _i4.GoRouterState {
-  _FakeGoRouterState_2(Object parent, Invocation parentInvocation)
+class _FakeRouteConfiguration_2 extends _i1.SmartFake
+    implements _i4.RouteConfiguration {
+  _FakeRouteConfiguration_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeRouteConfiguration_3 extends _i1.SmartFake
-    implements _i5.RouteConfiguration {
-  _FakeRouteConfiguration_3(Object parent, Invocation parentInvocation)
+class _FakeBackButtonDispatcher_3 extends _i1.SmartFake
+    implements _i5.BackButtonDispatcher {
+  _FakeBackButtonDispatcher_3(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeBackButtonDispatcher_4 extends _i1.SmartFake
-    implements _i6.BackButtonDispatcher {
-  _FakeBackButtonDispatcher_4(Object parent, Invocation parentInvocation)
+class _FakeGoRouterDelegate_4 extends _i1.SmartFake
+    implements _i6.GoRouterDelegate {
+  _FakeGoRouterDelegate_4(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeGoRouterDelegate_5 extends _i1.SmartFake
-    implements _i7.GoRouterDelegate {
-  _FakeGoRouterDelegate_5(Object parent, Invocation parentInvocation)
+class _FakeGoRouteInformationProvider_5 extends _i1.SmartFake
+    implements _i7.GoRouteInformationProvider {
+  _FakeGoRouteInformationProvider_5(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeGoRouteInformationProvider_6 extends _i1.SmartFake
-    implements _i8.GoRouteInformationProvider {
-  _FakeGoRouteInformationProvider_6(Object parent, Invocation parentInvocation)
+class _FakeGoRouteInformationParser_6 extends _i1.SmartFake
+    implements _i8.GoRouteInformationParser {
+  _FakeGoRouteInformationParser_6(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeGoRouteInformationParser_7 extends _i1.SmartFake
-    implements _i9.GoRouteInformationParser {
-  _FakeGoRouteInformationParser_7(Object parent, Invocation parentInvocation)
+class _FakeGoRouterState_7 extends _i1.SmartFake implements _i9.GoRouterState {
+  _FakeGoRouterState_7(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -128,8 +126,8 @@ class MockFirebaseMessaging extends _i1.Mock implements _i10.FirebaseMessaging {
           as _i11.Stream<String>);
 
   @override
-  set app(_i2.FirebaseApp? value) => super.noSuchMethod(
-    Invocation.setter(#app, value),
+  set app(_i2.FirebaseApp? _app) => super.noSuchMethod(
+    Invocation.setter(#app, _app),
     returnValueForMissingStub: null,
   );
 
@@ -323,67 +321,59 @@ class MockGoRouter extends _i1.Mock implements _i13.GoRouter {
   }
 
   @override
-  _i4.GoRouterState get state =>
-      (super.noSuchMethod(
-            Invocation.getter(#state),
-            returnValue: _FakeGoRouterState_2(this, Invocation.getter(#state)),
-          )
-          as _i4.GoRouterState);
-
-  @override
-  _i5.RouteConfiguration get configuration =>
+  _i4.RouteConfiguration get configuration =>
       (super.noSuchMethod(
             Invocation.getter(#configuration),
-            returnValue: _FakeRouteConfiguration_3(
+            returnValue: _FakeRouteConfiguration_2(
               this,
               Invocation.getter(#configuration),
             ),
           )
-          as _i5.RouteConfiguration);
+          as _i4.RouteConfiguration);
 
   @override
-  _i6.BackButtonDispatcher get backButtonDispatcher =>
+  _i5.BackButtonDispatcher get backButtonDispatcher =>
       (super.noSuchMethod(
             Invocation.getter(#backButtonDispatcher),
-            returnValue: _FakeBackButtonDispatcher_4(
+            returnValue: _FakeBackButtonDispatcher_3(
               this,
               Invocation.getter(#backButtonDispatcher),
             ),
           )
-          as _i6.BackButtonDispatcher);
+          as _i5.BackButtonDispatcher);
 
   @override
-  _i7.GoRouterDelegate get routerDelegate =>
+  _i6.GoRouterDelegate get routerDelegate =>
       (super.noSuchMethod(
             Invocation.getter(#routerDelegate),
-            returnValue: _FakeGoRouterDelegate_5(
+            returnValue: _FakeGoRouterDelegate_4(
               this,
               Invocation.getter(#routerDelegate),
             ),
           )
-          as _i7.GoRouterDelegate);
+          as _i6.GoRouterDelegate);
 
   @override
-  _i8.GoRouteInformationProvider get routeInformationProvider =>
+  _i7.GoRouteInformationProvider get routeInformationProvider =>
       (super.noSuchMethod(
             Invocation.getter(#routeInformationProvider),
-            returnValue: _FakeGoRouteInformationProvider_6(
+            returnValue: _FakeGoRouteInformationProvider_5(
               this,
               Invocation.getter(#routeInformationProvider),
             ),
           )
-          as _i8.GoRouteInformationProvider);
+          as _i7.GoRouteInformationProvider);
 
   @override
-  _i9.GoRouteInformationParser get routeInformationParser =>
+  _i8.GoRouteInformationParser get routeInformationParser =>
       (super.noSuchMethod(
             Invocation.getter(#routeInformationParser),
-            returnValue: _FakeGoRouteInformationParser_7(
+            returnValue: _FakeGoRouteInformationParser_6(
               this,
               Invocation.getter(#routeInformationParser),
             ),
           )
-          as _i9.GoRouteInformationParser);
+          as _i8.GoRouteInformationParser);
 
   @override
   bool get overridePlatformDefaultLocation =>
@@ -394,30 +384,42 @@ class MockGoRouter extends _i1.Mock implements _i13.GoRouter {
           as bool);
 
   @override
-  set configuration(_i5.RouteConfiguration? value) => super.noSuchMethod(
-    Invocation.setter(#configuration, value),
-    returnValueForMissingStub: null,
-  );
+  _i9.GoRouterState get state =>
+      (super.noSuchMethod(
+            Invocation.getter(#state),
+            returnValue: _FakeGoRouterState_7(this, Invocation.getter(#state)),
+          )
+          as _i9.GoRouterState);
 
   @override
-  set routerDelegate(_i7.GoRouterDelegate? value) => super.noSuchMethod(
-    Invocation.setter(#routerDelegate, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set routeInformationProvider(_i8.GoRouteInformationProvider? value) =>
+  set configuration(_i4.RouteConfiguration? _configuration) =>
       super.noSuchMethod(
-        Invocation.setter(#routeInformationProvider, value),
+        Invocation.setter(#configuration, _configuration),
         returnValueForMissingStub: null,
       );
 
   @override
-  set routeInformationParser(_i9.GoRouteInformationParser? value) =>
+  set routerDelegate(_i6.GoRouterDelegate? _routerDelegate) =>
       super.noSuchMethod(
-        Invocation.setter(#routeInformationParser, value),
+        Invocation.setter(#routerDelegate, _routerDelegate),
         returnValueForMissingStub: null,
       );
+
+  @override
+  set routeInformationProvider(
+    _i7.GoRouteInformationProvider? _routeInformationProvider,
+  ) => super.noSuchMethod(
+    Invocation.setter(#routeInformationProvider, _routeInformationProvider),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  set routeInformationParser(
+    _i8.GoRouteInformationParser? _routeInformationParser,
+  ) => super.noSuchMethod(
+    Invocation.setter(#routeInformationParser, _routeInformationParser),
+    returnValueForMissingStub: null,
+  );
 
   @override
   bool canPop() =>

@@ -3,7 +3,6 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'dart:async' as _i4;
 import 'dart:typed_data' as _i13;
 
@@ -37,7 +36,6 @@ import 'package:stock_investment_tracker/data/models/withdrawal_model.dart'
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
-// ignore_for_file: invalid_use_of_internal_member
 
 class _FakeFirebaseApp_0 extends _i1.SmartFake implements _i2.FirebaseApp {
   _FakeFirebaseApp_0(Object parent, Invocation parentInvocation)
@@ -383,14 +381,14 @@ class MockFirebaseFirestore extends _i1.Mock implements _i3.FirebaseFirestore {
           as _i3.Settings);
 
   @override
-  set app(_i2.FirebaseApp? value) => super.noSuchMethod(
-    Invocation.setter(#app, value),
+  set app(_i2.FirebaseApp? _app) => super.noSuchMethod(
+    Invocation.setter(#app, _app),
     returnValueForMissingStub: null,
   );
 
   @override
-  set databaseId(String? value) => super.noSuchMethod(
-    Invocation.setter(#databaseId, value),
+  set databaseId(String? _databaseId) => super.noSuchMethod(
+    Invocation.setter(#databaseId, _databaseId),
     returnValueForMissingStub: null,
   );
 

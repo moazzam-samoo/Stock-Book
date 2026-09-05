@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
+// ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'user_settings_model.dart';
@@ -9,7 +9,6 @@ part of 'user_settings_model.dart';
 // FreezedGenerator
 // **************************************************************************
 
-// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -67,7 +66,7 @@ class _$UserSettingsModelCopyWithImpl<$Res>
 /// Create a copy of UserSettingsModel
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? favorites = null,Object? startingCapital = null,Object? currency = null,Object? themeMode = null,Object? stockColors = null,}) {
-  return _then(UserSettingsModel(
+  return _then(_self.copyWith(
 favorites: null == favorites ? _self.favorites : favorites // ignore: cast_nullable_to_non_nullable
 as List<String>,startingCapital: null == startingCapital ? _self.startingCapital : startingCapital // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
@@ -214,7 +213,7 @@ return $default(_that.favorites,_that.startingCapital,_that.currency,_that.theme
 @JsonSerializable()
 
 class _UserSettingsModel implements UserSettingsModel {
-  const _UserSettingsModel({ List<String> favorites = const [], this.startingCapital = 0.0, this.currency = 'PKR', this.themeMode = 'dark',  Map<String, int> stockColors = const {}}): _favorites = favorites,_stockColors = stockColors;
+  const _UserSettingsModel({final  List<String> favorites = const [], this.startingCapital = 0.0, this.currency = 'PKR', this.themeMode = 'dark', final  Map<String, int> stockColors = const {}}): _favorites = favorites,_stockColors = stockColors;
   factory _UserSettingsModel.fromJson(Map<String, dynamic> json) => _$UserSettingsModelFromJson(json);
 
  final  List<String> _favorites;
