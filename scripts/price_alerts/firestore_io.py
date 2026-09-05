@@ -6,6 +6,7 @@ Kept separate from alerts.py (pure decision logic) and main.py
 
 import firebase_admin
 from firebase_admin import credentials, firestore, messaging
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 
 def init_firestore(service_account_path: str):
@@ -64,8 +65,8 @@ def get_watched_alerts(db) -> list[dict]:
     """Every active, not-yet-sent buy alert, across all users."""
     query = (
         db.collection_group("price_alerts")
-        .where("isActive", "==", True)
-        .where("alertSent", "==", False)
+        .where(filter=FieldFilter("isActive", "==", True))
+        .where(filter=FieldFilter("alertSent", "==", False))
     )
     results = []
     for doc in query.stream():
