@@ -13,10 +13,44 @@ import 'package:stock_investment_tracker/presentation/common/empty_state_view.da
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
+import 'package:stock_investment_tracker/providers/workflow_trigger_providers.dart';
+import 'package:stock_investment_tracker/core/services/workflow_trigger_service.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 
 import 'package:go_router/go_router.dart';
+
+/// Pull-to-refresh does two things, and the distinction matters:
+///
+///  1. Re-reads Firestore, so whatever the backend last wrote shows
+///     immediately. This always happens.
+///  2. If a GitHub token is saved (Settings), also asks the backend to run
+///     *now* rather than waiting for its 5-minute schedule — which matters
+///     most outside market hours, on weekends, or right after adding a
+///     holding.
+///
+/// The run takes about a minute, so prices don't update the instant the
+/// spinner stops. The Firestore stream picks them up on its own when the
+/// backend writes; the snackbar sets that expectation rather than leaving it
+/// looking broken.
+Future<void> _refreshPrices(BuildContext context, WidgetRef ref) async {
+  ref.invalidate(watchMarketPriceProvider);
+
+  final result = await ref.read(triggerWorkflowProvider)();
+  if (!context.mounted) return;
+
+  // A missing token is the normal state for anyone who hasn't set one up —
+  // the local refresh above still happened, so don't nag about it.
+  if (result.outcome == WorkflowTriggerOutcome.noToken) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(result.message),
+      backgroundColor: result.isSuccess ? AppColors.moneyGreenOnLight : AppColors.dangerRed,
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -146,10 +180,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   : RefreshIndicator(
                       color: AppColors.brandIndigo,
                       backgroundColor: isDark ? AppColors.offBlack : Colors.white,
-                      onRefresh: () async {
-                        ref.invalidate(watchMarketPriceProvider);
-                        await Future.delayed(const Duration(milliseconds: 500));
-                      },
+                      onRefresh: () => _refreshPrices(context, ref),
                       child: ListView.builder(
                         padding: const EdgeInsets.only(bottom: 110),
                         itemCount: cards.length,
