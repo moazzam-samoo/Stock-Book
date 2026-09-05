@@ -87,12 +87,14 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
           children: [
             Icon(Icons.wifi_off, size: 16, color: Colors.black),
             SizedBox(width: 8),
-            Text(
-              'You\'re offline - Changes will sync when connected',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                'You\'re offline - Changes will sync when connected',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

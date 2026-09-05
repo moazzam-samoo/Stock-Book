@@ -1,0 +1,45 @@
+{
+  "_captured": "Real subset of psxdata.symbols()'s live output, captured 2026-09-05 against psxdata==1.1.0.",
+  "rows": [
+    {
+      "symbol": "ENGRO",
+      "name": "Engro Corporation Limited",
+      "sector_name": "FERTILIZER",
+      "is_etf": false,
+      "is_debt": false,
+      "is_gem": false
+    },
+    {
+      "symbol": "HUBC",
+      "name": "The Hub Power Company Limited",
+      "sector_name": "POWER GENERATION & DISTRIBUTION",
+      "is_etf": false,
+      "is_debt": false,
+      "is_gem": false
+    },
+    {
+      "symbol": "LUCK",
+      "name": "Lucky Cement Limited",
+      "sector_name": "CEMENT",
+      "is_etf": false,
+      "is_debt": false,
+      "is_gem": false
+    },
+    {
+      "symbol": "OGDC",
+      "name": "Oil & Gas Development Company Limited",
+      "sector_name": "OIL & GAS EXPLORATION COMPANIES",
+      "is_etf": false,
+      "is_debt": false,
+      "is_gem": false
+    },
+    {
+      "symbol": "UBL",
+      "name": "United Bank Limited",
+      "sector_name": "COMMERCIAL BANKS",
+      "is_etf": false,
+      "is_debt": false,
+      "is_gem": false
+    }
+  ]
+}

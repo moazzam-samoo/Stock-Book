@@ -3,19 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-class EditLotBottomSheet extends ConsumerStatefulWidget {
-  final Lot lot;
+class EditBuyBottomSheet extends ConsumerStatefulWidget {
+  final Position position;
+  final PositionBuy buy;
 
-  const EditLotBottomSheet({super.key, required this.lot});
+  const EditBuyBottomSheet({
+    super.key,
+    required this.position,
+    required this.buy,
+  });
 
-  static Future<void> show(BuildContext context, Lot lot) {
+  static Future<void> show(BuildContext context, Position position, PositionBuy buy) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
@@ -25,17 +33,19 @@ class EditLotBottomSheet extends ConsumerStatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: EditLotBottomSheet(lot: lot),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: EditBuyBottomSheet(position: position, buy: buy),
       ),
     );
   }
 
   @override
-  ConsumerState<EditLotBottomSheet> createState() => _EditLotBottomSheetState();
+  ConsumerState<EditBuyBottomSheet> createState() => _EditBuyBottomSheetState();
 }
 
-class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
+class _EditBuyBottomSheetState extends ConsumerState<EditBuyBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _tickerController;
   final _tickerFocusNode = FocusNode();
@@ -51,12 +61,12 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _ticker = widget.lot.ticker;
-    _tickerController = TextEditingController(text: widget.lot.ticker);
-    _buyDate = widget.lot.buyDate;
-    _sharesPurchased = widget.lot.sharesPurchased.toDouble();
-    _buyPrice = widget.lot.buyPricePerShare;
-    _targetPrice = widget.lot.targetPrice;
+    _ticker = widget.position.ticker;
+    _tickerController = TextEditingController(text: widget.position.ticker);
+    _buyDate = widget.buy.date;
+    _sharesPurchased = widget.buy.shares.toDouble();
+    _buyPrice = widget.buy.pricePerShare;
+    _targetPrice = widget.position.targetPrice;
   }
 
   @override
@@ -67,7 +77,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _ticker.isEmpty || _buyDate == null) {
+    if (!_formKey.currentState!.validate() ||
+        _ticker.isEmpty ||
+        _buyDate == null) {
       return;
     }
 
@@ -77,20 +89,38 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
 
     try {
       final results = await Connectivity().checkConnectivity();
-      final isOffline = results.contains(ConnectivityResult.none) || results.isEmpty;
+      final isOffline =
+          results.contains(ConnectivityResult.none) || results.isEmpty;
 
-      final updatedLot = widget.lot.copyWith(
-        ticker: _ticker.toUpperCase(),
-        buyDate: _buyDate!,
-        sharesPurchased: _sharesPurchased.toInt(),
-        buyPricePerShare: _buyPrice,
-        amountInvested: _amountInvested,
-        targetPrice: _targetPrice,
+      final updatedBuy = widget.buy.copyWith(
+        date: _buyDate!,
+        shares: _sharesPurchased.toInt(),
+        pricePerShare: _buyPrice,
       );
 
-      final repo = ref.read(lotRepositoryProvider);
+      final updatedBuys = widget.position.buys.map((b) => b.id == updatedBuy.id ? updatedBuy : b).toList();
+
+      final updatedPosition = widget.position.copyWith(
+        ticker: _ticker.toUpperCase(),
+        targetPrice: _targetPrice,
+        clearTargetPrice: _targetPrice == null,
+        buys: updatedBuys,
+      );
+
+      // Editing a buy's share count changes sharesHeld, which can close or
+      // reopen the position — `status` is stored, not derived, so it has to be
+      // restamped here or it goes stale (AGENTS.md §14).
+      final newStatus = PositionCalculator.computeStatus(updatedPosition);
+      final positionToSave = updatedPosition.copyWith(
+        status: newStatus,
+        closedAt: newStatus == PositionStatus.closed
+            ? (widget.position.closedAt ?? _buyDate)
+            : null,
+      );
+
+      final repo = ref.read(positionRepositoryProvider);
       if (repo != null) {
-        await repo.updateLot(updatedLot);
+        await repo.updatePosition(positionToSave);
       }
 
       if (!mounted) return;
@@ -99,17 +129,19 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
         SnackBar(
           content: Text(
             isOffline
-                ? "You're offline. Lot changes saved locally."
-                : 'Lot updated successfully!',
+                ? "You're offline. Buy changes saved locally."
+                : 'Buy updated successfully!',
           ),
-          backgroundColor: isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update lot: $e'),
+          content: Text('Failed to update buy: $e'),
           backgroundColor: AppColors.dangerRed,
         ),
       );
@@ -126,8 +158,12 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final boxBgColor = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     return SafeArea(
       child: Padding(
@@ -144,7 +180,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF333A4A) : const Color(0xFFCBD5E1),
+                      color: isDark
+                          ? const Color(0xFF333A4A)
+                          : const Color(0xFFCBD5E1),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -154,11 +192,15 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.neutral500, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.neutral500,
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
-                      'Edit Lot',
+                      'Edit Buy',
                       style: AppTypography.h2.copyWith(
                         color: primaryTextColor,
                         fontWeight: FontWeight.w800,
@@ -194,26 +236,28 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                     Expanded(
                       child: NumericInput(
                         label: 'Shares Purchased',
-                        initialValue: widget.lot.sharesPurchased.toString(),
+                        initialValue: widget.buy.shares.toString(),
                         onChanged: (val) {
                           setState(() {
                             _sharesPurchased = double.tryParse(val) ?? 0.0;
                           });
                         },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: NumericInput(
                         label: 'Buy Price / Share',
-                        initialValue: widget.lot.buyPricePerShare.toString(),
+                        initialValue: widget.buy.pricePerShare.toString(),
                         onChanged: (val) {
                           setState(() {
                             _buyPrice = double.tryParse(val) ?? 0.0;
                           });
                         },
-                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
                     ),
                   ],
@@ -221,16 +265,27 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                 const SizedBox(height: 16),
                 NumericInput(
                   label: 'Target Selling Price / Share (Optional)',
-                  initialValue: widget.lot.targetPrice?.toString() ?? '',
+                  initialValue: widget.position.targetPrice?.toString() ?? '',
                   onChanged: (val) {
                     setState(() {
                       _targetPrice = double.tryParse(val);
                     });
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                Text(
+                  'Changing this buy shifts the average cost for shares still held. Sales already recorded keep the cost basis they were booked at — this never rewrites past profit.',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.neutral500,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: boxBgColor,
                     borderRadius: BorderRadius.circular(14),
@@ -248,7 +303,9 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                         ),
                       ),
                       Text(
-                        _amountInvested > 0 ? AppCurrencyFormatter.format(_amountInvested) : 'Rs —',
+                        _amountInvested > 0
+                            ? AppCurrencyFormatter.format(_amountInvested)
+                            : 'Rs —',
                         style: AppTypography.h2.copyWith(
                           color: primaryTextColor,
                           fontFamily: 'JetBrains Mono',
@@ -268,16 +325,21 @@ class _EditLotBottomSheetState extends ConsumerState<EditLotBottomSheet> {
                       backgroundColor: const Color(0xFF584BF6),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: _isSaving
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
                           )
                         : const Text(
-                            'Update Lot',
+                            'Update Buy',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

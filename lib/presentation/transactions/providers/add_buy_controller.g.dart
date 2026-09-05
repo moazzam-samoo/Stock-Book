@@ -6,7 +6,7 @@ part of 'add_buy_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$addBuyControllerHash() => r'af316b373bb795a67f5e2aa5f8a8a6e03cec61f4';
+String _$addBuyControllerHash() => r'88ad7a1d4cc77ce0b0b81288dd051678b2424102';
 
 /// See also [AddBuyController].
 @ProviderFor(AddBuyController)

@@ -11,6 +11,7 @@ abstract class UserModel with _$UserModel {
     String? displayName,
     String? photoUrl,
     DateTime? createdAt,
+    int? schemaVersion,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);

@@ -13,6 +13,12 @@ class SignInScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final secondaryTextColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final tertiaryTextColor = isDark ? AppColors.textTertiary : AppColors.textSecondaryLight; // Or similar
+    
     final authState = ref.watch(authControllerProvider);
 
     // Listen for auth errors
@@ -31,7 +37,7 @@ class SignInScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor,
       body: Stack(
         children: [
           const AnimatedStockChart(),
@@ -76,17 +82,17 @@ class SignInScreen extends ConsumerWidget {
                     style: GoogleFonts.outfit(
                       fontSize: 42,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                      color: primaryTextColor,
                       letterSpacing: 0.8,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Track. Analyze. Profit.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: secondaryTextColor,
                     ),
                   ),
 
@@ -139,11 +145,11 @@ class SignInScreen extends ConsumerWidget {
                   ),
 
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'By signing in, you agree to our Terms & Privacy Policy',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textTertiary,
+                      color: tertiaryTextColor,
                     ),
                     textAlign: TextAlign.center,
                   ),

@@ -32,6 +32,10 @@ class MetricDetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final secondaryTextColor = isDark ? const Color(0xFFB3B3B3) : const Color(0xFF757575);
+    final dividerColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final positiveColor = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
     final title = _getTitle();
     final icon = _getIcon();
 
@@ -40,7 +44,7 @@ class MetricDetailCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF13151B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.moneyGreen.withOpacity(0.4), width: 1.5),
+        border: Border.all(color: positiveColor.withOpacity(0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
@@ -57,12 +61,12 @@ class MetricDetailCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, color: AppColors.moneyGreen, size: 18),
+                  Icon(icon, color: positiveColor, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     title.toUpperCase(),
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.moneyGreen,
+                      color: positiveColor,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8,
                       fontSize: 12,
@@ -81,9 +85,9 @@ class MetricDetailCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          const Divider(color: Color(0xFF242731), height: 1),
+          Divider(color: dividerColor, height: 1),
           const SizedBox(height: AppSpacing.md),
-          _buildMetricBody(),
+          _buildMetricBody(primaryTextColor, secondaryTextColor, dividerColor, positiveColor),
         ],
       ),
     ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05, end: 0, curve: Curves.easeOutCubic);
@@ -123,31 +127,36 @@ class MetricDetailCard extends StatelessWidget {
     }
   }
 
-  Widget _buildMetricBody() {
+  Widget _buildMetricBody(
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color dividerColor,
+    Color positiveColor,
+  ) {
     switch (metricType) {
       case DashboardMetricType.totalInvested:
-        return _buildTotalInvestedBody();
+        return _buildTotalInvestedBody(primaryTextColor, positiveColor);
       case DashboardMetricType.currentlyInvested:
-        return _buildInvestedBody();
+        return _buildInvestedBody(primaryTextColor);
       case DashboardMetricType.realizedPL:
-        return _buildRealizedPLBody();
+        return _buildRealizedPLBody(primaryTextColor, secondaryTextColor, dividerColor, positiveColor);
       case DashboardMetricType.totalFree:
-        return _buildTotalFreeBody();
+        return _buildTotalFreeBody(primaryTextColor, positiveColor);
       case DashboardMetricType.freeCash:
-        return _buildFreeCashBody();
+        return _buildFreeCashBody(primaryTextColor, positiveColor);
       case DashboardMetricType.openLots:
-        return _buildOpenLotsBody();
+        return _buildOpenLotsBody(primaryTextColor, secondaryTextColor);
     }
   }
 
-  Widget _buildTotalInvestedBody() {
+  Widget _buildTotalInvestedBody(Color primaryTextColor, Color positiveColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           AppCurrencyFormatter.format(summary.totalInvested, decimalDigits: 0),
           style: AppTypography.h1.copyWith(
-            color: AppColors.textPrimaryDark,
+            color: primaryTextColor,
             fontFamily: 'JetBrains Mono',
             fontSize: 24,
           ),
@@ -155,12 +164,13 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildDetailStat('Total Purchases', '${lots.length} lots')),
+            Expanded(child: _buildDetailStat('Total Purchases', '${lots.length} lots', primaryTextColor: primaryTextColor)),
             Expanded(
               child: _buildDetailStat(
                 'Deployment',
                 '${(summary.currentlyInvested / (summary.totalInvested > 0 ? summary.totalInvested : 1) * 100).toStringAsFixed(1)}% Active',
-                color: AppColors.moneyGreen,
+                color: positiveColor,
+                primaryTextColor: primaryTextColor,
               ),
             ),
           ],
@@ -169,14 +179,14 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalFreeBody() {
+  Widget _buildTotalFreeBody(Color primaryTextColor, Color positiveColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           AppCurrencyFormatter.format(summary.freeCash, decimalDigits: 0),
           style: AppTypography.h1.copyWith(
-            color: AppColors.textPrimaryDark,
+            color: primaryTextColor,
             fontFamily: 'JetBrains Mono',
             fontSize: 24,
           ),
@@ -184,12 +194,13 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildDetailStat('Base Uninvested Cash', 'Excludes Sales Profit')),
+            Expanded(child: _buildDetailStat('Base Uninvested Cash', 'Excludes Sales Profit', primaryTextColor: primaryTextColor)),
             Expanded(
               child: _buildDetailStat(
                 'Status',
                 summary.freeCash > 0 ? 'Cash Available' : 'Fully Deployed',
-                color: AppColors.moneyGreen,
+                color: positiveColor,
+                primaryTextColor: primaryTextColor,
               ),
             ),
           ],
@@ -198,7 +209,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInvestedBody() {
+  Widget _buildInvestedBody(Color primaryTextColor) {
     final totalShares = stockSummaries.fold(0, (sum, s) => sum + s.sharesHeld);
     StockSummary? topHolding;
     if (stockSummaries.isNotEmpty) {
@@ -211,7 +222,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(
           AppCurrencyFormatter.format(summary.currentlyInvested, decimalDigits: 0),
           style: AppTypography.h1.copyWith(
-            color: AppColors.textPrimaryDark,
+            color: primaryTextColor,
             fontFamily: 'JetBrains Mono',
             fontSize: 24,
           ),
@@ -219,16 +230,21 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildDetailStat('Active Stocks', '${stockSummaries.length}')),
-            Expanded(child: _buildDetailStat('Total Shares', '$totalShares')),
-            Expanded(child: _buildDetailStat('Top Position', topHolding?.ticker ?? 'N/A')),
+            Expanded(child: _buildDetailStat('Active Stocks', '${stockSummaries.length}', primaryTextColor: primaryTextColor)),
+            Expanded(child: _buildDetailStat('Total Shares', '$totalShares', primaryTextColor: primaryTextColor)),
+            Expanded(child: _buildDetailStat('Top Position', topHolding?.ticker ?? 'N/A', primaryTextColor: primaryTextColor)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildRealizedPLBody() {
+  Widget _buildRealizedPLBody(
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color dividerColor,
+    Color positiveColor,
+  ) {
     final totalSalesCount = lots.fold(0, (sum, lot) => sum + lot.sales.length);
     final isProfit = summary.realizedPL >= 0;
     final hasWithdrawals = summary.totalWithdrawn > 0;
@@ -240,7 +256,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(
           AppCurrencyFormatter.format(summary.realizedPL, showSign: true, decimalDigits: 2),
           style: AppTypography.h1.copyWith(
-            color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+            color: isProfit ? positiveColor : AppColors.alertRed,
             fontFamily: 'JetBrains Mono',
             fontSize: 24,
           ),
@@ -248,12 +264,13 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildDetailStat('Total Sales', '$totalSalesCount transactions')),
+            Expanded(child: _buildDetailStat('Total Sales', '$totalSalesCount transactions', primaryTextColor: primaryTextColor)),
             Expanded(
               child: _buildDetailStat(
                 'Performance',
                 isProfit ? 'Gain' : 'Loss',
-                color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+                color: isProfit ? positiveColor : AppColors.alertRed,
+                primaryTextColor: primaryTextColor,
               ),
             ),
           ],
@@ -262,26 +279,29 @@ class MetricDetailCard extends StatelessWidget {
         // Withdrawal breakdown: where the gap between gross and net comes from
         if (hasWithdrawals) ...[
           const SizedBox(height: AppSpacing.md),
-          const Divider(color: Color(0xFF242731), height: 1),
+          Divider(color: dividerColor, height: 1),
           const SizedBox(height: AppSpacing.sm),
           _buildLedgerRow(
             'Gross Trading Profit',
             AppCurrencyFormatter.format(summary.grossRealizedPL, showSign: true),
-            color: summary.grossRealizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+            color: summary.grossRealizedPL >= 0 ? positiveColor : AppColors.alertRed,
+            primaryTextColor: primaryTextColor,
           ),
           _buildLedgerRow(
             'Profit Withdrawn',
             '-${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
             color: AppColors.warningYellow,
+            primaryTextColor: primaryTextColor,
           ),
           const SizedBox(height: 4),
-          const Divider(color: Color(0xFF242731), height: 1),
+          Divider(color: dividerColor, height: 1),
           const SizedBox(height: 4),
           _buildLedgerRow(
             'Still In Account',
             AppCurrencyFormatter.format(summary.realizedPL, showSign: true),
-            color: isProfit ? AppColors.moneyGreen : AppColors.alertRed,
+            color: isProfit ? positiveColor : AppColors.alertRed,
             bold: true,
+            primaryTextColor: primaryTextColor,
           ),
 
           if (withdrawals.isNotEmpty) ...[
@@ -318,7 +338,7 @@ class MetricDetailCard extends StatelessWidget {
                         Text(
                           AppCurrencyFormatter.format(w.amount),
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textSecondaryDark,
+                            color: secondaryTextColor,
                             fontFamily: 'JetBrains Mono',
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -334,7 +354,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLedgerRow(String label, String value, {Color? color, bool bold = false}) {
+  Widget _buildLedgerRow(String label, String value, {Color? color, bool bold = false, required Color primaryTextColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: Row(
@@ -343,7 +363,7 @@ class MetricDetailCard extends StatelessWidget {
           Text(
             label,
             style: AppTypography.body.copyWith(
-              color: bold ? AppColors.textPrimaryDark : AppColors.neutral500,
+              color: bold ? primaryTextColor : AppColors.neutral500,
               fontSize: 13,
               fontWeight: bold ? FontWeight.bold : FontWeight.normal,
             ),
@@ -351,7 +371,7 @@ class MetricDetailCard extends StatelessWidget {
           Text(
             value,
             style: AppTypography.body.copyWith(
-              color: color ?? AppColors.textPrimaryDark,
+              color: color ?? primaryTextColor,
               fontFamily: 'JetBrains Mono',
               fontSize: 13,
               fontWeight: FontWeight.bold,
@@ -362,7 +382,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFreeCashBody() {
+  Widget _buildFreeCashBody(Color primaryTextColor, Color positiveColor) {
     final totalVal = summary.portfolioValue > 0 ? summary.portfolioValue : 1.0;
     final liquidCash = summary.freeCash + summary.realizedPL;
     final cashPercent = (liquidCash / totalVal * 100).toStringAsFixed(1);
@@ -373,7 +393,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(
           AppCurrencyFormatter.format(liquidCash, decimalDigits: 0),
           style: AppTypography.h1.copyWith(
-            color: AppColors.textPrimaryDark,
+            color: primaryTextColor,
             fontFamily: 'JetBrains Mono',
             fontSize: 24,
           ),
@@ -381,12 +401,13 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildDetailStat('Cash Ratio', '$cashPercent% of portfolio')),
+            Expanded(child: _buildDetailStat('Cash Ratio', '$cashPercent% of portfolio', primaryTextColor: primaryTextColor)),
             Expanded(
               child: _buildDetailStat(
                 'Includes Sales Profit',
                 summary.realizedPL >= 0 ? '+${AppCurrencyFormatter.format(summary.realizedPL)}' : AppCurrencyFormatter.format(summary.realizedPL),
-                color: summary.realizedPL >= 0 ? AppColors.moneyGreen : AppColors.alertRed,
+                color: summary.realizedPL >= 0 ? positiveColor : AppColors.alertRed,
+                primaryTextColor: primaryTextColor,
               ),
             ),
           ],
@@ -395,7 +416,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildOpenLotsBody() {
+  Widget _buildOpenLotsBody(Color primaryTextColor, Color secondaryTextColor) {
     final openLotsList = lots.where((l) => l.sharesRemaining > 0).toList();
     final dateFormat = DateFormat('MMM dd, yyyy');
 
@@ -405,7 +426,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(
           '${openLotsList.length} Active Purchase Lots',
           style: AppTypography.h2.copyWith(
-            color: AppColors.textPrimaryDark,
+            color: primaryTextColor,
             fontSize: 18,
           ),
         ),
@@ -424,7 +445,7 @@ class MetricDetailCard extends StatelessWidget {
                       children: [
                         Text(
                           lot.ticker,
-                          style: AppTypography.body.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: AppTypography.body.copyWith(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -436,7 +457,7 @@ class MetricDetailCard extends StatelessWidget {
                     Text(
                       '${lot.sharesRemaining} sh @ ${AppCurrencyFormatter.format(lot.buyPricePerShare, decimalDigits: 2)}',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textSecondaryDark,
+                        color: secondaryTextColor,
                         fontFamily: 'JetBrains Mono',
                         fontSize: 12,
                       ),
@@ -450,7 +471,7 @@ class MetricDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailStat(String label, String value, {Color? color}) {
+  Widget _buildDetailStat(String label, String value, {Color? color, required Color primaryTextColor}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -466,7 +487,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(
           value,
           style: AppTypography.body.copyWith(
-            color: color ?? AppColors.textPrimaryDark,
+            color: color ?? primaryTextColor,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),

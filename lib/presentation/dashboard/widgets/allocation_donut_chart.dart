@@ -45,6 +45,8 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
     final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final positiveColor = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
+    final selectedRowBg = isDark ? const Color(0xFF1E2620) : const Color(0xFFE8F5E9);
 
     if (widget.allocations.isEmpty) {
       return Container(
@@ -116,7 +118,7 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                 child: Text(
                   isSelected ? 'reset selection' : 'tap to highlight',
                   style: AppTypography.caption.copyWith(
-                    color: isSelected ? AppColors.moneyGreen : AppColors.neutral500,
+                    color: isSelected ? positiveColor : AppColors.neutral500,
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -142,7 +144,7 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                         Text(
                           centerLabel,
                           style: AppTypography.caption.copyWith(
-                            color: isSelected ? AppColors.moneyGreen : AppColors.neutral500,
+                            color: isSelected ? positiveColor : AppColors.neutral500,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                             letterSpacing: 0.5,
@@ -163,7 +165,7 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                           Text(
                             '${widget.allocations[touchedIndex].percentage.toStringAsFixed(0)}%',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.moneyGreen,
+                              color: positiveColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
@@ -223,10 +225,10 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
                             decoration: BoxDecoration(
-                              color: isTouched ? const Color(0xFF1E2620) : Colors.transparent,
+                              color: isTouched ? selectedRowBg : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: isTouched ? AppColors.moneyGreen : Colors.transparent,
+                                color: isTouched ? positiveColor : Colors.transparent,
                                 width: 1,
                               ),
                             ),
@@ -244,7 +246,7 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                                 Text(
                                   allocation.ticker,
                                   style: AppTypography.body.copyWith(
-                                    color: isTouched ? AppColors.moneyGreen : primaryTextColor,
+                                    color: isTouched ? positiveColor : primaryTextColor,
                                     fontWeight: isTouched ? FontWeight.w800 : FontWeight.w700,
                                     fontSize: 13,
                                   ),
@@ -253,7 +255,7 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                                 Text(
                                   '${allocation.percentage.toStringAsFixed(0)}%',
                                   style: AppTypography.body.copyWith(
-                                    color: isTouched ? AppColors.moneyGreen : AppColors.neutral400,
+                                    color: isTouched ? positiveColor : AppColors.neutral400,
                                     fontWeight: isTouched ? FontWeight.w800 : FontWeight.w600,
                                     fontSize: 13,
                                   ),

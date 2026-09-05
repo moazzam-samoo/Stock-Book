@@ -10,6 +10,7 @@ GoogleService-Info.plist
 firebase-debug.log
 ui_errors.log
 *service_account*.json
+*service-account*.json
 *credentials*.json
 
 # Android Keystore, Signing & Security
@@ -73,6 +74,15 @@ local.properties
 # Symbolication & Obfuscation
 app.*.symbols
 app.*.map.json
+
+# ==========================================
+# 🐍 Python (scripts/price_alerts)
+# ==========================================
+__pycache__/
+*.pyc
+.venv/
+.venv_dev_only/
+.pytest_cache/
 
 # ==========================================
 # 💻 IDEs & Editor Configuration

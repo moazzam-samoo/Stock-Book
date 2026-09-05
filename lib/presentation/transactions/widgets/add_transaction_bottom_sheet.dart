@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_buy_bottom_sheet.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/select_lot_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/select_position_bottom_sheet.dart';
 
-class AddTransactionBottomSheet extends StatelessWidget {
+class AddTransactionBottomSheet extends ConsumerWidget {
   const AddTransactionBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: isDark ? const Color(0xFF13151B) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -20,7 +25,13 @@ class AddTransactionBottomSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final grabHandleColor = isDark
+        ? AppColors.offBlack
+        : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -33,7 +44,7 @@ class AddTransactionBottomSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.offBlack,
+                  color: grabHandleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -41,7 +52,7 @@ class AddTransactionBottomSheet extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Add Transaction',
-              style: AppTypography.h2,
+              style: AppTypography.h2.copyWith(color: primaryTextColor),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -61,7 +72,15 @@ class AddTransactionBottomSheet extends StatelessWidget {
               subtitle: 'Record a partial or full sale',
               onTap: () {
                 Navigator.pop(context);
-                SelectLotBottomSheet.show(context);
+                final positions = ref.read(allPositionsProvider).valueOrNull ?? [];
+                final openPositions = positions
+                    .where((p) => p.status != PositionStatus.closed)
+                    .toList();
+                if (openPositions.length == 1) {
+                  AddSellBottomSheet.show(context, openPositions.first);
+                } else {
+                  SelectPositionBottomSheet.show(context);
+                }
               },
             ),
             const SizedBox(height: 16),
@@ -87,15 +106,22 @@ class _TransactionOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.offBlack : const Color(0xFFF5F5F5);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: cardBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.offBlack),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           children: [
@@ -112,11 +138,16 @@ class _TransactionOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTypography.h3),
+                  Text(
+                    title,
+                    style: AppTypography.h3.copyWith(color: primaryTextColor),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                    ),
                   ),
                 ],
               ),

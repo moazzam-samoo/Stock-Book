@@ -6,9 +6,30 @@ part of 'dashboard_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$allPositionsHash() => r'90dd0e68b6e2c6508d6c1f3a6506ec2ec6fe1978';
+
+/// See also [allPositions].
+@ProviderFor(allPositions)
+final allPositionsProvider = AutoDisposeStreamProvider<List<Position>>.internal(
+  allPositions,
+  name: r'allPositionsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$allPositionsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AllPositionsRef = AutoDisposeStreamProviderRef<List<Position>>;
 String _$allLotsHash() => r'3a7a2df8945eacc6e8069b7153a5e6d8cd709454';
 
-/// See also [allLots].
+/// Lots are never deleted by the position migration — they remain the
+/// rollback path and the source of truth for the JSON backup export, so this
+/// stays available alongside [allPositionsProvider].
+///
+/// Copied from [allLots].
 @ProviderFor(allLots)
 final allLotsProvider = AutoDisposeStreamProvider<List<Lot>>.internal(
   allLots,
@@ -41,7 +62,7 @@ final allWithdrawalsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllWithdrawalsRef = AutoDisposeStreamProviderRef<List<Withdrawal>>;
-String _$portfolioSummaryHash() => r'ecc99173dc0f98d02b9e69a93d2c193a7798bb96';
+String _$portfolioSummaryHash() => r'42dfb9b2e2efb6ae906ca7e2c3493bf47ba7964f';
 
 /// See also [portfolioSummary].
 @ProviderFor(portfolioSummary)
@@ -58,7 +79,7 @@ final portfolioSummaryProvider = AutoDisposeProvider<PortfolioSummary>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PortfolioSummaryRef = AutoDisposeProviderRef<PortfolioSummary>;
-String _$stockSummariesHash() => r'7d310aec7f1e308259318d576e44e9c3baeb055d';
+String _$stockSummariesHash() => r'417f5321a996b0a930c93b71d8316f3248345750';
 
 /// See also [stockSummaries].
 @ProviderFor(stockSummaries)

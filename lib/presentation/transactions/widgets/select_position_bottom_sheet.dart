@@ -4,34 +4,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_sell_bottom_sheet.dart';
 
-class SelectLotBottomSheet extends ConsumerWidget {
-  const SelectLotBottomSheet({super.key});
+/// Ticker picker for "Add Sell" — one open position per ticker, so this picks
+/// which position to sell from rather than which individual lot.
+class SelectPositionBottomSheet extends ConsumerWidget {
+  const SelectPositionBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: isDark ? const Color(0xFF13151B) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => const SelectLotBottomSheet(),
+      builder: (context) => const SelectPositionBottomSheet(),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lots = ref.watch(allLotsProvider).valueOrNull ?? [];
-    final availableLots = lots.where((l) => l.status != LotStatus.closed).toList();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final grabHandleColor = isDark
+        ? AppColors.offBlack
+        : const Color(0xFFE2E8F0);
+    final cardBg = isDark ? AppColors.offBlack : const Color(0xFFF5F5F5);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    final positions = ref.watch(allPositionsProvider).valueOrNull ?? [];
+    final availablePositions = positions
+        .where((p) => p.status != PositionStatus.closed)
+        .toList();
     final wholeFormat = NumberFormat('#,##0');
-    final dateFormat = DateFormat('MMM d, y');
 
     return SafeArea(
       child: Padding(
@@ -45,7 +59,7 @@ class SelectLotBottomSheet extends ConsumerWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.offBlack,
+                  color: grabHandleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -55,7 +69,10 @@ class SelectLotBottomSheet extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const SizedBox(width: 24), // balance for title centering
-                Text('Add Sell', style: AppTypography.h2),
+                Text(
+                  'Add Sell',
+                  style: AppTypography.h2.copyWith(color: primaryTextColor),
+                ),
                 IconButton(
                   icon: const Icon(Icons.close, color: AppColors.neutral500),
                   onPressed: () => Navigator.pop(context),
@@ -64,18 +81,20 @@ class SelectLotBottomSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Which lot are you selling from?',
+              'Which position are you selling from?',
               style: AppTypography.body.copyWith(color: AppColors.neutral500),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            if (availableLots.isEmpty)
+            if (availablePositions.isEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 32.0),
                   child: Text(
-                    'No open lots available to sell.',
-                    style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                    'No open positions available to sell.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                    ),
                   ),
                 ),
               )
@@ -83,26 +102,29 @@ class SelectLotBottomSheet extends ConsumerWidget {
               SizedBox(
                 height: 300,
                 child: ListView.separated(
-                  itemCount: availableLots.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  itemCount: availablePositions.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    final lot = availableLots[index];
+                    final position = availablePositions[index];
+                    final sharesHeld = PositionCalculator.sharesHeld(position);
+                    final avgCost = PositionCalculator.avgCost(position);
                     return InkWell(
                       onTap: () {
                         Navigator.pop(context);
-                        AddSellBottomSheet.show(context, lot);
+                        AddSellBottomSheet.show(context, position);
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceDark,
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.offBlack),
+                          border: Border.all(color: borderColor),
                         ),
                         child: Row(
                           children: [
-                            TickerAvatar(ticker: lot.ticker, size: 40),
+                            TickerAvatar(ticker: position.ticker, size: 40),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -111,25 +133,36 @@ class SelectLotBottomSheet extends ConsumerWidget {
                                   Row(
                                     children: [
                                       Text(
-                                        '${lot.ticker} · ',
-                                        style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                                        '${position.ticker} · ',
+                                        style: AppTypography.body.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryTextColor,
+                                        ),
                                       ),
                                       Text(
-                                        '${wholeFormat.format(lot.sharesRemaining)} left',
-                                        style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                                        '${wholeFormat.format(sharesHeld)} held',
+                                        style: AppTypography.body.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryTextColor,
+                                        ),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Bought ${dateFormat.format(lot.buyDate)} @ ${AppCurrencyFormatter.format(lot.buyPricePerShare)}',
-                                    style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                                    'Avg cost ${AppCurrencyFormatter.format(avgCost)}',
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.neutral500,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            StatusBadge(status: lot.status),
-                            const Icon(Icons.chevron_right, color: AppColors.neutral500),
+                            StatusBadge(status: position.status),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.neutral500,
+                            ),
                           ],
                         ),
                       ),

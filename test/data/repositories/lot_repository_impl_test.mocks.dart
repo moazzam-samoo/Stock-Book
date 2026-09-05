@@ -9,11 +9,17 @@ import 'package:mockito/mockito.dart' as _i1;
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart'
     as _i2;
 import 'package:stock_investment_tracker/data/models/lot_model.dart' as _i4;
-import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i5;
+import 'package:stock_investment_tracker/data/models/market_price_model.dart'
+    as _i9;
+import 'package:stock_investment_tracker/data/models/position_model.dart'
+    as _i5;
+import 'package:stock_investment_tracker/data/models/price_alert_model.dart'
+    as _i10;
+import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i6;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
-    as _i7;
+    as _i8;
 import 'package:stock_investment_tracker/data/models/withdrawal_model.dart'
-    as _i6;
+    as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -74,15 +80,50 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
-  _i3.Stream<List<_i5.SaleModel>> watchAllSales(String? uid, String? lotId) =>
+  _i3.Stream<List<_i5.PositionModel>> watchAllPositions(String? uid) =>
       (super.noSuchMethod(
-            Invocation.method(#watchAllSales, [uid, lotId]),
-            returnValue: _i3.Stream<List<_i5.SaleModel>>.empty(),
+            Invocation.method(#watchAllPositions, [uid]),
+            returnValue: _i3.Stream<List<_i5.PositionModel>>.empty(),
           )
-          as _i3.Stream<List<_i5.SaleModel>>);
+          as _i3.Stream<List<_i5.PositionModel>>);
 
   @override
-  _i3.Future<void> addSale(String? uid, String? lotId, _i5.SaleModel? sale) =>
+  _i3.Future<void> addPosition(String? uid, _i5.PositionModel? position) =>
+      (super.noSuchMethod(
+            Invocation.method(#addPosition, [uid, position]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updatePosition(String? uid, _i5.PositionModel? position) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePosition, [uid, position]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deletePosition(String? uid, String? positionId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deletePosition, [uid, positionId]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Stream<List<_i6.SaleModel>> watchAllSales(String? uid, String? lotId) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllSales, [uid, lotId]),
+            returnValue: _i3.Stream<List<_i6.SaleModel>>.empty(),
+          )
+          as _i3.Stream<List<_i6.SaleModel>>);
+
+  @override
+  _i3.Future<void> addSale(String? uid, String? lotId, _i6.SaleModel? sale) =>
       (super.noSuchMethod(
             Invocation.method(#addSale, [uid, lotId, sale]),
             returnValue: _i3.Future<void>.value(),
@@ -94,7 +135,7 @@ class MockFirestoreDataSource extends _i1.Mock
   _i3.Future<void> updateSale(
     String? uid,
     String? lotId,
-    _i5.SaleModel? sale,
+    _i6.SaleModel? sale,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#updateSale, [uid, lotId, sale]),
@@ -113,17 +154,59 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
-  _i3.Stream<List<_i6.WithdrawalModel>> watchAllWithdrawals(String? uid) =>
+  _i3.Future<int?> getUserSchemaVersion(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#getUserSchemaVersion, [uid]),
+            returnValue: _i3.Future<int?>.value(),
+          )
+          as _i3.Future<int?>);
+
+  @override
+  _i3.Future<List<_i4.LotModel>> getAllLotsOnce(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllLotsOnce, [uid]),
+            returnValue: _i3.Future<List<_i4.LotModel>>.value(<_i4.LotModel>[]),
+          )
+          as _i3.Future<List<_i4.LotModel>>);
+
+  @override
+  _i3.Future<void> stampSchemaVersion(String? uid, int? version) =>
+      (super.noSuchMethod(
+            Invocation.method(#stampSchemaVersion, [uid, version]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> runPositionMigrationBatches(
+    String? uid,
+    List<_i5.PositionModel>? positions,
+    int? version,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#runPositionMigrationBatches, [
+              uid,
+              positions,
+              version,
+            ]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Stream<List<_i7.WithdrawalModel>> watchAllWithdrawals(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchAllWithdrawals, [uid]),
-            returnValue: _i3.Stream<List<_i6.WithdrawalModel>>.empty(),
+            returnValue: _i3.Stream<List<_i7.WithdrawalModel>>.empty(),
           )
-          as _i3.Stream<List<_i6.WithdrawalModel>>);
+          as _i3.Stream<List<_i7.WithdrawalModel>>);
 
   @override
   _i3.Future<void> addWithdrawal(
     String? uid,
-    _i6.WithdrawalModel? withdrawal,
+    _i7.WithdrawalModel? withdrawal,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#addWithdrawal, [uid, withdrawal]),
@@ -135,7 +218,7 @@ class MockFirestoreDataSource extends _i1.Mock
   @override
   _i3.Future<void> updateWithdrawal(
     String? uid,
-    _i6.WithdrawalModel? withdrawal,
+    _i7.WithdrawalModel? withdrawal,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#updateWithdrawal, [uid, withdrawal]),
@@ -154,20 +237,73 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
-  _i3.Stream<_i7.UserSettingsModel?> watchSettings(String? uid) =>
+  _i3.Stream<_i8.UserSettingsModel?> watchSettings(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchSettings, [uid]),
-            returnValue: _i3.Stream<_i7.UserSettingsModel?>.empty(),
+            returnValue: _i3.Stream<_i8.UserSettingsModel?>.empty(),
           )
-          as _i3.Stream<_i7.UserSettingsModel?>);
+          as _i3.Stream<_i8.UserSettingsModel?>);
 
   @override
   _i3.Future<void> updateSettings(
     String? uid,
-    _i7.UserSettingsModel? settings,
+    _i8.UserSettingsModel? settings,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#updateSettings, [uid, settings]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Stream<_i9.MarketPriceModel?> watchMarketPrice(String? ticker) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchMarketPrice, [ticker]),
+            returnValue: _i3.Stream<_i9.MarketPriceModel?>.empty(),
+          )
+          as _i3.Stream<_i9.MarketPriceModel?>);
+
+  @override
+  _i3.Stream<List<_i9.MarketPriceModel>> watchMarketPrices(
+    List<String>? tickers,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchMarketPrices, [tickers]),
+            returnValue: _i3.Stream<List<_i9.MarketPriceModel>>.empty(),
+          )
+          as _i3.Stream<List<_i9.MarketPriceModel>>);
+
+  @override
+  _i3.Stream<List<_i10.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchAllPriceAlerts, [uid]),
+            returnValue: _i3.Stream<List<_i10.PriceAlertModel>>.empty(),
+          )
+          as _i3.Stream<List<_i10.PriceAlertModel>>);
+
+  @override
+  _i3.Future<void> addPriceAlert(String? uid, _i10.PriceAlertModel? alert) =>
+      (super.noSuchMethod(
+            Invocation.method(#addPriceAlert, [uid, alert]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> updatePriceAlert(String? uid, _i10.PriceAlertModel? alert) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePriceAlert, [uid, alert]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deletePriceAlert(String? uid, String? alertId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deletePriceAlert, [uid, alertId]),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )

@@ -45,12 +45,14 @@ class StatCard extends StatelessWidget {
         ? (isDark ? const Color(0xFF1E2620) : const Color(0xFFE8F5E9))
         : (isDark ? const Color(0xFF13151B) : Colors.white);
 
+    final selectedAccent = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
+
     final borderColor = isSelected
-        ? AppColors.moneyGreen
+        ? selectedAccent
         : (isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0));
 
     final labelColor = isSelected
-        ? AppColors.moneyGreen
+        ? selectedAccent
         : (isDark ? AppColors.neutral500 : const Color(0xFF64748B));
 
     final defaultValColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
@@ -102,10 +104,10 @@ class StatCard extends StatelessWidget {
                       ),
                     ),
                     if (isSelected)
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         size: 14,
-                        color: AppColors.moneyGreen,
+                        color: selectedAccent,
                       ),
                   ],
                 ),

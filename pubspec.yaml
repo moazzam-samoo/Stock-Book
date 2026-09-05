@@ -38,7 +38,7 @@ dependencies:
   riverpod_annotation: ^2.6.1
   go_router: ^17.3.0
   firebase_core: ^4.12.1
-  firebase_auth: ^6.5.6
+  firebase_auth: ^6.6.1
   cloud_firestore: ^6.7.1
   google_sign_in: ^6.2.2
   fl_chart: ^1.2.0
@@ -51,7 +51,9 @@ dependencies:
   connectivity_plus: ^7.3.1
   intl: ^0.20.3
   uuid: ^4.6.0
+  share_plus: ^11.0.0
   logger: ^2.7.0
+  equatable: ^2.1.0
   freezed_annotation: ^3.1.0
   json_annotation: 4.9.0
   firebase_crashlytics: ^5.2.6
@@ -63,6 +65,9 @@ dependencies:
   printing: ^5.13.1
   url_launcher: ^6.3.1
   flutter_svg: ^2.0.10+1
+  rxdart: ^0.28.0
+  firebase_messaging: ^16.6.0
+  flutter_local_notifications: ^22.3.0
 
 dev_dependencies:
   flutter_test:
@@ -82,6 +87,7 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
 
 flutter_launcher_icons:
   android: "ic_launcher"
@@ -103,6 +109,22 @@ flutter:
     - assets/icon/
     - assets/screenshots/
 
+  # Bundled locally so widget/golden tests can render real Outfit/Inter text
+  # via golden_toolkit's loadAppFonts() without network access. The app
+  # itself still fetches these through google_fonts at runtime as before —
+  # this declaration exists for test determinism, not for the shipped app.
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit-Bold.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:

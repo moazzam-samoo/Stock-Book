@@ -4,26 +4,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/entities/sale.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_sale.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-/// Edits an existing sale within a lot.
+/// Edits an existing sale within a position.
 ///
-/// The lot's remaining shares, status and realized P/L are all derived from the
-/// sales array on read, so writing the corrected sale is enough — no derived
-/// field needs patching here.
+/// The sale's `costBasisAtSale` is preserved exactly as it was booked —
+/// editing shares/price/date here must never recompute it against the
+/// position's current avg cost, per the model's core rule (see PHASE-03A).
 class EditSaleBottomSheet extends ConsumerStatefulWidget {
-  final Lot lot;
-  final Sale sale;
+  final Position position;
+  final PositionSale sale;
 
-  const EditSaleBottomSheet({super.key, required this.lot, required this.sale});
+  const EditSaleBottomSheet({
+    super.key,
+    required this.position,
+    required this.sale,
+  });
 
-  static Future<void> show(BuildContext context, Lot lot, Sale sale) {
+  static Future<void> show(
+    BuildContext context,
+    Position position,
+    PositionSale sale,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
@@ -36,7 +46,7 @@ class EditSaleBottomSheet extends ConsumerStatefulWidget {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: EditSaleBottomSheet(lot: lot, sale: sale),
+        child: EditSaleBottomSheet(position: position, sale: sale),
       ),
     );
   }
@@ -53,25 +63,22 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
   late double _sellPrice;
   bool _isSaving = false;
 
-  /// Shares available to this sale = whole lot minus everything sold in the
-  /// *other* sales, so growing this sale is allowed up to the real ceiling.
-  int get _maxShares {
-    final soldElsewhere = widget.lot.sales
-        .where((s) => s.id != widget.sale.id)
-        .fold(0, (sum, s) => sum + s.sharesSold);
-    return widget.lot.sharesPurchased - soldElsewhere;
-  }
+  /// Shares available to this sale = shares held today plus what this sale
+  /// itself already accounts for, so growing this sale is allowed up to the
+  /// real ceiling without double-counting its own shares.
+  int get _maxShares =>
+      PositionCalculator.sharesHeld(widget.position) + widget.sale.shares;
 
   double get _amountReceived => _sharesSold * _sellPrice;
   double get _profitLoss =>
-      (_sellPrice - widget.lot.buyPricePerShare) * _sharesSold;
+      (_sellPrice - (widget.sale.costBasisAtSale ?? 0.0)) * _sharesSold;
 
   @override
   void initState() {
     super.initState();
-    _sellDate = widget.sale.sellDate;
-    _sharesSold = widget.sale.sharesSold.toDouble();
-    _sellPrice = widget.sale.sellPricePerShare;
+    _sellDate = widget.sale.date;
+    _sharesSold = widget.sale.shares.toDouble();
+    _sellPrice = widget.sale.pricePerShare;
   }
 
   Future<void> _submit() async {
@@ -98,17 +105,28 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
       final isOffline =
           results.contains(ConnectivityResult.none) || results.isEmpty;
 
-      final updatedSale = Sale(
-        id: widget.sale.id,
-        sellDate: _sellDate!,
-        sharesSold: _sharesSold.toInt(),
-        sellPricePerShare: _sellPrice,
-        amountReceived: _amountReceived,
+      final updatedSale = widget.sale.copyWith(
+        date: _sellDate!,
+        shares: _sharesSold.toInt(),
+        pricePerShare: _sellPrice,
       );
 
-      final repo = ref.read(saleRepositoryProvider);
+      final updatedSales = widget.position.sales
+          .map((s) => s.id == updatedSale.id ? updatedSale : s)
+          .toList();
+      final updatedPosition = widget.position.copyWith(sales: updatedSales);
+      final newStatus = PositionCalculator.computeStatus(updatedPosition);
+
+      final repo = ref.read(positionRepositoryProvider);
       if (repo != null) {
-        await repo.updateSale(widget.lot.id, updatedSale);
+        await repo.updatePosition(
+          updatedPosition.copyWith(
+            status: newStatus,
+            closedAt: newStatus == PositionStatus.closed
+                ? (widget.position.closedAt ?? _sellDate)
+                : null,
+          ),
+        );
       }
 
       if (!mounted) return;
@@ -120,8 +138,9 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                 ? "You're offline. Sale changes saved locally and will sync when online."
                 : 'Sale updated successfully!',
           ),
-          backgroundColor:
-              isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+          backgroundColor: isOffline
+              ? AppColors.warningYellow
+              : AppColors.moneyGreen,
         ),
       );
     } catch (e) {
@@ -143,15 +162,20 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
     final wholeFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM d, y');
     final isProfit = _profitLoss >= 0;
-    final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
+    final plColor = isProfit
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final boxBorderColor =
-        isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final bannerBgColor =
-        isDark ? const Color(0xFF1E2235) : const Color(0xFFEEF2FF);
-    final boxBgColor =
-        isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
+    final boxBorderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
+    final bannerBgColor = isDark
+        ? const Color(0xFF1E2235)
+        : const Color(0xFFEEF2FF);
+    final boxBgColor = isDark
+        ? const Color(0xFF1A1D27)
+        : const Color(0xFFF8FAFC);
 
     return SafeArea(
       child: Padding(
@@ -200,7 +224,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                 ),
                 const SizedBox(height: 16),
 
-                // Parent lot banner
+                // Parent position banner
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -217,7 +241,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${widget.lot.ticker} · Bought ${dateFormat.format(widget.lot.buyDate)}',
+                              '${widget.position.ticker} · Sold ${dateFormat.format(widget.sale.date)}',
                               style: AppTypography.body.copyWith(
                                 color: primaryTextColor,
                                 fontWeight: FontWeight.w800,
@@ -226,7 +250,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Buy price ${AppCurrencyFormatter.format(widget.lot.buyPricePerShare)} · max ${wholeFormat.format(_maxShares)} sh',
+                              'Cost basis ${AppCurrencyFormatter.format(widget.sale.costBasisAtSale ?? 0.0)} · max ${wholeFormat.format(_maxShares)} sh',
                               style: AppTypography.caption.copyWith(
                                 color: AppColors.neutral500,
                                 fontSize: 13,
@@ -235,8 +259,16 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                           ],
                         ),
                       ),
-                      StatusBadge(status: widget.lot.status),
+                      StatusBadge(status: widget.position.status),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Editing this sale keeps its original cost basis — later buys never change what a past sale already booked.',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.neutral500,
+                    fontSize: 11,
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -252,7 +284,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                     Expanded(
                       child: NumericInput(
                         label: 'Shares Sold',
-                        initialValue: widget.sale.sharesSold.toString(),
+                        initialValue: widget.sale.shares.toString(),
                         onChanged: (val) {
                           setState(() {
                             _sharesSold = double.tryParse(val) ?? 0.0;
@@ -271,8 +303,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
                     Expanded(
                       child: NumericInput(
                         label: 'Sell Price / Share',
-                        initialValue:
-                            widget.sale.sellPricePerShare.toString(),
+                        initialValue: widget.sale.pricePerShare.toString(),
                         onChanged: (val) {
                           setState(() {
                             _sellPrice = double.tryParse(val) ?? 0.0;

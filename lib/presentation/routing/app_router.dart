@@ -4,13 +4,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../auth/providers/auth_providers.dart';
 import '../onboarding/providers/onboarding_provider.dart';
 import '../common/app_bottom_nav_bar.dart';
-import '../common/app_scaffold.dart';
 import '../auth/screens/sign_in_screen.dart';
 import '../onboarding/screens/onboarding_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../dashboard/screens/stock_detail_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../transactions/screens/transactions_screen.dart';
+import '../alerts/screens/alerts_screen.dart';
 import '../splash/screens/splash_screen.dart';
 
 import '../common/swipeable_navigation_shell.dart';
@@ -72,17 +72,22 @@ GoRouter appRouter(AppRouterRef ref) {
                 navigationShell.goBranch(0);
               }
             },
-            child: Scaffold(
-              extendBody: true,
-              backgroundColor: const Color(0xFF13151B),
-              body: navigationShell,
-              bottomNavigationBar: AppBottomNavBar(
-                currentIndex: navigationShell.currentIndex,
-                onTap: (index) => navigationShell.goBranch(
-                  index,
-                  initialLocation: index == navigationShell.currentIndex,
-                ),
-              ),
+            child: Builder(
+              builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Scaffold(
+                  extendBody: true,
+                  backgroundColor: isDark ? const Color(0xFF13151B) : const Color(0xFFF5F5F5),
+                  body: navigationShell,
+                  bottomNavigationBar: AppBottomNavBar(
+                    currentIndex: navigationShell.currentIndex,
+                    onTap: (index) => navigationShell.goBranch(
+                      index,
+                      initialLocation: index == navigationShell.currentIndex,
+                    ),
+                  ),
+                );
+              },
             ),
           );
         },
@@ -106,6 +111,14 @@ GoRouter appRouter(AppRouterRef ref) {
               GoRoute(
                 path: '/transactions',
                 builder: (context, state) => const TransactionsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/alerts',
+                builder: (context, state) => const AlertsScreen(),
               ),
             ],
           ),

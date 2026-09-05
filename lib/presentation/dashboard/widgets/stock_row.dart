@@ -41,19 +41,21 @@ class StockRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final formatCurrency = NumberFormat.simpleCurrency(name: 'PKR', decimalDigits: 2);
     final formatNumber = NumberFormat.decimalPattern();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPositive = summary.realizedPL >= 0;
-    final plColor = isPositive ? AppColors.moneyGreen : AppColors.alertRed;
-    
+    final plColor = isPositive
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
+
     final settings = ref.watch(settingsProvider).valueOrNull;
     final customColor = settings?.stockColors[summary.ticker.toUpperCase().trim()];
-    final sparklineColor = customColor != null 
-        ? Color(customColor) 
+    final sparklineColor = customColor != null
+        ? Color(customColor)
         : StockColorUtils.getColorForTicker(summary.ticker);
-    
+
     final displayAvgPrice = AppCurrencyFormatter.format(summary.avgBuyPrice, decimalDigits: 2);
     final displayRealized = AppCurrencyFormatter.format(summary.realizedPL, decimalDigits: 2, showSign: true);
-    
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final primaryColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
     return InkWell(

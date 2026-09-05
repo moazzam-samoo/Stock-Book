@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/entities/sale.dart';
-import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 import 'package:uuid/uuid.dart';
 
@@ -15,48 +14,24 @@ class AddSellController extends _$AddSellController {
   }
 
   Future<void> submit({
-    required Lot lot,
+    required Position position,
     required DateTime sellDate,
-    required double sharesSold,
+    required int sharesSold,
     required double sellPricePerShare,
   }) async {
     state = const AsyncLoading();
     try {
-      final amountReceived = sharesSold * sellPricePerShare;
-      final realizedProfitLoss = (sellPricePerShare - lot.buyPricePerShare) * sharesSold;
-
-      final sale = Sale(
-        id: const Uuid().v4(),
-        sellDate: sellDate,
-        sharesSold: sharesSold.toInt(),
-        sellPricePerShare: sellPricePerShare,
-        amountReceived: amountReceived,
+      final updatedPosition = PositionCalculator.applySell(
+        position,
+        saleId: const Uuid().v4(),
+        date: sellDate,
+        shares: sharesSold,
+        pricePerShare: sellPricePerShare,
       );
 
-      final newSales = List<Sale>.from(lot.sales)..add(sale);
-      
-      final sharesRemaining = lot.sharesRemaining - sharesSold;
-      final amountInvestedRemaining = lot.amountInvestedRemaining - (sharesSold * lot.buyPricePerShare);
-      final totalRealizedProfitLoss = lot.realizedProfitLoss + realizedProfitLoss;
-      
-      LotStatus newStatus = lot.status;
-      if (sharesRemaining <= 0.001) {
-        newStatus = LotStatus.closed;
-      } else if (sharesRemaining < lot.sharesPurchased) {
-        newStatus = LotStatus.partiallySold;
-      }
-
-      final updatedLot = lot.copyWith(
-        sales: newSales,
-        sharesRemaining: sharesRemaining.toInt(),
-        amountInvestedRemaining: amountInvestedRemaining,
-        realizedProfitLoss: totalRealizedProfitLoss,
-        status: newStatus,
-      );
-
-      final repo = ref.read(lotRepositoryProvider);
+      final repo = ref.read(positionRepositoryProvider);
       if (repo != null) {
-        await repo.updateLot(updatedLot);
+        await repo.updatePosition(updatedPosition);
       }
     } catch (e, st) {
       state = AsyncError(e, st);

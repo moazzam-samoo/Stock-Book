@@ -3,29 +3,41 @@ import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
-import 'package:stock_investment_tracker/domain/entities/sale.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/position_sale.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_sale_bottom_sheet.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 
-/// One sale inside a lot's sale history, shown as a bordered card with the
-/// profit that sale booked. Swipe left to edit or delete it.
-class SaleEventRow extends ConsumerWidget {
-  final Sale sale;
-  final Lot lot;
+/// One positionSale inside a position's positionSale history, shown as a bordered card with the
+/// profit that positionSale booked. Swipe left to edit or delete it.
+class PositionSaleRow extends ConsumerWidget {
+  final PositionSale positionSale;
+  final Position position;
 
-  const SaleEventRow({super.key, required this.sale, required this.lot});
+  /// Set on the per-buy slices a closed cycle is split into: the sale shown
+  /// there may be part of a larger real sale, so editing or deleting it from
+  /// that card would write back nonsense.
+  final bool readOnly;
+
+  const PositionSaleRow({
+    super.key,
+    required this.positionSale,
+    required this.position,
+    this.readOnly = false,
+  });
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Sale?'),
+        title: const Text('Delete PositionSale?'),
         content: const Text(
-          'This will permanently delete this sale and recalculate the lot remaining shares.',
+          'This will permanently delete this positionSale and recalculate the position remaining shares.',
         ),
         actions: [
           TextButton(
@@ -45,7 +57,19 @@ class SaleEventRow extends ConsumerWidget {
 
     if (confirm == true) {
       HapticFeedback.mediumImpact();
-      await ref.read(saleRepositoryProvider)!.deleteSale(lot.id, sale.id);
+      final repo = ref.read(positionRepositoryProvider);
+      if (repo != null) {
+        final updatedSales = position.sales.where((s) => s.id != positionSale.id).toList();
+        final updatedPosition = position.copyWith(sales: updatedSales);
+        // Deleting a sale can un-close or un-partial a position — status is
+        // stored, not derived, so it has to be restamped here or a position
+        // stays stuck as PARTIAL after its only sale is removed.
+        final newStatus = PositionCalculator.computeStatus(updatedPosition);
+        await repo.updatePosition(updatedPosition.copyWith(
+          status: newStatus,
+          closedAt: newStatus == PositionStatus.closed ? position.closedAt : null,
+        ));
+      }
     }
   }
 
@@ -60,46 +84,51 @@ class SaleEventRow extends ConsumerWidget {
     final borderColor =
         isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
 
-    // Profit booked by this individual sale, against the lot's buy price.
-    final saleProfit =
-        (sale.sellPricePerShare - lot.buyPricePerShare) * sale.sharesSold;
-    final profitPercent = lot.buyPricePerShare == 0
+    // Profit booked by this individual sale, against the cost basis frozen at
+    // the moment it was sold — never the position's current avg cost, which
+    // later buys may have since moved. See PHASE-03A for why.
+    final costBasisAtSale = positionSale.costBasisAtSale ?? 0.0;
+    final positionSaleProfit = positionSale.realizedPL;
+    final profitPercent = costBasisAtSale == 0
         ? 0.0
-        : (sale.sellPricePerShare - lot.buyPricePerShare) /
-            lot.buyPricePerShare *
-            100;
-    final isProfit = saleProfit >= 0;
-    final plColor = isProfit ? AppColors.moneyGreen : AppColors.alertRed;
+        : (positionSale.pricePerShare - costBasisAtSale) / costBasisAtSale * 100;
+    final isProfit = positionSaleProfit >= 0;
+    final plColor = isProfit
+        ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+        : AppColors.alertRed;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Slidable(
-          key: ValueKey(sale.id),
-          endActionPane: ActionPane(
-            motion: const ScrollMotion(),
-            extentRatio: 0.5,
-            children: [
-              SlidableAction(
-                onPressed: (ctx) {
-                  HapticFeedback.lightImpact();
-                  EditSaleBottomSheet.show(ctx, lot, sale);
-                },
-                backgroundColor: const Color(0xFF584BF6),
-                foregroundColor: Colors.white,
-                icon: Icons.edit_outlined,
-                label: 'Edit',
-              ),
-              SlidableAction(
-                onPressed: (ctx) => _confirmDelete(ctx, ref),
-                backgroundColor: AppColors.dangerRed,
-                foregroundColor: Colors.white,
-                icon: Icons.delete_outline,
-                label: 'Delete',
-              ),
-            ],
-          ),
+          key: ValueKey(positionSale.id),
+          enabled: !readOnly,
+          endActionPane: readOnly
+              ? null
+              : ActionPane(
+                  motion: const ScrollMotion(),
+                  extentRatio: 0.5,
+                  children: [
+                    SlidableAction(
+                      onPressed: (ctx) {
+                        HapticFeedback.lightImpact();
+                        EditSaleBottomSheet.show(ctx, position, positionSale);
+                      },
+                      backgroundColor: const Color(0xFF584BF6),
+                      foregroundColor: Colors.white,
+                      icon: Icons.edit_outlined,
+                      label: 'Edit',
+                    ),
+                    SlidableAction(
+                      onPressed: (ctx) => _confirmDelete(ctx, ref),
+                      backgroundColor: AppColors.dangerRed,
+                      foregroundColor: Colors.white,
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                    ),
+                  ],
+                ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
@@ -124,7 +153,7 @@ class SaleEventRow extends ConsumerWidget {
                     ),
                     Expanded(
                       child: Text(
-                        'Sold ${wholeFormat.format(sale.sharesSold)} @ ${AppCurrencyFormatter.format(sale.sellPricePerShare)}',
+                        'Sold ${wholeFormat.format(positionSale.shares)} @ ${AppCurrencyFormatter.format(positionSale.pricePerShare)}',
                         style: AppTypography.body.copyWith(
                           color: primaryTextColor,
                           fontWeight: FontWeight.w700,
@@ -133,7 +162,7 @@ class SaleEventRow extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      dateFormat.format(sale.sellDate),
+                      dateFormat.format(positionSale.date),
                       style: AppTypography.caption.copyWith(
                         color: AppColors.neutral500,
                         fontSize: 12,
@@ -141,11 +170,19 @@ class SaleEventRow extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Cost basis ${AppCurrencyFormatter.format(costBasisAtSale)}',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.neutral500,
+                    fontSize: 11,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Divider(color: borderColor, height: 1),
                 const SizedBox(height: 8),
 
-                // Line 2: money in, and the profit this sale booked
+                // Line 2: money in, and the profit this positionSale booked
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -159,9 +196,9 @@ class SaleEventRow extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          AppCurrencyFormatter.format(sale.amountReceived),
+                          AppCurrencyFormatter.format(positionSale.amountReceived),
                           style: AppTypography.body.copyWith(
-                            color: AppColors.moneyGreen,
+                            color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
@@ -190,7 +227,7 @@ class SaleEventRow extends ConsumerWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(saleProfit.abs())}',
+                            '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(positionSaleProfit.abs())}',
                             style: AppTypography.caption.copyWith(
                               color: plColor,
                               fontWeight: FontWeight.w800,

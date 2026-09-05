@@ -45,7 +45,7 @@ class TickerAvatar extends ConsumerWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: bgColor.withOpacity(0.35),
+              color: bgColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.2),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),

@@ -6,14 +6,16 @@ import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
+import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/ticker_avatar.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
-import 'package:stock_investment_tracker/presentation/transactions/widgets/lot_card.dart';
+import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
+import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
@@ -26,10 +28,15 @@ class StockDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lotsAsyncValue = ref.watch(allLotsProvider);
+    final positionsAsyncValue = ref.watch(allPositionsProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
     final summary = stockSummaries.where((s) => s.ticker == ticker).firstOrNull;
     final formatNumber = NumberFormat.decimalPattern();
+
+    final marketPriceAsync = ref.watch(watchMarketPriceProvider(ticker));
+    final livePriceModel = marketPriceAsync.valueOrNull;
+    final livePrice = livePriceModel?.price;
+    final isPriceStale = livePriceModel != null && DateTime.now().difference(livePriceModel.updatedAt).inHours >= 1;
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
@@ -54,19 +61,24 @@ class StockDetailScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                   onTap: () async {
                     HapticFeedback.lightImpact();
-                    final allLots = ref.read(allLotsProvider).valueOrNull ?? [];
-                    final stockLots = allLots
-                        .where((l) => l.ticker == ticker)
+                    final allPositions = ref.read(allPositionsProvider).valueOrNull ?? [];
+                    // Every cycle of this ticker, not just the newest — a
+                    // per-stock report that drops a closed cycle's sales is
+                    // missing exactly the history it exists to record.
+                    final tickerPositions = allPositions
+                        .where((p) => p.ticker == ticker)
                         .toList();
                     final stockSummaries = ref.read(stockSummariesProvider);
                     final stockSummary = stockSummaries
                         .where((s) => s.ticker == ticker)
                         .firstOrNull;
-                    await PdfReportService.exportStockPdf(
-                      ticker: ticker,
-                      stockLots: stockLots,
-                      summary: stockSummary,
-                    );
+                    if (tickerPositions.isNotEmpty) {
+                      await PdfReportService.exportStockPdf(
+                        ticker: ticker,
+                        positions: tickerPositions,
+                        summary: stockSummary,
+                      );
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -108,7 +120,7 @@ class StockDetailScreen extends ConsumerWidget {
             ],
           ),
           Expanded(
-            child: lotsAsyncValue.when(
+            child: positionsAsyncValue.when(
               loading: () => const Center(
                 child: CircularProgressIndicator(color: AppColors.brandIndigo),
               ),
@@ -124,21 +136,29 @@ class StockDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(allLotsProvider),
+                      onPressed: () => ref.invalidate(allPositionsProvider),
                       child: const Text('Retry'),
                     ),
                   ],
                 ),
               ),
-              data: (lots) {
-                final stockLots = lots
-                    .where((lot) => lot.ticker == ticker)
-                    .toList();
+              data: (positions) {
+                // Every holding cycle for this ticker, each its own card:
+                // what you still hold first, then closed cycles newest-first.
+                final stockPositions = positions
+                    .where((p) => p.ticker == ticker)
+                    .toList()
+                  ..sort((a, b) {
+                    final aClosed = a.status == PositionStatus.closed;
+                    final bClosed = b.status == PositionStatus.closed;
+                    if (aClosed != bClosed) return aClosed ? 1 : -1;
+                    return b.openedAt.compareTo(a.openedAt);
+                  });
 
-                if (stockLots.isEmpty) {
+                if (stockPositions.isEmpty) {
                   return Center(
                     child: Text(
-                      'No active lots for $ticker',
+                      'No active position for $ticker',
                       style: AppTypography.body.copyWith(
                         color: AppColors.neutral500,
                       ),
@@ -146,8 +166,17 @@ class StockDetailScreen extends ConsumerWidget {
                   );
                 }
 
-                return CustomScrollView(
-                  slivers: [
+                final refreshBg = isDark ? const Color(0xFF13151B) : Colors.white;
+                return RefreshIndicator(
+                  color: AppColors.brandIndigo,
+                  backgroundColor: refreshBg,
+                  onRefresh: () async {
+                    ref.invalidate(watchMarketPriceProvider(ticker));
+                    await Future.delayed(const Duration(milliseconds: 500));
+                  },
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -183,6 +212,86 @@ class StockDetailScreen extends ConsumerWidget {
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 12),
+                              // Live Price
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
+                                    style: AppTypography.h1.copyWith(
+                                      color: (livePriceModel == null || isPriceStale)
+                                          ? (isDark ? Colors.white54 : Colors.black38)
+                                          : primaryTextColor,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 32,
+                                    ),
+                                  ),
+                                  if (livePriceModel != null && isPriceStale) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '(Stale)',
+                                      style: TextStyle(
+                                        color: AppColors.alertRed,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (livePrice != null) ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    'Current Market Price',
+                                    style: AppTypography.caption.copyWith(
+                                      color: isDark ? Colors.white54 : Colors.black54,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                if (livePriceModel != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Text(
+                                      'As of ${DateFormat('h:mm a').format(livePriceModel.updatedAt)}',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white54 : Colors.black54,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 16),
+                                Builder(builder: (context) {
+                                  // Unrealized P/L across every cycle still
+                                  // held for this ticker — a closed cycle
+                                  // always contributes 0 (PositionCalculator
+                                  // guards on sharesHeld == 0), so summing
+                                  // over all of stockPositions is safe.
+                                  final totalUnrealizedPL = stockPositions.fold<double>(
+                                    0.0,
+                                    (sum, p) => sum + PositionCalculator.unrealizedPL(p, livePrice),
+                                  );
+                                  final isUnrealizedProfit = totalUnrealizedPL >= 0;
+                                  final unrealizedColor = isUnrealizedProfit
+                                      ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                      : AppColors.alertRed;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      '${isUnrealizedProfit ? "+" : "-"}${AppCurrencyFormatter.format(totalUnrealizedPL.abs())} Unrealized',
+                                      style: AppTypography.body.copyWith(
+                                        color: unrealizedColor,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
                               const SizedBox(height: 24),
                               Container(
                                     padding: const EdgeInsets.all(
@@ -207,38 +316,59 @@ class StockDetailScreen extends ConsumerWidget {
                                               ),
                                             ],
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
+                                    child: Column(
                                       children: [
-                                        _buildStatColumn(
-                                          'Shares',
-                                          formatNumber.format(
-                                            summary.sharesHeld,
-                                          ),
-                                          primaryTextColor,
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatColumn(
+                                              'Shares',
+                                              formatNumber.format(
+                                                summary.sharesHeld,
+                                              ),
+                                              primaryTextColor,
+                                            ),
+                                            _buildStatColumn(
+                                              'Avg Price',
+                                              AppCurrencyFormatter.format(
+                                                summary.avgBuyPrice,
+                                                decimalDigits: 2,
+                                              ),
+                                              primaryTextColor,
+                                            ),
+                                          ],
                                         ),
-                                        _buildStatColumn(
-                                          'Avg Price',
-                                          AppCurrencyFormatter.format(
-                                            summary.avgBuyPrice,
-                                            decimalDigits: 2,
-                                          ),
-                                          primaryTextColor,
-                                        ),
-                                        _buildStatColumn(
-                                          'Total P/L',
-                                          summary.realizedPL != 0
-                                              ? AppCurrencyFormatter.format(
-                                                  summary.realizedPL,
-                                                  decimalDigits: 2,
-                                                  showSign: true,
-                                                )
-                                              : '-',
-                                          primaryTextColor,
-                                          color: summary.realizedPL >= 0
-                                              ? AppColors.moneyGreen
-                                              : AppColors.alertRed,
+                                        const SizedBox(height: 16),
+                                        Divider(color: borderColor, height: 1),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatColumn(
+                                              'Total Invested',
+                                              AppCurrencyFormatter.format(
+                                                summary.amountInvestedOpen,
+                                                decimalDigits: 2,
+                                              ),
+                                              primaryTextColor,
+                                            ),
+                                            _buildStatColumn(
+                                              'Total P/L',
+                                              summary.realizedPL != 0
+                                                  ? AppCurrencyFormatter.format(
+                                                      summary.realizedPL,
+                                                      decimalDigits: 2,
+                                                      showSign: true,
+                                                    )
+                                                  : '-',
+                                              primaryTextColor,
+                                              color: summary.realizedPL >= 0
+                                                  ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                                                  : AppColors.alertRed,
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -251,7 +381,9 @@ class StockDetailScreen extends ConsumerWidget {
                             Row(
                               children: [
                                 Text(
-                                  'Lots',
+                                  stockPositions.length == 1
+                                      ? 'Position'
+                                      : 'Positions',
                                   style: AppTypography.h2.copyWith(
                                     color: primaryTextColor,
                                     fontWeight: FontWeight.w800,
@@ -259,48 +391,32 @@ class StockDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 12),
+                            // A closed cycle becomes one card per buy; what's
+                            // still held stays pooled as a single averaged card.
+                            ...stockPositions.expand(
+                              (position) => PositionCalculator.splitByBuy(position).map(
+                                (card) => PositionCard(
+                                  position: card,
+                                  showStockDetailNavigation: false,
+                                  writePosition:
+                                      identical(card, position) ? null : position,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      sliver: AnimationLimiter(
-                        child: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              return AnimationConfiguration.staggeredList(
-                                position: index,
-                                duration: const Duration(milliseconds: 375),
-                                child: SlideAnimation(
-                                  verticalOffset: 50.0,
-                                  child: FadeInAnimation(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12.0,
-                                      ),
-                                      child: LotCard(
-                                        lot: stockLots[index],
-                                        showStockDetailNavigation: false,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            childCount: stockLots.length,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
   }
 
   Widget _buildStatColumn(
