@@ -17,18 +17,43 @@ def init_firestore(service_account_path: str):
     return firestore.client()
 
 
+def is_still_held(status) -> bool:
+    """"Still holding" is defined as *not closed*, deliberately — the same
+    way the Dart client defines it (`filteredPositions`: `status !=
+    PositionStatus.closed`), including its treatment of an unrecognised
+    value.
+
+    This must not be an `in ["open", "partiallySold"]` allow-list. The
+    client's `PositionModel.toEntity()` maps any unrecognised status string
+    to `open` via its `default:` branch, so a position carrying a legacy or
+    oddly-cased status displays as OPEN in the app while an allow-list query
+    silently skips it — the holding then never gets a price and its sell
+    alert can never fire, with nothing visibly wrong anywhere. Mirroring the
+    client's own definition keeps the two sides from disagreeing.
+    """
+    if not isinstance(status, str):
+        return True  # missing/malformed status: the client shows it, so do we
+    return status.strip().lower() != "closed"
+
+
 def get_held_positions(db) -> list[dict]:
-    """Every position that still holds shares (open or partiallySold — a
+    """Every position that still holds shares (anything not closed — a
     partial sale still has shares held and can still carry a live
     targetPrice, see PHASE-03C), across all users.
+
+    Filtered in Python rather than by a Firestore `where` clause so the
+    "not closed" rule above stays authoritative; the position count per user
+    is tiny, so the read cost is irrelevant.
 
     Returns plain dicts with `uid` and `id` merged in alongside the position
     fields, since the caller needs both to write back a fired alert.
     """
-    query = db.collection_group("positions").where("status", "in", ["open", "partiallySold"])
+    query = db.collection_group("positions")
     results = []
     for doc in query.stream():
         data = doc.to_dict()
+        if not is_still_held(data.get("status")):
+            continue
         data["id"] = doc.id
         data["uid"] = doc.reference.parent.parent.id
         results.append(data)
@@ -51,11 +76,25 @@ def get_watched_alerts(db) -> list[dict]:
     return results
 
 
-def write_market_prices(db, prices: dict[str, float]) -> None:
+def write_market_prices(db, prices: dict[str, dict]) -> None:
+    """`prices` values must have `price` and `previousClose` keys — this is
+    the exact field shape the Dart client's MarketPriceModel.fromJson
+    requires (`ticker`, `price`, `previousClose`, `updatedAt`), including
+    the `updatedAt` field name (not `checkedAt`); a document missing any of
+    these throws in the app rather than just showing a placeholder.
+    """
     batch = db.batch()
-    for ticker, price in prices.items():
+    for ticker, values in prices.items():
         ref = db.collection("market_prices").document(ticker)
-        batch.set(ref, {"price": price, "checkedAt": firestore.SERVER_TIMESTAMP})
+        batch.set(
+            ref,
+            {
+                "ticker": ticker,
+                "price": values["price"],
+                "previousClose": values["previousClose"],
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            },
+        )
     if prices:
         batch.commit()
 

@@ -124,7 +124,7 @@ FCM `data` values must all be **strings**. A float or None here fails at send ti
 ```yaml
 on:
   schedule:
-    - cron: '*/15 4-10 * * 1-5'   # 09:15–15:30 PKT; Pakistan has no DST
+    - cron: '*/5 4-10 * * 1-5'   # 09:15–15:30 PKT; Pakistan has no DST (updated 2026-09-05 from */15)
   workflow_dispatch: {}
 ```
 
@@ -342,6 +342,92 @@ match — don't assume mine is exactly right.
 **`.gitignore` gap fixed in passing**: it already had `*service_account*.json` (underscore) but the
 brief's own Task 5 names the file `service-account.json` (hyphen), which didn't match. Added
 `*service-account*.json` and a Python section (`__pycache__/`, `.venv/`, `.pytest_cache/`).
+
+### Critical fix (2026-09-05, after a real run): `market_prices` didn't match what the app actually reads
+
+The first real `workflow_dispatch` run succeeded and populated `market_prices` — but the app showed
+"—" for every ticker anyway, because the written documents didn't match Phase 04's
+`MarketPriceModel.fromJson`, which the app already had before this phase started and which was never
+cross-checked against. That model requires `ticker`, `price`, `previousClose`, and `updatedAt`
+(non-nullable, no null-safe cast) — `write_market_prices` only wrote `price` and `checkedAt`. Missing
+`previousClose` isn't cosmetic: `(json['previousClose'] as num).toDouble()` throws on a null cast, so
+the app was crashing while parsing the document, not just displaying a placeholder — indistinguishable
+from "no data" without looking at the actual error.
+
+Fixed: `PriceSource.fetch_prices()` now returns `{ticker: {"price": ..., "previousClose": ...}}` instead
+of a flat float — `previousClose` is derived from the screener's `change_pct`
+(`price / (1 + change_pct / 100)`), falling back to `previousClose == price` (a safe "0% change"
+default) if `change_pct` itself is unavailable, rather than omitting a ticker that does have a valid
+price. `write_market_prices` now writes all four required fields, `updatedAt` (not `checkedAt`). All
+call sites and tests updated; 27/27 passing (one new test added for the `change_pct`-unavailable
+fallback).
+
+**Lesson for future backend/client contract work in this repo**: a payload contract only helps if
+someone actually reads the *other* side's existing model before finalizing the write shape — Phase 05's
+push-notification payload contract was written by comparing both sides up front; this one wasn't, and
+it cost a full round-trip through a real device test to catch. `market_status` and `tickers/all` were
+both new schemas with no prior consumer to mismatch, so they weren't at the same risk — `market_prices`
+was the one place an existing, already-shipped Dart model was silently depended upon.
+
+### Second critical fix (2026-09-05): ticker whitespace, and a non-defensive model
+
+After the schema fix above, the app *still* showed "—" for everything. Two more causes, found from a
+screenshot: the position card renders `'${ticker} · '`, and the gap after "BNL" was visibly wider than
+after "STPL" — the stored ticker was literally `"BNL "`, with a trailing space, from free-text ticker
+entry that has never been validated.
+
+That single stray space broke both sides independently:
+- **Backend**: `df["symbol"].isin({"BNL "})` matches nothing in the screener, so BNL never got a price
+  fetched at all — which is exactly the "one of my two stocks is missing" symptom.
+- **Client**: `watchMarketPrice(ticker)` looked up `market_prices/"BNL "` — a document ID that will
+  never exist, no matter what the backend writes.
+
+Fixed on both sides with matching normalisation (`trim().toUpperCase()` /
+`.strip().upper()`), deliberately mirrored so they can't drift:
+- `FirestoreDataSource.normalizeTicker` — applied in `watchMarketPrice` and `watchMarketPrices`, so
+  **existing** bad data resolves without anyone editing Firestore by hand.
+- `main.py::_normalize_ticker` — applied to positions and alerts before the price lookup.
+- `AddBuyController.submit` — normalises at the single write path, so new bad values can't be created.
+
+Separately, `MarketPriceModel.fromJson` was **not** defensive, unlike every sibling model that AGENTS.md
+§4.1 requires it to match: `(json['previousClose'] as num).toDouble()` throws on a null cast. Because
+`fromJson` runs inside the price stream's `.map()`, one malformed document errored the *entire* stream —
+so every ticker showed "—", perfectly disguised as "no data". Now both `price` and `previousClose` parse
+null-safely (`previousClose` defaults to `price`, i.e. "no known day change", never a fake 0 that would
+render as a −100% move).
+
+**Why this took two rounds to find**: the first fix was correct but incomplete, and both failure modes
+produce the *identical* "—" in the UI — a crashed parse, a missing document, and genuinely absent data
+are indistinguishable on screen. Worth remembering if a third symptom ever appears here: the UI cannot
+tell you which of the three it is, so check the document shape and the exact document ID before
+assuming.
+
+### Third fix (2026-09-05): the two sides disagreed on what "still holding" means
+
+After the first two fixes, STPL showed a live price correctly but a second holding (BNL, an older
+migrated position) still showed "—" and still had no `market_prices` document at all.
+
+Root cause: `PositionModel.toEntity()`'s status switch has a `default:` branch mapping **any**
+unrecognised status string to `PositionStatus.open`. The app's own filter then defines "still holding"
+as `status != PositionStatus.closed`. So a position carrying a legacy, differently-cased, empty, or
+missing status renders an OPEN badge and sits in the Open tab — while this backend's
+`where("status", "in", ["open", "partiallySold"])` allow-list matched none of those and skipped the
+document entirely. The holding then never gets a price fetched and its sell alert can never fire, with
+nothing visibly wrong on either side.
+
+Fixed by mirroring the client's actual definition instead of enumerating positive cases:
+`firestore_io.is_still_held()` returns `status.strip().lower() != "closed"`, and treats a
+missing/malformed status as held (exactly as the client's `default:` branch does). The collection-group
+query no longer filters server-side — the "not closed" rule is authoritative and lives in one place, and
+per-user position counts are tiny so reading them all is free. This also means the `positions.status`
+`fieldOverrides` entry in `firestore.indexes.json` is no longer required by any query.
+
+**Also added permanent diagnostic logging to `main.py`** — every run now prints the positions and alerts
+it found, their raw tickers *and statuses* via `repr()` (so whitespace and casing are visible, both
+having caused real failures here), which tickers it requested, which got prices, and which were absent
+from PSX's screener. Three rounds of this bug were spent guessing at data the run itself could simply
+have reported; for an unattended cron job whose only failure symptom is a "—" in the UI, that log is the
+difference between a diagnosis and a guess.
 
 ### Not done, and cannot be done without you
 

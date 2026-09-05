@@ -20,17 +20,44 @@ from market_status_source import fetch_market_status
 from tickers_source import fetch_listed_companies
 
 
+def _normalize_ticker(ticker) -> str:
+    """Mirrors the Dart client's FirestoreDataSource.normalizeTicker — both
+    sides must agree, or the backend writes market_prices/BNL while the app
+    looks up market_prices/'BNL ' and finds nothing."""
+    if not isinstance(ticker, str):
+        return ""
+    return ticker.strip().upper()
+
+
 def run(db, price_source=None) -> None:
     price_source = price_source or PsxdataScreenerSource()
 
     positions = firestore_io.get_held_positions(db)
     watched_alerts = firestore_io.get_watched_alerts(db)
 
-    held_tickers = {p["ticker"] for p in positions if p.get("ticker")}
-    watched_tickers = {a["ticker"] for a in watched_alerts if a.get("ticker")}
-    all_tickers = held_tickers | watched_tickers
+    # Logged with repr() deliberately: stray whitespace and case are exactly
+    # the failure modes that have bitten here, and both are invisible in
+    # plain output. This is an unattended cron job — a run log that doesn't
+    # say what it actually saw makes every failure a guessing game.
+    print(f"Found {len(positions)} held position(s), {len(watched_alerts)} active alert(s)")
+    print(f"  raw position tickers: {[(p.get('ticker'), p.get('status')) for p in positions]!r}")
+    print(f"  raw alert tickers:    {[a.get('ticker') for a in watched_alerts]!r}")
 
-    prices: dict[str, float] = {}
+    # A stored ticker can carry stray whitespace or lowercase from the app's
+    # free-text ticker entry (it has never been strictly validated). PSX's
+    # screener only ever knows the clean symbol, so an unnormalised "BNL "
+    # matches nothing and that holding silently never gets a price at all.
+    for p in positions:
+        p["ticker"] = _normalize_ticker(p.get("ticker"))
+    for a in watched_alerts:
+        a["ticker"] = _normalize_ticker(a.get("ticker"))
+
+    held_tickers = {p["ticker"] for p in positions if p["ticker"]}
+    watched_tickers = {a["ticker"] for a in watched_alerts if a["ticker"]}
+    all_tickers = held_tickers | watched_tickers
+    print(f"  requesting prices for: {sorted(all_tickers)!r}")
+
+    prices: dict[str, dict] = {}
     try:
         if all_tickers:
             prices = price_source.fetch_prices(all_tickers)
@@ -40,6 +67,14 @@ def run(db, price_source=None) -> None:
         # tickers list are independent and should still be attempted.
         print(f"Price fetch failed, skipping price-dependent steps this run: {e}", file=sys.stderr)
         prices = {}
+
+    missing = sorted(all_tickers - prices.keys())
+    print(f"  got prices for: {sorted(prices)!r}")
+    if missing:
+        # Not an error: a ticker absent from PSX's screener is deliberately
+        # omitted rather than written as 0. But it IS the thing to look at
+        # first when a holding shows no live price in the app.
+        print(f"  NOT found in the PSX screener: {missing!r}")
 
     if prices:
         firestore_io.write_market_prices(db, prices)
@@ -61,12 +96,13 @@ def _run_market_status_step(db) -> None:
         firestore_io.write_market_status(db, status)
 
 
-def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, float]) -> None:
+def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, dict]) -> None:
     for position in positions:
         ticker = position.get("ticker")
-        price = prices.get(ticker)
-        if price is None:
+        entry = prices.get(ticker)
+        if entry is None:
             continue
+        price = entry["price"]
         if not alerts.should_fire_sell(position, price):
             continue
 
@@ -85,12 +121,13 @@ def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, float]) -
         firestore_io.mark_sell_alert_sent(db, uid, position["id"])
 
 
-def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, float]) -> None:
+def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, dict]) -> None:
     for alert in watched_alerts:
         ticker = alert.get("ticker")
-        price = prices.get(ticker)
-        if price is None:
+        entry = prices.get(ticker)
+        if entry is None:
             continue
+        price = entry["price"]
         if not alerts.should_fire_buy(alert, price):
             continue
 

@@ -69,6 +69,36 @@ void main() {
       });
       expect(model.ticker, '');
     });
+
+    // Regression: the backend's first live run wrote market_prices docs with
+    // no `previousClose` at all. The old non-null cast threw inside the price
+    // stream's .map(), erroring the whole stream — so *every* ticker in the
+    // app showed "—", looking exactly like "no data" rather than a parse
+    // failure. A missing day-change baseline must degrade, never throw.
+    test('a document with no previousClose parses, defaulting it to price', () {
+      final model = MarketPriceModel.fromJson({
+        'ticker': 'BNL',
+        'price': 6.15,
+        'updatedAt': '2026-09-05T10:30:00.000Z',
+      });
+
+      expect(model.price, 6.15);
+      expect(
+        model.previousClose,
+        6.15,
+        reason: 'unknown previous close means no day change, not a -100% move',
+      );
+    });
+
+    test('a document with no price at all still parses rather than throwing', () {
+      expect(
+        () => MarketPriceModel.fromJson({
+          'ticker': 'BNL',
+          'updatedAt': '2026-09-05T10:30:00.000Z',
+        }),
+        returnsNormally,
+      );
+    });
   });
 
   group('MarketPriceModel round trip', () {
