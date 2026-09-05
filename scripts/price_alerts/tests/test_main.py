@@ -11,7 +11,7 @@ def test_8_missing_fcm_token_is_skipped_not_an_exception():
     positions = [
         {"id": "p1", "uid": "u1", "ticker": "ENGRO", "targetPrice": 100.0, "targetAlertSent": False}
     ]
-    prices = {"ENGRO": 150.0}
+    prices = {"ENGRO": {"price": 150.0, "previousClose": 148.0}}
 
     with (
         patch("main.firestore_io.get_fcm_token", return_value=None) as mock_get_token,
@@ -53,7 +53,7 @@ def test_15b_market_status_failure_does_not_block_price_dependent_steps():
         ]
     )
     fake_price_source = Mock()
-    fake_price_source.fetch_prices.return_value = {"ENGRO": 150.0}
+    fake_price_source.fetch_prices.return_value = {"ENGRO": {"price": 150.0, "previousClose": 148.0}}
 
     with (
         patch("main.fetch_market_status", side_effect=Exception("homepage layout changed")),
@@ -64,7 +64,7 @@ def test_15b_market_status_failure_does_not_block_price_dependent_steps():
         main.run(db, price_source=fake_price_source)
 
     mock_write_status.assert_not_called()
-    mock_write_prices.assert_called_once_with(db, {"ENGRO": 150.0})
+    mock_write_prices.assert_called_once_with(db, {"ENGRO": {"price": 150.0, "previousClose": 148.0}})
 
 
 def test_17_tickers_doc_only_written_when_content_changed():

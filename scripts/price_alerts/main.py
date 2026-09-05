@@ -30,7 +30,7 @@ def run(db, price_source=None) -> None:
     watched_tickers = {a["ticker"] for a in watched_alerts if a.get("ticker")}
     all_tickers = held_tickers | watched_tickers
 
-    prices: dict[str, float] = {}
+    prices: dict[str, dict] = {}
     try:
         if all_tickers:
             prices = price_source.fetch_prices(all_tickers)
@@ -61,12 +61,13 @@ def _run_market_status_step(db) -> None:
         firestore_io.write_market_status(db, status)
 
 
-def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, float]) -> None:
+def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, dict]) -> None:
     for position in positions:
         ticker = position.get("ticker")
-        price = prices.get(ticker)
-        if price is None:
+        entry = prices.get(ticker)
+        if entry is None:
             continue
+        price = entry["price"]
         if not alerts.should_fire_sell(position, price):
             continue
 
@@ -85,12 +86,13 @@ def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, float]) -
         firestore_io.mark_sell_alert_sent(db, uid, position["id"])
 
 
-def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, float]) -> None:
+def _run_buy_alerts_step(db, watched_alerts: list[dict], prices: dict[str, dict]) -> None:
     for alert in watched_alerts:
         ticker = alert.get("ticker")
-        price = prices.get(ticker)
-        if price is None:
+        entry = prices.get(ticker)
+        if entry is None:
             continue
+        price = entry["price"]
         if not alerts.should_fire_buy(alert, price):
             continue
 

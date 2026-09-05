@@ -343,6 +343,32 @@ match — don't assume mine is exactly right.
 brief's own Task 5 names the file `service-account.json` (hyphen), which didn't match. Added
 `*service-account*.json` and a Python section (`__pycache__/`, `.venv/`, `.pytest_cache/`).
 
+### Critical fix (2026-09-05, after a real run): `market_prices` didn't match what the app actually reads
+
+The first real `workflow_dispatch` run succeeded and populated `market_prices` — but the app showed
+"—" for every ticker anyway, because the written documents didn't match Phase 04's
+`MarketPriceModel.fromJson`, which the app already had before this phase started and which was never
+cross-checked against. That model requires `ticker`, `price`, `previousClose`, and `updatedAt`
+(non-nullable, no null-safe cast) — `write_market_prices` only wrote `price` and `checkedAt`. Missing
+`previousClose` isn't cosmetic: `(json['previousClose'] as num).toDouble()` throws on a null cast, so
+the app was crashing while parsing the document, not just displaying a placeholder — indistinguishable
+from "no data" without looking at the actual error.
+
+Fixed: `PriceSource.fetch_prices()` now returns `{ticker: {"price": ..., "previousClose": ...}}` instead
+of a flat float — `previousClose` is derived from the screener's `change_pct`
+(`price / (1 + change_pct / 100)`), falling back to `previousClose == price` (a safe "0% change"
+default) if `change_pct` itself is unavailable, rather than omitting a ticker that does have a valid
+price. `write_market_prices` now writes all four required fields, `updatedAt` (not `checkedAt`). All
+call sites and tests updated; 27/27 passing (one new test added for the `change_pct`-unavailable
+fallback).
+
+**Lesson for future backend/client contract work in this repo**: a payload contract only helps if
+someone actually reads the *other* side's existing model before finalizing the write shape — Phase 05's
+push-notification payload contract was written by comparing both sides up front; this one wasn't, and
+it cost a full round-trip through a real device test to catch. `market_status` and `tickers/all` were
+both new schemas with no prior consumer to mismatch, so they weren't at the same risk — `market_prices`
+was the one place an existing, already-shipped Dart model was silently depended upon.
+
 ### Not done, and cannot be done without you
 
 - **The two manual setup steps below** — generating the service account key and adding the GitHub

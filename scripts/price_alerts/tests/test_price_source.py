@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
 
 from price_source import PsxdataScreenerSource
 
@@ -24,26 +25,33 @@ def test_9_ticker_absent_from_screener_is_omitted_never_zero():
         prices = source.fetch_prices({"ENGRO", "NOT-A-REAL-TICKER"})
 
     assert "NOT-A-REAL-TICKER" not in prices
-    assert prices["ENGRO"] == 485.38
+    assert prices["ENGRO"]["price"] == 485.38
 
 
 def test_10_contract_vs_real_captured_screener_fixture():
     """This fixture is a real subset of psxdata.screener()'s live output
     (see fixtures/screener_sample.json's `_captured` note). If a future
-    psxdata upgrade renames the 'symbol' or 'price' columns, fetch_prices's
-    column access breaks against this same fixture — failing here in CI,
-    not silently in production."""
+    psxdata upgrade renames the 'symbol', 'price' or 'change_pct' columns,
+    fetch_prices's column access breaks against this same fixture — failing
+    here in CI, not silently in production.
+
+    Every entry must carry both `price` and `previousClose` — the Dart
+    client's MarketPriceModel requires both, with no null fallback for
+    `previousClose` (see firestore_io.write_market_prices's docstring)."""
     with patch("price_source.psxdata.screener", return_value=_load_screener_fixture()):
         source = PsxdataScreenerSource()
         prices = source.fetch_prices({"ENGRO", "HUBC", "LUCK", "OGDC", "UBL"})
 
-    assert prices == {
-        "ENGRO": 485.38,
-        "HUBC": 207.44,
-        "LUCK": 433.12,
-        "OGDC": 328.8,
-        "UBL": 440.83,
-    }
+    assert prices.keys() == {"ENGRO", "HUBC", "LUCK", "OGDC", "UBL"}
+    for ticker, (price, change_pct) in {
+        "ENGRO": (485.38, 1.48),
+        "HUBC": (207.44, 0.35),
+        "LUCK": (433.12, 0.42),
+        "OGDC": (328.8, 0.54),
+        "UBL": (440.83, -0.54),
+    }.items():
+        assert prices[ticker]["price"] == price
+        assert prices[ticker]["previousClose"] == pytest.approx(price / (1 + change_pct / 100))
 
 
 def test_empty_screener_returns_empty_dict():
@@ -53,7 +61,20 @@ def test_empty_screener_returns_empty_dict():
 
 
 def test_nan_price_is_omitted_not_treated_as_zero():
-    df = pd.DataFrame([{"symbol": "ENGRO", "price": float("nan")}])
+    df = pd.DataFrame([{"symbol": "ENGRO", "price": float("nan"), "change_pct": 0.0}])
     with patch("price_source.psxdata.screener", return_value=df):
         source = PsxdataScreenerSource()
         assert source.fetch_prices({"ENGRO"}) == {}
+
+
+def test_missing_change_pct_falls_back_to_previous_close_equals_price():
+    """A row with a valid price but no usable change_pct must still produce
+    a usable previousClose (== price, i.e. "0% change") rather than being
+    omitted or crashing — the app needs previousClose to exist, not to be
+    perfectly accurate."""
+    df = pd.DataFrame([{"symbol": "ENGRO", "price": 100.0, "change_pct": float("nan")}])
+    with patch("price_source.psxdata.screener", return_value=df):
+        source = PsxdataScreenerSource()
+        prices = source.fetch_prices({"ENGRO"})
+
+    assert prices["ENGRO"] == {"price": 100.0, "previousClose": 100.0}

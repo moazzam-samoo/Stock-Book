@@ -51,11 +51,25 @@ def get_watched_alerts(db) -> list[dict]:
     return results
 
 
-def write_market_prices(db, prices: dict[str, float]) -> None:
+def write_market_prices(db, prices: dict[str, dict]) -> None:
+    """`prices` values must have `price` and `previousClose` keys — this is
+    the exact field shape the Dart client's MarketPriceModel.fromJson
+    requires (`ticker`, `price`, `previousClose`, `updatedAt`), including
+    the `updatedAt` field name (not `checkedAt`); a document missing any of
+    these throws in the app rather than just showing a placeholder.
+    """
     batch = db.batch()
-    for ticker, price in prices.items():
+    for ticker, values in prices.items():
         ref = db.collection("market_prices").document(ticker)
-        batch.set(ref, {"price": price, "checkedAt": firestore.SERVER_TIMESTAMP})
+        batch.set(
+            ref,
+            {
+                "ticker": ticker,
+                "price": values["price"],
+                "previousClose": values["previousClose"],
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            },
+        )
     if prices:
         batch.commit()
 
