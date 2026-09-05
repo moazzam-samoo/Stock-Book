@@ -189,11 +189,14 @@ class _AddAlertBottomSheetState extends ConsumerState<AddAlertBottomSheet> {
             TickerAutocomplete(
               controller: _tickerController,
               focusNode: _tickerFocusNode,
+              // No unfocus() here: TickerAutocomplete's onSelected fires on
+              // every keystroke (not just a genuine tap on a suggestion), so
+              // an unfocus() call here was dismissing the keyboard after
+              // every single typed character.
               onSelected: (val) {
                 setState(() {
                   _ticker = val.trim().toUpperCase();
                 });
-                _tickerFocusNode.unfocus();
               },
             ),
             const SizedBox(height: 16),
