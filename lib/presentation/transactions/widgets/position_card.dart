@@ -223,13 +223,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                       if (!isClosed)
                         _BulletDetail(
                           icon: Icons.show_chart_outlined,
-                          // Market closed: relabel the line "Closed at" so a
-                          // held price reads as a known closing price, not a
-                          // live one going stale. Market open (or unknown):
-                          // keep "Live Price" — the green dot below is what
-                          // actually confirms live trading, so an unknown
-                          // status doesn't falsely claim "Closed".
-                          label: isMarketOpen == false && livePrice != null ? 'Closed at ' : 'Live Price: ',
+                          label: 'Live Price: ',
                           isDark: isDark,
                           valueSpans: [
                             TextSpan(
@@ -268,6 +262,18 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                       ),
                                     ],
                                   ),
+                                ),
+                              ),
+                            // Market closed: the label always reads "Live
+                            // Price" now (never "Closed at") — this red
+                            // suffix is what actually signals it's a held
+                            // closing price, not the label itself.
+                            if (isMarketOpen == false && livePrice != null)
+                              TextSpan(
+                                text: ' at Closed',
+                                style: TextStyle(
+                                  color: AppColors.alertRed,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                           ],
