@@ -54,7 +54,6 @@ class _OnboardingLineChartState extends State<OnboardingLineChart> with TickerPr
           painter: _LineChartPainter(
             drawProgress: _drawAnimation.value,
             pulseProgress: _pulseController.value,
-            isDark: Theme.of(context).brightness == Brightness.dark,
           ),
         );
       },
@@ -65,9 +64,8 @@ class _OnboardingLineChartState extends State<OnboardingLineChart> with TickerPr
 class _LineChartPainter extends CustomPainter {
   final double drawProgress;
   final double pulseProgress;
-  final bool isDark;
 
-  _LineChartPainter({required this.drawProgress, required this.pulseProgress, required this.isDark});
+  _LineChartPainter({required this.drawProgress, required this.pulseProgress});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -147,8 +145,11 @@ class _LineChartPainter extends CustomPainter {
           
         canvas.drawCircle(position, 6, dotPaint);
         
+        // Onboarding's background is always light, regardless of the app's
+        // own theme setting — this cutout must match that fixed background,
+        // not whatever ambient theme happens to be active.
         final innerDotPaint = Paint()
-          ..color = isDark ? AppColors.backgroundDark : AppColors.backgroundLight
+          ..color = AppColors.backgroundLight
           ..style = PaintingStyle.fill;
           
         canvas.drawCircle(position, 3, innerDotPaint);
