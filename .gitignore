@@ -117,3 +117,15 @@ desktop.ini
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+# ==========================================
+# 📄 Planning & Design Docs (not needed to build/run the app)
+# ==========================================
+# Historical phase-brief work orders and early design-reference mockups —
+# useful during the phased rebuild, not part of the shipped codebase.
+phases/
+Stock App UI/
+IMPLEMENTATION_PLAN.md
+Stock_Tracker_PRD.md
+Stock_Tracker_UI_UX_Design_PRD.md
+target-price-alerts-plan.md
