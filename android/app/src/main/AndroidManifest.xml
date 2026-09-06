@@ -4,10 +4,17 @@
          has nothing to grant and notifications are silently blocked by the OS
          regardless of what the app does. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- allowBackup="false": Android's Auto Backup for Apps otherwise silently
+         restores this app's Hive storage (including the onboarding-seen flag)
+         from Google Drive on reinstall to a device signed into the same
+         account — a "clean" reinstall would still skip onboarding and land
+         signed in. Firestore is the real source of truth for user data, so
+         nothing here needs the OS-level backup anyway. -->
     <application
         android:label="Stock Book"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
