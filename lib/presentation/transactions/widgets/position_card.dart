@@ -925,27 +925,34 @@ class _BulletDetail extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: AppTypography.caption.copyWith(
-                  fontSize: 13,
-                  height: 1.35,
-                ),
-                children: [
-                  TextSpan(
-                    text: label,
-                    style: TextStyle(color: labelColor),
+            // Shrinks the whole line to fit one row instead of wrapping —
+            // narrower devices or larger system font scales would otherwise
+            // push the value/percentage onto an awkward second line.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: TextSpan(
+                  style: AppTypography.caption.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
                   ),
-                  if (value != null)
+                  children: [
                     TextSpan(
-                      text: value,
-                      style: const TextStyle(
-                        color: valueColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      text: label,
+                      style: TextStyle(color: labelColor),
                     ),
-                  if (valueSpans != null) ...valueSpans!,
-                ],
+                    if (value != null)
+                      TextSpan(
+                        text: value,
+                        style: const TextStyle(
+                          color: valueColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    if (valueSpans != null) ...valueSpans!,
+                  ],
+                ),
               ),
             ),
           ),

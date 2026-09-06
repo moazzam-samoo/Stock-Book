@@ -25,8 +25,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Onboarding deliberately always uses a light background with the dark
+    // theme's vivid accent colors (green line, chart segments) kept as-is —
+    // its own fixed look, not tied to the user's light/dark/system setting
+    // like every other screen.
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
         child: Column(
           children: [
@@ -38,7 +42,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 },
                 child: const Text(
                   'Skip',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                  style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 16),
                 ),
               ),
             ),
@@ -123,7 +127,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryLight,
             ),
             textAlign: TextAlign.center,
           ),
@@ -132,7 +136,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             description,
             style: const TextStyle(
               fontSize: 16,
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondaryLight,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
