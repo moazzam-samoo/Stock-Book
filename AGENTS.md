@@ -4,9 +4,11 @@
 > Verified against the tree at commit `385660b` (Flutter 3.44.8, Dart SDK `^3.12.2`), then updated
 > through Phase 09 (`feat/positions-and-alerts` branch — see `phases/README.md` for the phased
 > rebuild this repo is currently mid-way through; check it before starting new work here). All
-> phases 00-09 are marked **Done** in that table — there is no "not started" phase left as of this
-> update (2026-09-07). See also `PLAYSTORE_RELEASE_GUIDE.md` for what's still missing before this
-> app can actually be published.
+> phases 00-09 are marked **Done** in that table — there is no "not started" phase left. Further
+> updated same day (2026-09-07) for account deletion, real release signing, the 5-page onboarding
+> flow, the Company & Owners page, and two dashboard bugfixes (§9, §11 #14-15, §12, §18) — see
+> `PLAYSTORE_RELEASE_GUIDE.md` for what's still missing before this app can actually be published
+> (as of this update, only the on-demand-refresh item remains open there).
 > **Keep this file updated when structure, schema, or the gotchas below change.**
 
 ---
@@ -305,6 +307,42 @@ Shell specifics:
   Badge/ghost icons come from `font_awesome_flutter: ^11.0.0` via `FontAwesomeIcons.*.data`
   (`.data` unwraps the package's `FaIconData` wrapper into a plain `IconData` — it is not an
   `IconData` subtype itself), used in `stat_card_grid.dart` and `allocation_donut_chart.dart`.
+- **Settings' old two inline "Coding District" / "Moazzam Samoo — Lead Developer" cards are
+  gone.** `settings_screen.dart` deleted `_buildCompanySection`/`_buildDeveloperSection`
+  entirely and replaced them with one clickable nav card, `_buildCompanyOwnersNavCard`, under
+  "ABOUT US" that pushes `/company` → `CompanyOwnersScreen`
+  (`presentation/settings/screens/company_owners_screen.dart`, new). Same pushed-above-shell
+  raw-`Scaffold` pattern as `StockDetailScreen` (`CustomAppBar(showBackButton: true)`, not
+  `AppScaffold`). Covers: the Coding District card, a "why we built Stock Book" motivation
+  paragraph, and both owner cards — **Moazzam Samoo** (Owner & Lead Developer,
+  `assets/icon/dev-mozzam.jpg`, has a portfolio link) and **Kheeraj Das** (Owner & Developer,
+  `assets/icon/dev-kheeraj.jpg`, `portfolioUrl: null` → renders a "Portfolio — Coming Soon"
+  chip instead of a broken/empty link). The old single `assets/icon/dev.png` was replaced by
+  these two per-owner photos.
+- "ABOUT US" also has a version label — `_buildVersionLabel` reads `packageInfoProvider`
+  (`providers/package_info_providers.dart`, new, wraps `package_info_plus`) and renders
+  `'Version ${info.version} (${info.buildNumber})'`. **This is the one place app version should
+  ever be read from** — don't hardcode it elsewhere.
+- **Onboarding is now 5 pages, not 2** (`presentation/onboarding/screens/onboarding_screen.dart`).
+  Order: Track Every Trade (`OnboardingLineChart`) → Analyze Your Portfolio
+  (`OnboardingDonutChart`) → Live Market Prices (`OnboardingLivePrice`, new) → Never Miss Your
+  Target (`OnboardingAlertBell`, new) → Buy Anytime, One Clear Average
+  (`OnboardingPositionAverage`, new). All three new widgets live in
+  `presentation/onboarding/widgets/`, same `CustomPainter`/`AnimationController`-driven approach
+  as the original two (no external animation library):
+  - `OnboardingLivePrice` — price ticks from a base value to a "live" value while a sparkline
+    draws in, plus a pulsing "LIVE" dot.
+  - `OnboardingAlertBell` — a hand-painted bell rings once (`Curves.elasticOut`), then a
+    "target hit" notification card slides/fades in.
+  - `OnboardingPositionAverage` — three staggered "buy" chips (via `Interval`s on one
+    `AnimationController`) converge into an average-cost line, then a two-segment
+    realized/unrealized profit bar builds up.
+  - `PageIndicatorDots` needed **no changes** (already page-count-agnostic).
+  - The screen's "is this the last page" check is a top-level `const int _lastPageIndex = 4;`
+    compared against `_currentPage` — if you add/remove a page, update this constant, don't
+    hand-edit the comparisons.
+- Sign-in screen now links Privacy Policy (`auth/screens/sign_in_screen.dart`, via
+  `Uri.parse(LegalLinks.privacyPolicy)`) — see §18 for the full legal-links/GitHub-Pages picture.
 
 ---
 
@@ -392,23 +430,46 @@ Shell specifics:
     nothing in logcat/Console to explain why. Both now log via `Logger().e(...)`. If you add a new
     fire-and-forget write or display call in a notification/background code path, log the failure —
     don't just swallow it, even when it's correct for the exception to not propagate.
+14. **Two real dashboard bugs found and fixed together (`df323c8`).** (a)
+    `PortfolioCalculator.calculateStockSummariesFromPositions` used to read
+    `pos.sales.isNotEmpty` across **every** position for a ticker to decide "Partial" status —
+    meaning a fully-closed, unrelated historical buy/sell cycle for a ticker could make a
+    brand-new, never-touched open position for that same ticker wrongly read as "Partial".
+    Fixed: only a position **still contributing to `sharesHeld`**
+    (`posSharesHeld > 0 && pos.sales.isNotEmpty`) can trigger "Partial" now — a closed older
+    cycle's sales are ignored for status purposes (its realized P/L still counts, just not its
+    status). See `test/domain/calculator/stock_summary_grouping_test.dart` for the worked
+    examples. (b) `MetricDetailCard`'s Open Lots drill-down (`_buildOpenLotsBody`) used to read
+    the **legacy `lots` collection directly** instead of `positions` — since nothing writes to
+    `lots` after the position-model migration (§17), any position created post-migration could
+    **never** appear in that one panel, no matter how long the app was used, even though the
+    stat card above it (position-based) already counted correctly. The constructor param was
+    renamed `lots` (`List<Lot>`) → `positions` (`List<Position>`); it now filters
+    `positions.where((p) => PositionCalculator.sharesHeld(p) > 0)`. If you add a new
+    drill-down panel here, read from `positions`, never `lots` — `lots` is migration-frozen.
+15. **`android/key.properties` (gitignored, real values, not tracked) now gates release
+    signing.** `build.gradle.kts` reads it via `Properties()`/`FileInputStream` at Gradle config
+    time; when absent, `release` builds fall back to the **debug** keystore (not a build
+    failure), so `flutter run --release` still works locally without it. **Before any Play
+    Store upload, verify `signingConfig` actually resolved to `"release"`, not `"debug"`** —
+    there is no build-time error to catch a missing/misconfigured `key.properties` on a
+    store-bound build. Template at `android/key.properties.example`.
 
 ---
 
 ## 12. Tests
 
-`test/` mirrors `lib/`, now **55 test files** (up from the original single-digit set) — the "60
-tests" figure in older revisions of this doc is stale. Live run as of 2026-09-07: **249 tests total,
-237 passing, 12 failing** (~5-8 min for the full suite; run with a generous timeout, see §2). All 12
-failures are in `golden/theme_golden_test.dart` (Position Card Dark/Light, Settings Screen Dark/Light,
-+8 more) — **expected, not a regression to chase**: the UI-redesign work (`stat_card.dart`'s
-`StatCardDecoration`, `wave_decoration.dart`, `app_bottom_nav_bar.dart`, `allocation_donut_chart.dart`,
-the `LotCard`→`PositionCard` redesign) changed real pixels the checked-in golden masters predate.
-Regenerate with `flutter test --update-goldens` and review the diffs before committing — don't
-blind-accept, per the existing font-loading caveat below, but do expect these 12 specifically to need
-a refresh rather than a code fix. `README.md`'s "Recent Updates" section recorded **247 Dart tests +
-40 Python backend tests, both green**, as of commit `9b21a72` — just before the redesign in `d59eeb6`
-that's almost certainly what pushed the golden count from green to 12 failing.
+`test/` mirrors `lib/` — the "60 tests" figure in older revisions of this doc is stale. Live run
+as of 2026-09-07 (post account-deletion/onboarding-5-page/company-owners-page/dashboard-fixes
+work): **252 tests total, 240 passing, 12 failing** (~5-8 min for the full suite; run with a
+generous timeout, see §2). All 12 failures are in `golden/theme_golden_test.dart` (Position Card
+Dark/Light, Settings Screen Dark/Light, +8 more) — **expected, not a regression to chase**: the
+UI-redesign work (`stat_card.dart`'s `StatCardDecoration`, `wave_decoration.dart`,
+`app_bottom_nav_bar.dart`, `allocation_donut_chart.dart`, the `LotCard`→`PositionCard` redesign,
+and now the Settings/Company-Owners page changes) changed real pixels the checked-in golden
+masters predate. Regenerate with `flutter test --update-goldens` and review the diffs before
+committing — don't blind-accept, per the existing font-loading caveat below, but do expect these
+12 specifically to need a refresh rather than a code fix.
 
 Original core coverage, still present:
 
@@ -464,6 +525,13 @@ New test coverage since the original set, by area (non-exhaustive — see `test/
 - `presentation/dashboard/widgets/portfolio_header_market_clock_test.dart`.
 - `presentation/transactions/{providers/filtered_positions,widgets/position_card,
   widgets/position_sale_row,widgets/ticker_autocomplete}_test.dart`.
+- `presentation/auth/controllers/auth_controller_test.dart` — covers `deleteAccount()` using a
+  **hand-written fake `AuthRepository`** (not Mockito, unlike most repo-backed controller tests
+  elsewhere) — asserts success ends in non-error state, and a thrown repository exception is
+  caught by `AsyncValue.guard` and surfaces as controller error state rather than propagating.
+- `domain/calculator/stock_summary_grouping_test.dart` was **updated, not just added to** — an
+  existing test previously asserted the old/buggy `LotStatus.partiallySold` outcome for a ticker
+  with a closed cycle plus a fresh open one; it now asserts `LotStatus.open` instead (§11 #14a).
 
 Python: `scripts/price_alerts/tests/` — `test_alerts.py` (repeat-fire semantics), `test_firestore_io.py`,
 `test_main.py` (orchestration/step isolation), `test_market_status_source.py`, `test_price_source.py`,
@@ -605,6 +673,17 @@ Orchestration/logic split cleanly for testability:
 - `psxdata`'s `screener()` endpoint — the backend's main price source — **silently omits ~120 real,
   actively-traded PSX equities** (confirmed live: 1016 listed symbols vs. 745 in `screener()`).
   `price_source.py` has a per-ticker historical-price fallback specifically for those.
+- **The bulk `psxdata.screener()` call itself is wrapped in its own `try/except`** — a hard
+  failure there (network error, PSX briefly down, rate-limited) used to abort price-fetching for
+  **every ticker that run**, not just the ones the screener call was responsible for. Confirmed
+  as a real bug: two unrelated tickers went stale at the identical timestamp across two
+  consecutive runs, which only makes sense if one bulk-call failure silently skipped the whole
+  run. On failure it now falls through to an empty `DataFrame` and the per-ticker fallback still
+  runs normally for every requested ticker — a bulk failure degrades gracefully instead of
+  zeroing out the run. Relatedly, `_fetch_from_history` (the per-ticker fallback every
+  screener-absent ticker goes through on **every run**) retries once (~1s pause) before giving
+  up, for the same reason — that path is hit every run, not just as a fallback, so it's more
+  exposed to a one-off transient failure.
 - Push, then flip the flag: `_run_sell_alerts_step`/`_run_buy_alerts_step` send the push **before**
   calling `mark_*_alert_sent` — a flag write failing after a successful send means at most one
   duplicate notification; the reverse order can silently notify nobody.
@@ -810,3 +889,70 @@ up to date for anything except the one-time migration and the JSON backup export
 
 Design references (static, not code): `Stock_Tracker_PRD.md`, `Stock_Tracker_UI_UX_Design_PRD.md`,
 `Stock App UI/*.png`.
+
+---
+
+## 18. Account deletion, release signing & legal pages
+
+### 18.1 Account deletion (Play Store Account Deletion policy requirement)
+
+`domain/repositories/auth_repository.dart` — `deleteAccount()` added to the interface (doc
+comment states the contract: deletes all Firestore data + the Firebase Auth account, and
+implementations must handle `requires-recent-login` by re-authenticating rather than
+surfacing the raw error).
+
+`data/repositories/firebase_auth_repository.dart`'s `deleteAccount()`:
+
+- Deletes Firestore data **before** `user.delete()` — required, since `firestore.rules` gates
+  every write on `request.auth.uid == userId`, which stops being true the instant the auth
+  account itself is gone. Clears (via `firestore.batch()` per collection, `Future.wait` in
+  parallel): `lots`, `positions`, `price_alerts`, `withdrawals`, then the `settings` doc and
+  the `users/{uid}` doc itself. `lots/{id}/sales` is deliberately excluded — nothing writes
+  there (§4.1).
+- On `FirebaseAuthException(code: 'requires-recent-login')` (a stale session — Firebase
+  requires a fresh credential for destructive account operations), it re-runs Google Sign-In
+  via `_reauthenticate()`, then **retries both steps** (Firestore delete + `user.delete()`).
+  Safe to re-run: every delete here is idempotent (deleting an already-absent doc is a no-op).
+  If the user cancels the re-auth Google picker, throws a user-facing
+  `AuthException('Re-authentication was cancelled...')`.
+- `AuthController.deleteAccount()` — deliberately has **no timeout** unlike
+  `signInWithGoogle`/`signOut` (both 15s), since a re-authentication round trip (picking a
+  Google account again) could exceed a fixed budget on a slow connection. Wrapped in
+  `AsyncValue.guard`, so a thrown `AuthException` never propagates to the caller — it surfaces
+  as controller error state instead. Covered by
+  `test/presentation/auth/controllers/auth_controller_test.dart` (hand-written fake
+  `AuthRepository`, not Mockito).
+- UI flow (`settings_screen.dart`'s `_confirmDeleteAccount`) is **two-step**: a first
+  yes/no `AlertDialog` warning what gets deleted, then `_DeleteAccountTypeToConfirmDialog`
+  requiring the user to type the literal word `DELETE` (case-sensitive, trimmed) before the
+  "Delete Permanently" button enables. On success, no manual navigation — the auth state
+  stream emits `null` and the router's existing redirect logic sends the user to `/sign-in`
+  on its own. On failure, the error is read straight off `authControllerProvider.error` and
+  shown in a snackbar.
+
+### 18.2 Release signing
+
+`android/app/build.gradle.kts` reads `android/key.properties` (gitignored; template at
+`key.properties.example`) when present — `keyAlias`/`keyPassword`/`storeFile`/`storePassword`
+feed a real `signingConfigs.create("release")`. Falls back to the **debug** keystore, not a
+build error, when the file is absent (keeps `flutter run --release` working for local dev
+before the file exists). **See §11 #15 — verify `signingConfig` resolves to `"release"`
+before any Play Store upload; there's no automatic guard against shipping debug-signed.**
+A real upload keystore has since been generated and `key.properties` filled in locally — it
+is not and will never be committed.
+
+### 18.3 Legal pages (GitHub Pages)
+
+`docs/privacy-policy.html` and `docs/account-deletion.html`, published via GitHub
+Pages from this repo's `/docs` folder on `main`. **This is the concrete reason the repo must
+stay public on the free GitHub plan** — private-repo Pages requires a paid GitHub plan (also
+relevant to §16.2's context for why the repo is public). URLs are centralized in
+`core/constants/legal_links.dart` (`LegalLinks.privacyPolicy`, `LegalLinks.accountDeletion`)
+— `sign_in_screen.dart` links Privacy Policy; the privacy policy page itself links onward
+to the account-deletion page, and both name **Moazzam Samoo** and **Kheeraj Das** as the
+app's owners with a contact email. If GitHub Pages isn't enabled (Settings → Pages → Source:
+`main` / `/docs`) these URLs 404 — nothing in the app detects or warns about that.
+
+See also `PLAYSTORE_RELEASE_GUIDE.md` for the full, regularly re-audited Play Store readiness
+checklist (signed builds, Data Safety form, store listing assets, the still-open on-demand
+refresh issue).

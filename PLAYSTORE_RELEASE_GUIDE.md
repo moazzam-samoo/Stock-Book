@@ -1,90 +1,47 @@
 # Play Store Release Guide — Stock Book
 
-> Audit date: 2026-09-07, against `feat/positions-and-alerts` @ `d59eeb6` (+ uncommitted
-> notification/alert fixes from this session). Re-run this checklist before every submission —
-> some findings here are point-in-time (git state, dependency versions).
+> Audit date: 2026-09-07, against `feat/positions-and-alerts` @ `d59eeb6`, **re-audited same day**
+> after a full session of fixes — re-run this checklist before every submission, some findings
+> are point-in-time (git state, dependency versions).
 
 Findings are grouped by how much they block you. **Fix every 🔴 before you submit anything.**
 🟠 will get you rejected or file a policy strike on a specific run, not always immediately.
 🟡 won't block submission but will bite you operationally or looks unprofessional.
 
+**Status since the original audit: items 1-3 below are now done.** Only #4 remains open, by
+your own choice (deferred, not forgotten) — see its updated risk assessment below.
+
 ---
 
-## 🔴 Blockers — fix these first, in this order
+## ✅ Resolved
 
-### 1. Release builds are signed with the **debug** keystore
+### 1. Release signing — DONE, code + real keystore both in place
 
-`android/app/build.gradle.kts:38-44`:
-```kotlin
-buildTypes {
-    release {
-        // TODO: Add your own signing config for the release build.
-        signingConfig = signingConfigs.getByName("debug")
-    }
-}
-```
-This has never been changed from the Flutter template default. You cannot publish a build signed
-with the debug key — the debug keystore is a shared, non-secret, well-known key meant only for
-local `flutter run --release` testing. If you've never uploaded to Play Console, this is
-harmless so far; if you ever *have* uploaded a debug-signed AAB, treat that upload key as
-compromised.
+`android/app/build.gradle.kts` now reads a real `signingConfigs.release` from `android/key.properties`
+when present, falling back to the debug keystore only if that file is missing (so
+`flutter run --release` still works before you've set it up). You've since generated a real
+upload keystore and filled in `key.properties` yourself. **Before every real submission build**,
+double check the resolved `signingConfig` was actually `"release"`, not `"debug"` — see the
+AAB build section below for how to verify this from the built artifact itself.
 
-**Fix:**
-1. Generate a real upload keystore (keep it **outside** the repo, back it up somewhere durable —
-   losing it means you can never update this app again under the same listing):
-   ```
-   keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-   ```
-2. Create `android/key.properties` (add it to `.gitignore` — it is **not** there yet, add it now):
-   ```
-   storePassword=<...>
-   keyPassword=<...>
-   keyAlias=upload
-   storeFile=<absolute path to upload-keystore.jks>
-   ```
-3. Wire it into `build.gradle.kts` — add a `signingConfigs { create("release") { ... } }` block that
-   reads `key.properties`, and point `buildTypes.release.signingConfig` at it instead of `debug`.
-4. Prefer **Play App Signing** (opt in when you create the release in Play Console) — Google then
-   holds the real app signing key and your upload key only needs to sign the upload artifact,
-   which is easier to rotate if it ever leaks.
+### 2. Privacy Policy — DONE, live on GitHub Pages
 
-### 2. No Privacy Policy
+`docs/privacy-policy.html` + `docs/account-deletion.html`, published via GitHub Pages from this
+repo's `/docs` folder, linked from the sign-in screen. Both now also name the two owners by name.
+Confirm the URL actually loads before you paste it into Play Console (GitHub Pages can take a
+minute to rebuild after a push).
 
-`sign_in_screen.dart:149` shows the text *"By signing in, you agree to our Terms & Privacy
-Policy"* — as plain, unlinked text. There is no privacy policy document, URL, or webpage
-anywhere in this repo or referenced by the app.
+### 3. Account/data deletion — DONE, in-app + web both shipped
 
-A live, publicly-reachable Privacy Policy URL is **mandatory** in the Play Console listing for
-every app, and doubly so here: this app uses Google Sign-In, stores personal financial data
-(portfolio holdings, invested amounts) in Firestore, and sends data to Firebase Crashlytics.
-Play Console will not let you publish without this field filled with a working URL.
+Settings → Account → Delete Account: two-step confirm (the second requiring you to type DELETE),
+deletes every Firestore doc under `users/{uid}`, then the Firebase Auth account itself, handling
+`requires-recent-login` with a fresh re-auth prompt. `docs/account-deletion.html` covers the
+"I don't have the app installed" path with an email request. Fill in the "Data deletion" link
+field in Play Console's Data Safety section with the `account-deletion.html` URL.
 
-**Fix:** write one covering — what's collected (Google account email/name, portfolio/financial
-data you enter, crash reports via Crashlytics, FCM push token), why, how it's stored (Firebase/
-Google Cloud), that it's never sold/shared with third parties, and how a user can request
-deletion (see next item). Host it somewhere permanent (GitHub Pages off this same repo is fine
-and free) and link it both in the Play Console listing and from the sign-in screen's existing text.
+---
 
-### 3. No account/data deletion — required, and currently completely missing
-
-Google Play's **Account Deletion** policy (mandatory since Nov 2023 for any app that lets a user
-create an account) requires **both**:
-- An in-app way to delete the account and its data, reachable without needing to contact support.
-- A **web page** offering the same, reachable by someone who already uninstalled the app.
-
-Checked `settings_screen.dart` — the ACCOUNT section (`_buildAccountSection`,
-`settings_screen.dart:769`) only has **Sign Out** (`_confirmLogout:885`). There is no delete-account
-flow anywhere in `lib/`, and no web page for it either.
-
-**Fix:**
-1. Add a "Delete Account" action in Settings → Account: confirm twice (this is destructive),
-   then delete the user's Firestore data (`users/{uid}` and everything under it — positions,
-   price_alerts, withdrawals, settings) and call `FirebaseAuth.instance.currentUser.delete()`
-   (Google Sign-In users may need a fresh re-auth first — `delete()` throws
-   `requires-recent-login` if the session is old; catch it and prompt a re-sign-in).
-2. Publish a simple public web page (can live on the same GitHub Pages site as the privacy
-   policy) explaining how to request deletion by email if they no longer have the app installed.
-3. Fill in the "Data deletion" link field in Play Console's Data Safety section with that page.
+## 🔴 Still open
 
 ### 4. On-demand refresh is broken for every real user except you
 
@@ -99,10 +56,20 @@ somehow obtained one, handing out `Actions: write` tokens to your private repo t
 a real abuse vector (anyone with a token can spam your Actions minutes/quota). This whole
 feature only works because it's currently *your own* token on *your own* dev device.
 
-**This is not a Play Store policy violation — it's a broken feature for 100% of your actual user
-base**, and worth fixing before launch regardless of store review, or the "refresh" button (and
-the confusing token field in Settings) is just dead weight that will generate support questions
-and bad reviews from day one.
+**Correction from the original audit** (you asked directly whether this risks a rejection —
+researched properly rather than assumed): Google Play does have an actively-enforced
+**"Broken Functionality" policy** — real developers get rejected/suspended under this exact name
+for shipping a visible feature that doesn't work (confirmed via multiple live Google Play
+Developer Community threads on this, e.g.
+[thread 343091346](https://support.google.com/googleplay/android-developer/thread/343091346),
+[thread 288394910](https://support.google.com/googleplay/android-developer/thread/288394910)).
+I could not pull the exact verbatim policy wording (Google's own help pages didn't return full
+text via fetch), so I can't promise a reviewer would flag *this specific* feature — but "a
+Settings field asking for a personal access token to someone else's private GitHub repo, with a
+refresh button that shows an error to literally every user who doesn't have one" is precisely the
+shape of thing this policy exists to catch. Treat it as a real, not hypothetical, submission risk
+— not just a UX problem — until it's fixed. This is true regardless of whether it's also
+embarrassing in front of real users, which it independently is.
 
 **Fix, pick one:**
 - **Simplest — remove it for the public release.** Delete/hide the token field in Settings and
@@ -114,6 +81,31 @@ and bad reviews from day one.
   (Cloud Function is the natural fit, same Firebase project) that any signed-in app user can call
   to nudge a price refresh, without needing their own GitHub credentials — rate-limit it
   server-side so pull-to-refresh spam can't blow through your GitHub Actions minutes.
+
+---
+
+## Building the AAB for submission
+
+Google Play has **required the Android App Bundle (`.aab`) format for all new app submissions
+since August 2021** — a plain `.apk` upload is no longer accepted for a new listing. Enrolling in
+**Play App Signing** (offered automatically the first time you upload an `.aab`) is effectively
+mandatory alongside it — Google then re-signs your bundle with its own key for distribution,
+which is also what lets Google generate optimized, smaller per-device APKs from your one bundle.
+
+Build it with (this app has flavors — `prod` is the one that matters for a real release):
+```
+flutter build appbundle --release --flavor prod -t lib/main_prod.dart
+```
+Output lands at `build/app/outputs/bundle/prodRelease/app-prod-release.aab`. This is the file
+you upload to Play Console, not any `.apk`.
+
+**Verify it's actually signed with your release key, not debug**, before uploading — use
+`jarsigner` (ships with the same JDK as `keytool`) against the bundle:
+```
+jarsigner -verify -verbose -certs build/app/outputs/bundle/prodRelease/app-prod-release.aab
+```
+and confirm the certificate fingerprint matches your `upload-keystore.jks`, not the well-known
+public Android debug certificate.
 
 ---
 
@@ -133,19 +125,25 @@ Based on what this app actually does, the Data Safety declaration needs to inclu
 Mismatches between what's declared here and what the app actually does is one of the more common
 real rejection/suspension reasons — don't rush this form.
 
-### 6. Store listing assets — none of this exists yet in the repo
+### 6. Store listing assets — exact specs (verified against Google's own official page,
+`support.google.com/googleplay/android-developer/answer/9866151`, 2026-09-07)
 
-You'll need, outside the codebase, before you can even create the listing:
-- App icon (512×512 PNG) — you have source art in `assets/icon/` (`Stockk.png`, `app_icon.png`)
-  to derive it from, but it needs exporting at the exact required size.
-- Feature graphic (1024×500 PNG/JPG)
-- At least 2 phone screenshots (the files in `assets/screenshots/` — `dashboard.jpg`,
-  `transations.jpg`, `settings.jpg`, `pdf.jpg` — are unused by the app itself, see #9 below, but
-  could be a starting point for real store screenshots after a re-crop/re-export at current UI)
-- Short description (≤80 chars) and full description (≤4000 chars) — `pubspec.yaml`'s
-  `description:` field is still the Flutter template default `"A new Flutter project."`
-  (`pubspec.yaml:2`) — harmless for the build itself, but fix it, it's sloppy if anyone checks
-- Category (Finance is the obvious fit) and content rating questionnaire
+| Asset | Size | Format | Notes |
+|---|---|---|---|
+| **App icon** | exactly **512 × 512 px** | 32-bit PNG **with alpha** | max 1024 KB. You have source art in `assets/icon/` (`Stockk.png`) to derive it from — needs exporting at this exact size. |
+| **Feature graphic** | exactly **1024 × 500 px** | JPEG or 24-bit PNG, **no alpha** | Required for every listing — the banner shown at the top of your store page. Nothing in the repo yet to derive this from; needs designing fresh. |
+| **Phone screenshots** | **minimum 2, maximum 8** | JPEG or 24-bit PNG, no alpha | Each side between 320px–3840px; the longer side can be at most **2× the shorter side**. For a chance at "prominent placement" (Google's featuring algorithm), aim for **at least 4 screenshots at 1080×1920 (portrait, 9:16)** — comfortably matches this app's phone-only UI. |
+
+The 4 files in `assets/screenshots/` (`dashboard.jpg`, `transations.jpg`, `settings.jpg`,
+`pdf.jpg`) are old design-reference mockups, already un-bundled from the shipped app (see 🟡 #9)
+— usable only as a rough starting point, since the UI has changed substantially since they were
+captured; re-shoot real screenshots from a current build rather than editing these.
+
+Also needed: short description (≤80 chars), full description (≤4000 chars) — `pubspec.yaml`'s
+`description:` field (used for the Flutter package metadata, **not** the Play Store listing
+copy — those are entered separately in Play Console) has already been updated away from the
+template default, but you still need to write the actual Play Store listing copy separately —
+and category (Finance is the obvious fit) plus the content rating questionnaire.
 
 ### 7. Content rating questionnaire — likely fine, but do it carefully
 
