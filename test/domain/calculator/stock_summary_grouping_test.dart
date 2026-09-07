@@ -58,7 +58,12 @@ void main() {
     ).first.copyWith(id: 'pos-open-$idSuffix');
   }
 
-  test('a ticker with a closed cycle AND an open one produces ONE row', () {
+  test('a ticker with a closed cycle AND a fresh, never-sold-from open one reads as Open', () {
+    // The open cycle here has never had a sale — a past, fully-closed cycle
+    // for the same ticker must not make this read as "Partial". "Partial"
+    // means "of what I currently hold, I've sold part of it" (matching how
+    // an individual Position's own status badge works elsewhere in the
+    // app), not "this ticker has ever had any sale in its history".
     final positions = [
       closedCycle(ticker: 'STPL', idSuffix: '1', shares: 1000, buyPrice: 5.0, sellPrice: 6.0),
       openCycle(ticker: 'STPL', idSuffix: '2', shares: 500, buyPrice: 8.0),
@@ -78,8 +83,36 @@ void main() {
     // Profit from the CLOSED cycle is booked and must not vanish: 1000 × 1.00.
     expect(stpl.realizedPL, 1000.0);
 
-    // Something is held, and something has been sold.
-    expect(stpl.status, LotStatus.partiallySold);
+    // Fully held, never partially sold from — reads as Open, not Partial.
+    expect(stpl.status, LotStatus.open);
+  });
+
+  test('a ticker whose currently-held cycle has itself been partially sold reads as Partial', () {
+    final partiallySoldOpenCycle = PositionCalculator.applySell(
+      PositionCalculator.replay(
+        'STPL',
+        [
+          PositionBuy(
+            id: 'b3',
+            date: DateTime.parse('2026-08-31'),
+            shares: 500,
+            pricePerShare: 8.0,
+          ),
+        ],
+        [],
+      ).first,
+      saleId: 's3',
+      date: DateTime.parse('2026-09-05'),
+      shares: 200,
+      pricePerShare: 9.0,
+    ).copyWith(id: 'pos-open-3');
+
+    final summaries = PortfolioCalculator.calculateStockSummariesFromPositions([
+      partiallySoldOpenCycle,
+    ]);
+
+    expect(summaries.single.status, LotStatus.partiallySold);
+    expect(summaries.single.sharesHeld, 300);
   });
 
   test('a fully-closed ticker still yields a row carrying its realized profit', () {

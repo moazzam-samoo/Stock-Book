@@ -286,10 +286,18 @@ class PortfolioCalculator {
       double realized = 0.0;
       bool anySales = false;
       for (final pos in positions) {
-        sharesHeld += PositionCalculator.sharesHeld(pos);
+        final posSharesHeld = PositionCalculator.sharesHeld(pos);
+        sharesHeld += posSharesHeld;
         invested += PositionCalculator.amountInvested(pos);
         realized += PositionCalculator.realizedPL(pos);
-        if (pos.sales.isNotEmpty) anySales = true;
+        // Only a position that's still contributing to what's currently
+        // held can make the ticker read "Partial" — a fully closed older
+        // cycle's sales (a previous buy/sell round for this same ticker)
+        // must not poison a brand-new, never-touched position's status.
+        // A ticker has at most one non-closed position at a time (see
+        // PositionCalculator.findOpenPosition), so this only ever looks at
+        // that one position, never a closed cycle sitting alongside it.
+        if (posSharesHeld > 0 && pos.sales.isNotEmpty) anySales = true;
       }
 
       // Aggregate status for the ticker as a whole: nothing held means the

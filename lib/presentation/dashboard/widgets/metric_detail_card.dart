@@ -4,9 +4,10 @@ import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart';
+import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
-import 'package:stock_investment_tracker/domain/entities/lot.dart';
 import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card_grid.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -15,7 +16,7 @@ class MetricDetailCard extends StatelessWidget {
   final DashboardMetricType metricType;
   final PortfolioSummary summary;
   final List<StockSummary> stockSummaries;
-  final List<Lot> lots;
+  final List<Position> positions;
   final List<Withdrawal> withdrawals;
   final VoidCallback onClose;
 
@@ -24,7 +25,7 @@ class MetricDetailCard extends StatelessWidget {
     required this.metricType,
     required this.summary,
     required this.stockSummaries,
-    required this.lots,
+    required this.positions,
     required this.onClose,
     this.withdrawals = const [],
   });
@@ -164,7 +165,7 @@ class MetricDetailCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildDetailStat('Total Purchases', '${lots.length} lots', primaryTextColor: primaryTextColor)),
+            Expanded(child: _buildDetailStat('Total Purchases', '${positions.length} lots', primaryTextColor: primaryTextColor)),
             Expanded(
               child: _buildDetailStat(
                 'Deployment',
@@ -245,7 +246,7 @@ class MetricDetailCard extends StatelessWidget {
     Color dividerColor,
     Color positiveColor,
   ) {
-    final totalSalesCount = lots.fold(0, (sum, lot) => sum + lot.sales.length);
+    final totalSalesCount = positions.fold(0, (sum, position) => sum + position.sales.length);
     final isProfit = summary.realizedPL >= 0;
     final hasWithdrawals = summary.totalWithdrawn > 0;
     final dateFormat = DateFormat('MMM d, yyyy');
@@ -417,25 +418,36 @@ class MetricDetailCard extends StatelessWidget {
   }
 
   Widget _buildOpenLotsBody(Color primaryTextColor, Color secondaryTextColor) {
-    final openLotsList = lots.where((l) => l.sharesRemaining > 0).toList();
+    // Matches the stat card above, which counts open/partial *positions*
+    // (PortfolioCalculator.calculatePortfolioSummaryFromPositions) — this
+    // used to read the legacy `lots` collection instead, which nothing
+    // writes to since the position migration. A ticker bought after
+    // migrating (any brand-new position) would never appear here no matter
+    // how long the app was used, since it only ever exists in `positions`.
+    final openPositions = positions
+        .where((p) => PositionCalculator.sharesHeld(p) > 0)
+        .toList();
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${openLotsList.length} Active Purchase Lots',
+          '${openPositions.length} Active Purchase Lots',
           style: AppTypography.h2.copyWith(
             color: primaryTextColor,
             fontSize: 18,
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        if (openLotsList.isEmpty)
+        if (openPositions.isEmpty)
           Text('No open lots found', style: AppTypography.body.copyWith(color: AppColors.neutral500))
         else
           Column(
-            children: openLotsList.take(3).map((lot) {
+            children: openPositions.take(3).map((position) {
+              // Most recent buy — the more relevant date for a position
+              // that may have been added to more than once.
+              final lastBuyDate = position.buys.last.date;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4.0),
                 child: Row(
@@ -444,18 +456,18 @@ class MetricDetailCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          lot.ticker,
+                          position.ticker,
                           style: AppTypography.body.copyWith(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          dateFormat.format(lot.buyDate),
+                          dateFormat.format(lastBuyDate),
                           style: AppTypography.caption.copyWith(color: AppColors.neutral500, fontSize: 11),
                         ),
                       ],
                     ),
                     Text(
-                      '${lot.sharesRemaining} sh @ ${AppCurrencyFormatter.format(lot.buyPricePerShare, decimalDigits: 2)}',
+                      '${PositionCalculator.sharesHeld(position)} sh @ ${AppCurrencyFormatter.format(PositionCalculator.avgCost(position), decimalDigits: 2)}',
                       style: AppTypography.caption.copyWith(
                         color: secondaryTextColor,
                         fontFamily: 'JetBrains Mono',

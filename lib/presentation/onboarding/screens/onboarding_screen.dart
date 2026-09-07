@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/onboarding_line_chart.dart';
 import '../widgets/onboarding_donut_chart.dart';
+import '../widgets/onboarding_live_price.dart';
+import '../widgets/onboarding_alert_bell.dart';
+import '../widgets/onboarding_position_average.dart';
 import '../widgets/page_indicator_dots.dart';
 import '../../../core/theme/app_colors.dart';
+
+const int _lastPageIndex = 4;
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -71,6 +76,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       child: OnboardingDonutChart(),
                     ),
                   ),
+                  _buildPage(
+                    title: 'Live Market Prices',
+                    description: 'Real-time PSX prices, updated automatically — plus a clear open/closed market indicator so you always know what\'s happening right now.',
+                    animationWidget: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32.0),
+                      child: OnboardingLivePrice(),
+                    ),
+                  ),
+                  _buildPage(
+                    title: 'Never Miss Your Target',
+                    description: 'Set a target price and get notified the instant it hits — even when the app is closed.',
+                    animationWidget: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32.0),
+                      child: OnboardingAlertBell(),
+                    ),
+                  ),
+                  _buildPage(
+                    title: 'Buy Anytime, One Clear Average',
+                    description: 'Buy the same stock multiple times and we automatically calculate your average cost — with realized and unrealized profit always split out correctly.',
+                    animationWidget: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32.0),
+                      child: OnboardingPositionAverage(),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -79,7 +108,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  PageIndicatorDots(pageCount: 2, currentPage: _currentPage),
+                  PageIndicatorDots(pageCount: 5, currentPage: _currentPage),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -90,7 +119,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                     ),
                     onPressed: () {
-                      if (_currentPage == 1) {
+                      if (_currentPage == _lastPageIndex) {
                         ref.read(onboardingControllerProvider.notifier).completeOnboarding();
                       } else {
                         _pageController.nextPage(
@@ -99,7 +128,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         );
                       }
                     },
-                    child: Text(_currentPage == 1 ? 'Get Started' : 'Next', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: Text(_currentPage == _lastPageIndex ? 'Get Started' : 'Next', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
