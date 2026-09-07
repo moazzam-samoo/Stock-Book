@@ -170,7 +170,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final refreshBg = isDark ? AppColors.offBlack : Colors.white;
 
     final positionsAsyncValue = ref.watch(allPositionsProvider);
-    final lots = ref.watch(allLotsProvider).valueOrNull ?? [];
     final portfolioSummary = ref.watch(portfolioSummaryProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
     // "Your Stocks" lists what you currently hold. Tickers you've sold out of
@@ -247,7 +246,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           metricType: _selectedMetric!,
                           summary: portfolioSummary,
                           stockSummaries: stockSummaries,
-                          lots: lots,
+                          positions: positions,
                           withdrawals: withdrawals,
                           onClose: () {
                             setState(() {
