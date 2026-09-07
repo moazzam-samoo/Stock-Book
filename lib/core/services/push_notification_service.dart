@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../firebase_options.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/logger.dart';
 import 'package:logger/logger.dart';
 
 /// Service responsible for handling Firebase Cloud Messaging (FCM) push notifications.
@@ -149,11 +150,11 @@ Future<void> firebaseMessagingBackgroundHandler(
   // no way to tell "the push never reached the device" apart from "it
   // arrived and something downstream silently dropped it" — the exact
   // ambiguity that made this take days to diagnose once.
-  Logger().i('BG push received: ${message.data}');
+  appLogger.i('BG push received: ${message.data}');
 
   final content = buildNotificationContent(message.data);
   if (content == null) {
-    Logger().w('BG push ignored — unrecognised payload: ${message.data}');
+    appLogger.w('BG push ignored — unrecognised payload: ${message.data}');
     return;
   }
 
@@ -167,7 +168,7 @@ Future<void> firebaseMessagingBackgroundHandler(
       notificationDetails: _notificationDetails(),
       payload: jsonEncode(message.data),
     );
-    Logger().i('BG notification shown: ${content.title}');
+    appLogger.i('BG notification shown: ${content.title}');
   } catch (e) {
     // This runs in a throwaway background isolate with no UI and no
     // caller to report to — an uncaught exception here (e.g. a missing
@@ -175,7 +176,7 @@ Future<void> firebaseMessagingBackgroundHandler(
     // used to just mean the alert silently never appeared, with nothing
     // anywhere to say why. Logger writes to the platform's own log
     // (logcat/Console), which is the only place left to look.
-    Logger().e('Failed to show background push notification: $e');
+    appLogger.e('Failed to show background push notification: $e');
   }
 }
 
@@ -212,7 +213,7 @@ class PushNotificationService {
         _localNotifications = localNotifications ?? FlutterLocalNotificationsPlugin(),
         _userRepository = userRepository,
         _router = router,
-        _logger = Logger();
+        _logger = appLogger;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
