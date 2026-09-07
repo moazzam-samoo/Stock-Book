@@ -70,13 +70,14 @@ class AlertsScreen extends ConsumerWidget {
                       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 120),
                       itemCount: alerts.length,
                       itemBuilder: (context, index) {
+                        final alert = alerts[index];
                         return AnimationConfiguration.staggeredList(
                           position: index,
                           duration: const Duration(milliseconds: 375),
                           child: SlideAnimation(
                             verticalOffset: 50.0,
                             child: FadeInAnimation(
-                              child: AlertRow(alert: alerts[index]),
+                              child: AlertRow(key: ValueKey(alert.id), alert: alert),
                             ),
                           ),
                         );
