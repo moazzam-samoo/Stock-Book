@@ -1,0 +1,19 @@
+# Copy this file to `key.properties` (same folder) and fill in the real
+# values. `key.properties` itself is gitignored — never commit it.
+#
+# 1. Generate the upload keystore once (keep the .jks file OUTSIDE this repo,
+#    back it up somewhere durable — losing it means you can never publish an
+#    update to this app under the same Play Store listing again):
+#
+#      keytool -genkey -v -keystore /path/to/upload-keystore.jks \
+#        -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# 2. Fill in the values below with what you just entered.
+# 3. Prefer enrolling in Play App Signing when you create the release in
+#    Play Console — Google then holds the real app signing key, and this
+#    upload key only needs to sign the upload artifact (easier to rotate).
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=/absolute/path/to/upload-keystore.jks
