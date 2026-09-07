@@ -2,13 +2,17 @@ name: Price alerts
 
 on:
   schedule:
-    # Every 5 minutes, 09:15-15:30 PKT (04:15-10:30 UTC), Mon-Fri.
+    # Every 10 minutes, 09:15-15:30 PKT (04:15-10:30 UTC), Mon-Fri.
     # Pakistan does not observe DST, so this offset is stable year-round.
     #
-    # GitHub's cron scheduler can run several minutes late under load, and
-    # explicitly does not guarantee schedule frequency for high-frequency
-    # (5-minute) crons in particular — expect occasional skipped/delayed
-    # runs, not second-precision timing.
+    # Was */5 (GitHub's documented minimum) until 2026-09-07, when it
+    # turned out to never fire at all on this repo — GitHub's own docs say
+    # high-frequency (5-minute) crons are the first dropped under load,
+    # which matches: zero schedule-triggered runs ever, across the entire
+    # first eligible day, while workflow_dispatch worked the whole time.
+    # 10 minutes is the cheap first thing to try before reaching for an
+    # external scheduler (e.g. Cloud Scheduler hitting the dispatches API)
+    # to drive this instead of relying on GitHub's own cron.
     #
     # This only actually fires from whatever's on the repo's DEFAULT branch
     # — GitHub ignores `schedule:` on any other branch (workflow_dispatch
@@ -28,7 +32,7 @@ on:
     # (it simply never runs). The app's own staleness indicator (Phase 04)
     # is the user-facing mitigation; a monthly no-op commit is a cheap
     # backstop if that's not enough.
-    - cron: '*/5 4-10 * * 1-5'
+    - cron: '*/10 4-10 * * 1-5'
   workflow_dispatch: {}
 
 jobs:
