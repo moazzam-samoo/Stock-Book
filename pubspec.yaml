@@ -74,6 +74,7 @@ dependencies:
   # repo, never compiled into the APK.
   http: ^1.2.2
   flutter_secure_storage: ^9.2.2
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:

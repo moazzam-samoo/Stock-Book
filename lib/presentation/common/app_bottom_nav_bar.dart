@@ -24,7 +24,7 @@ class AppBottomNavBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 4),
         child: Container(
-          height: 64,
+          height: 82,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: backgroundColor,
@@ -56,7 +56,7 @@ class AppBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                icon: Icons.receipt_long,
+                icon: Icons.bar_chart_rounded,
                 label: 'Transactions',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
@@ -97,9 +97,13 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unselectedIconColor = isDark
+    final unselectedColor = isDark
         ? const Color(0xFF64748B)
         : const Color(0xFF9CA3AF);
+    // Same muted green in both themes — chartGreen (neon) read as too bright
+    // and glowy for a nav bar; this is the deliberately-desaturated variant
+    // already used elsewhere for exactly that reason.
+    final accentColor = AppColors.moneyGreenOnLight;
 
     return Semantics(
       label: label,
@@ -108,29 +112,35 @@ class _NavItem extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          padding: isSelected
-              ? const EdgeInsets.symmetric(horizontal: 18, vertical: 10)
-              : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight)
-                      .withOpacity(0.6)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isSelected ? Colors.white : unselectedIconColor,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? accentColor : Colors.transparent,
               ),
-            ],
-          ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: isSelected ? Colors.white : unselectedColor,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.0,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? accentColor : unselectedColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

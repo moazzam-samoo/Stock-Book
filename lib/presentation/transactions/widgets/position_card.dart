@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
+import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
+import 'package:stock_investment_tracker/providers/ticker_providers.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/sparkline_chart.dart';
@@ -84,7 +87,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final plColor = isProfit
         ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
         : AppColors.alertRed;
-    final soldShares = (widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)) - PositionCalculator.sharesHeld(widget.position);
+    final soldShares =
+        (widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)) -
+        PositionCalculator.sharesHeld(widget.position);
     final holdingDaysText = PositionCalculator.holdingDays(widget.position) == 1
         ? '1 day'
         : '${PositionCalculator.holdingDays(widget.position)} days';
@@ -99,15 +104,40 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final investedAmount = isClosed
         ? PositionCalculator.totalCapitalDeployed(widget.position)
         : PositionCalculator.amountInvested(widget.position);
+    final totalReceived = isClosed
+        ? (widget.position.sales.isNotEmpty
+              ? widget.position.sales.fold(
+                  0.0,
+                  (sum, s) => sum + s.amountReceived,
+                )
+              : investedAmount + PositionCalculator.realizedPL(widget.position))
+        : 0.0;
 
-    final marketPriceAsync = !isClosed ? ref.watch(watchMarketPriceProvider(widget.position.ticker)) : null;
+    final marketPriceAsync = !isClosed
+        ? ref.watch(watchMarketPriceProvider(widget.position.ticker))
+        : null;
     final livePriceModel = marketPriceAsync?.valueOrNull;
     final livePrice = livePriceModel?.price;
     // Replaces the old time-since-last-fetch "(Stale)" marker: whether the
     // *market itself* is open right now is more useful than how long ago the
     // price was fetched, and it's the same currentlyOpen() rule the
     // Dashboard clock already uses — null means "don't know", never guessed.
-    final isMarketOpen = currentlyOpen(ref.watch(watchMarketStatusProvider).valueOrNull);
+    final isMarketOpen = currentlyOpen(
+      ref.watch(watchMarketStatusProvider).valueOrNull,
+    );
+
+    final normalizedTicker = FirestoreDataSource.normalizeTicker(
+      widget.position.ticker,
+    );
+    final companyName = ref
+        .watch(allTickersProvider)
+        .valueOrNull
+        ?.where(
+          (t) =>
+              FirestoreDataSource.normalizeTicker(t.symbol) == normalizedTicker,
+        )
+        .firstOrNull
+        ?.name;
 
     return GestureDetector(
       onTapDown: (details) => _tapDownPosition = details.globalPosition,
@@ -123,19 +153,19 @@ class _PositionCardState extends ConsumerState<PositionCard> {
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _isExpanded ? AppColors.brandIndigo : borderColor, 
-            width: 1.2
+            color: _isExpanded ? AppColors.brandIndigo : borderColor,
+            width: 1.2,
           ),
           boxShadow: isDark
               ? (_isExpanded
-                  ? [
-                      BoxShadow(
-                        color: AppColors.brandIndigo.withOpacity(0.3),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      )
-                    ]
-                  : null)
+                    ? [
+                        BoxShadow(
+                          color: AppColors.brandIndigo.withOpacity(0.3),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null)
               : [
                   BoxShadow(
                     color: _isExpanded
@@ -152,6 +182,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
           children: [
             // Header Row
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
                   onTap: widget.showStockDetailNavigation
@@ -161,230 +192,432 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: widget.showStockDetailNavigation
-                                ? () => context.push(
-                                    '/stock/${widget.position.ticker}',
-                                  )
-                                : null,
-                            child: Text(
-                              '${widget.position.ticker} · ',
+                  child: GestureDetector(
+                    onTap: widget.showStockDetailNavigation
+                        ? () => context.push('/stock/${widget.position.ticker}')
+                        : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          children: [
+                            Text(
+                              widget.position.ticker,
                               style: AppTypography.body.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: primaryTextColor,
+                                fontSize: 17,
+                              ),
+                            ),
+                            StatusBadge(status: widget.position.status),
+                          ],
+                        ),
+                        if (companyName != null && companyName.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Text(
+                              companyName,
+                              style: AppTypography.caption.copyWith(
+                                color: isDark ? Colors.white54 : Colors.black54,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        // For open/partial positions: Bought date lives in the header.
+                        // Closed positions show Bought date in Row 1 below.
+                        if (!isClosed)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 11,
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.black54,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Bought ${dateFormat.format(widget.position.openedAt)}',
+                                  style: AppTypography.caption.copyWith(
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                    fontSize: 11,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: pillBg,
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: AppColors.neutral500,
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Divider(color: borderColor, height: 1),
+            const SizedBox(height: 14),
+
+            // Row 1:
+            // For closed cards: Bought / Sold / Avg. Price (3 columns)
+            // For open cards: Quantity / Avg. Price / Live Price (3 columns)
+            Row(
+              children: [
+                if (isClosed) ...[
+                  Expanded(
+                    child: _GridDetail(
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Bought',
+                      value: dateFormat.format(widget.position.openedAt),
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: _GridDetail(
+                    icon: FontAwesomeIcons.coins.data,
+                    label: isClosed ? 'Sold' : 'Quantity',
+                    value:
+                        '${wholeFormat.format(widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares))} sh',
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _GridDetail(
+                    icon: Icons.local_offer_outlined,
+                    label: 'Avg. Price',
+                    value: AppCurrencyFormatter.format(costPerShare),
+                    isDark: isDark,
+                  ),
+                ),
+                if (!isClosed) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _GridDetail(
+                      icon: Icons.show_chart_outlined,
+                      label: 'Live Price',
+                      value: livePrice != null
+                          ? AppCurrencyFormatter.format(livePrice)
+                          : '—',
+                      valueColor: livePriceModel == null
+                          ? (isDark ? Colors.white54 : Colors.black38)
+                          : isMarketOpen == true
+                          ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
+                          : null,
+                      caption: livePriceModel != null
+                          ? 'As of ${DateFormat('h:mm a').format(livePriceModel.updatedAt)}'
+                          : null,
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // For open positions: Total Invested & Live Price / Unrealized container,
+            // followed by Holding Period & Target Price row.
+            // For closed positions: Total Cost and Holding Period in the same row
+            // to eliminate redundant whitespace.
+            if (!isClosed) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color:
+                      (isDark
+                              ? AppColors.moneyGreen
+                              : AppColors.moneyGreenOnLight)
+                          .withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color:
+                        (isDark
+                                ? AppColors.moneyGreen
+                                : AppColors.moneyGreenOnLight)
+                            .withOpacity(0.25),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                FontAwesomeIcons.arrowTrendUp.data,
+                                size: 13,
+                                color: isDark
+                                    ? AppColors.moneyGreen
+                                    : AppColors.moneyGreenOnLight,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Total Invested',
+                                style: AppTypography.caption.copyWith(
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppCurrencyFormatter.format(investedAmount),
+                              style: AppTypography.body.copyWith(
+                                color: primaryTextColor,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 16,
                               ),
                             ),
                           ),
-                          Text(
-                            '${wholeFormat.format((widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)))} sh',
-                            style: AppTypography.body.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: primaryTextColor,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          StatusBadge(status: widget.position.status),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      _BulletDetail(
-                        icon: Icons.calendar_today_outlined,
-                        label: 'Bought ',
-                        isDark: isDark,
-                        valueSpans: [
-                          TextSpan(
-                            text: dateFormat.format(widget.position.openedAt),
-                            style: const TextStyle(
-                              color: Color.fromARGB(255, 16, 205, 234),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ' @ ',
-                            style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                          ),
-                          TextSpan(
-                            text: AppCurrencyFormatter.format(costPerShare),
-                            style: const TextStyle(
-                              color: Color.fromARGB(255, 16, 205, 234),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (!isClosed)
-                        _BulletDetail(
-                          icon: Icons.show_chart_outlined,
-                          label: 'Live Price: ',
-                          isDark: isDark,
-                          valueSpans: [
-                            TextSpan(
-                              text: livePrice != null ? AppCurrencyFormatter.format(livePrice) : '—',
-                              style: TextStyle(
-                                color: livePriceModel == null
-                                    ? (isDark ? Colors.white54 : Colors.black38) // dimmed: no data at all
-                                    : (isDark ? Colors.white : Colors.black87),
-                                fontWeight: FontWeight.bold,
+                    ),
+                    Container(width: 1, height: 40, color: borderColor),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Unrealized',
+                                style: AppTypography.caption.copyWith(
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
-                            if (isMarketOpen == true && livePrice != null)
-                              WidgetSpan(
-                                alignment: PlaceholderAlignment.middle,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 6),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Color(0xFF00FF7F),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Live',
-                                        style: AppTypography.caption.copyWith(
-                                          color: const Color(0xFF00FF7F),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
+                              if (isMarketOpen == true &&
+                                  livePrice != null) ...[
+                                const SizedBox(width: 5),
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF00FF7F),
                                   ),
                                 ),
-                              ),
-                            // Market closed: the label always reads "Live
-                            // Price" now (never "Closed at") — this red
-                            // suffix is what actually signals it's a held
-                            // closing price, not the label itself.
-                            if (isMarketOpen == false && livePrice != null)
-                              TextSpan(
-                                text: ' at Closed',
-                                style: TextStyle(
-                                  color: AppColors.alertRed,
-                                  fontWeight: FontWeight.bold,
+                              ],
+                              if (isMarketOpen == false &&
+                                  livePrice != null) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '(Closed)',
+                                  style: TextStyle(
+                                    color: AppColors.alertRed,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                          ],
-                        ),
-                      if (!isClosed && livePriceModel != null)
-                        _BulletDetail(
-                          icon: Icons.access_time_outlined,
-                          label: 'As of ',
-                          isDark: isDark,
-                          valueSpans: [
-                            TextSpan(
-                              text: DateFormat('h:mm a').format(livePriceModel.updatedAt),
-                              style: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.black54,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      _BulletDetail(
-                        icon: Icons.account_balance_wallet_outlined,
-                        label: isClosed ? 'Total Cost: ' : 'Total Invested: ',
-                        value: AppCurrencyFormatter.format(investedAmount),
-                        isDark: isDark,
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: livePrice != null
+                                ? Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text:
+                                              '${PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 ? "+" : ""}${AppCurrencyFormatter.format(PositionCalculator.unrealizedPL(widget.position, livePrice).abs())} ',
+                                          style: AppTypography.body.copyWith(
+                                            color:
+                                                PositionCalculator.unrealizedPL(
+                                                      widget.position,
+                                                      livePrice,
+                                                    ) >=
+                                                    0
+                                                ? (isDark
+                                                      ? AppColors.moneyGreen
+                                                      : AppColors
+                                                            .moneyGreenOnLight)
+                                                : AppColors.alertRed,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text:
+                                              '(${PositionCalculator.unrealizedPLPercent(widget.position, livePrice) >= 0 ? "+" : ""}${PositionCalculator.unrealizedPLPercent(widget.position, livePrice).toStringAsFixed(2)}%)',
+                                          style: AppTypography.body.copyWith(
+                                            color:
+                                                PositionCalculator.unrealizedPL(
+                                                      widget.position,
+                                                      livePrice,
+                                                    ) >=
+                                                    0
+                                                ? (isDark
+                                                      ? AppColors.moneyGreen
+                                                      : AppColors
+                                                            .moneyGreenOnLight)
+                                                : AppColors.alertRed,
+                                            fontWeight: FontWeight.w600,
+                                            // Smaller than the amount — this
+                                            // is the secondary figure.
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : Text(
+                                    '—',
+                                    style: AppTypography.body.copyWith(
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black38,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ],
                       ),
-                      if (!isClosed && livePrice != null)
-                        _BulletDetail(
-                          icon: Icons.pie_chart_outline,
-                          label: 'Unrealized: ',
-                          isDark: isDark,
-                          valueSpans: [
-                            TextSpan(
-                              text: '${PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 ? "+" : ""}${AppCurrencyFormatter.format(PositionCalculator.unrealizedPL(widget.position, livePrice).abs())}',
-                              style: TextStyle(
-                                color: PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 
-                                    ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
-                                    : AppColors.alertRed,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: ' (${PositionCalculator.unrealizedPLPercent(widget.position, livePrice) >= 0 ? "+" : ""}${PositionCalculator.unrealizedPLPercent(widget.position, livePrice).toStringAsFixed(2)}%)',
-                              style: TextStyle(
-                                color: PositionCalculator.unrealizedPL(widget.position, livePrice) >= 0 
-                                    ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
-                                    : AppColors.alertRed,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      _BulletDetail(
-                        icon: Icons.timer_outlined,
-                        label: 'Holding Period: ',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Holding Period / Target Price (+ bell)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.position.targetPrice != null &&
+                      widget.position.targetPrice! > 0) ...[
+                    // Two columns to split — Holding Period only stretches
+                    // full-width via Expanded when there's a second column to
+                    // share the row with.
+                    Expanded(
+                      child: _GridDetail(
+                        icon: Icons.access_time_outlined,
+                        label: 'Holding Period',
                         value: holdingDaysText,
                         isDark: isDark,
                       ),
-                      // No target line on a closed cycle: there's nothing left
-                      // to sell, and the percentage would divide by an avgCost
-                      // of 0. (Migration can also leave a stale targetPrice on
-                      // a closed position — see AGENTS.md §14.)
-                      if (!isClosed &&
-                          widget.position.targetPrice != null &&
-                          widget.position.targetPrice! > 0)
-                        _BulletDetail(
-                          icon: Icons.track_changes_outlined,
-                          label: 'Target: ',
-                          valueSpans: [
-                            TextSpan(
-                              text: '${AppCurrencyFormatter.format(widget.position.targetPrice!)} (${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100) >= 0 ? "+" : ""}${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100).toStringAsFixed(1)}% Est.)',
-                              style: const TextStyle(
-                                color: Color.fromARGB(255, 16, 205, 234),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            // Always shown once a target exists — dim/outline
-                            // means "armed, watching for this price"; solid
-                            // green means "already notified you at least
-                            // once". Previously this icon only ever appeared
-                            // once fired, which read as "no alert is set" for
-                            // a target that just hadn't been hit yet.
-                            WidgetSpan(
-                              alignment: PlaceholderAlignment.middle,
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 6),
-                                child: Icon(
-                                  widget.position.targetAlertSent
-                                      ? Icons.notifications_active
-                                      : Icons.notifications_none_rounded,
-                                  size: 14,
-                                  color: widget.position.targetAlertSent
-                                      ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
-                                      : AppColors.neutral500,
-                                ),
-                              ),
-                            ),
-                          ],
-                          isDark: isDark,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _GridDetail(
+                        icon: Icons.track_changes_outlined,
+                        iconColor: const Color.fromARGB(255, 16, 205, 234),
+                        label: 'Target Price',
+                        value: AppCurrencyFormatter.format(
+                          widget.position.targetPrice!,
                         ),
-                    ],
+                        secondaryValue:
+                            '(${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100) >= 0 ? "+" : ""}${((widget.position.targetPrice! - PositionCalculator.avgCost(widget.position)) / PositionCalculator.avgCost(widget.position) * 100).toStringAsFixed(1)}% Est.)',
+                        valueColor: const Color.fromARGB(255, 16, 205, 234),
+                        isDark: isDark,
+                      ),
+                    ),
+                    // Always shown once a target exists — dim/outline means
+                    // "armed, watching for this price"; solid green means
+                    // "already notified you at least once".
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Icon(
+                        widget.position.targetAlertSent
+                            ? Icons.notifications_active
+                            : Icons.notifications_none_rounded,
+                        size: 18,
+                        color: widget.position.targetAlertSent
+                            ? (isDark
+                                  ? AppColors.moneyGreen
+                                  : AppColors.moneyGreenOnLight)
+                            : AppColors.neutral500,
+                      ),
+                    ),
+                  ] else
+                    Expanded(
+                      child: _GridDetail(
+                        icon: Icons.access_time_outlined,
+                        label: 'Holding Period',
+                        value: holdingDaysText,
+                        isDark: isDark,
+                      ),
+                    ),
+                ],
+              ),
+            ] else ...[
+              // Closed cycle: Total Invested (money invested), Total Cost (money got with profit), and Holding Period
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _GridDetail(
+                      icon: FontAwesomeIcons.arrowTrendUp.data,
+                      label: 'Total Invested',
+                      value: AppCurrencyFormatter.format(investedAmount),
+                      isDark: isDark,
+                    ),
                   ),
-                ),
-                Icon(
-                  _isExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  color: AppColors.neutral500,
-                  size: 22,
-                ),
-              ],
-            ),
+                  Expanded(
+                    child: _GridDetail(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: 'Total Cost',
+                      value: AppCurrencyFormatter.format(totalReceived),
+                      valueColor: const Color.fromARGB(255, 16, 205, 234),
+                      isDark: isDark,
+                    ),
+                  ),
+                  Expanded(
+                    child: _GridDetail(
+                      icon: Icons.access_time_outlined,
+                      label: 'Holding Period',
+                      value: holdingDaysText,
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+            ],
 
             // Realized P/L banner — shown once anything has been sold, so a
             // partially-sold position surfaces the profit it has already booked.
@@ -559,7 +792,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                       backgroundColor: isDark
                           ? const Color(0xFF132B1A)
                           : const Color(0xFFECFDF5),
-                      foregroundColor: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
+                      foregroundColor: isDark
+                          ? AppColors.moneyGreen
+                          : AppColors.moneyGreenOnLight,
                       elevation: 0,
                       side: BorderSide(color: borderColor),
                       shape: RoundedRectangleBorder(
@@ -569,12 +804,16 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                     icon: Icon(
                       Icons.south_west_rounded,
                       size: 18,
-                      color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
+                      color: isDark
+                          ? AppColors.moneyGreen
+                          : AppColors.moneyGreenOnLight,
                     ),
                     label: Text(
                       'Add Sale from this position',
                       style: TextStyle(
-                        color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
+                        color: isDark
+                            ? AppColors.moneyGreen
+                            : AppColors.moneyGreenOnLight,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -590,7 +829,8 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                     child: SizedBox(
                       height: 46,
                       child: ElevatedButton.icon(
-                        onPressed: () => PdfReportService.exportPositionPdf(widget.position),
+                        onPressed: () =>
+                            PdfReportService.exportPositionPdf(widget.position),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark
                               ? const Color(0xFF10233A)
@@ -750,7 +990,11 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     if (result == 'edit' && context.mounted) {
       if (widget.position.buys.length == 1) {
         // The common case — one buy, nothing to disambiguate.
-        EditBuyBottomSheet.show(context, _writeTarget, widget.position.buys.first);
+        EditBuyBottomSheet.show(
+          context,
+          _writeTarget,
+          widget.position.buys.first,
+        );
       } else {
         // Multiple buys: ask which one, rather than silently doing nothing
         // (this used to only expand the card, and only if it wasn't already
@@ -818,7 +1062,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                           ),
                           Text(
                             dateFormat.format(buy.date),
-                            style: AppTypography.caption.copyWith(color: AppColors.neutral500),
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.neutral500,
+                            ),
                           ),
                         ],
                       ),
@@ -894,70 +1140,106 @@ class _PositionCardState extends ConsumerState<PositionCard> {
   }
 }
 
-class _BulletDetail extends StatelessWidget {
+/// One block of the new icon-above-label, value-below grid layout — Bought /
+/// Quantity / Avg. Price and Holding Period / Target Price all use this.
+class _GridDetail extends StatelessWidget {
   final IconData icon;
+  final Color? iconColor;
   final String label;
-  final String? value;
-  final List<InlineSpan>? valueSpans;
+  final String value;
+  final Color? valueColor;
   final bool isDark;
 
-  const _BulletDetail({
+  /// A secondary figure rendered smaller right after [value] — e.g. the
+  /// "(+19.1% Est.)" part of a target price, which shouldn't compete with
+  /// the primary number for visual weight.
+  final String? secondaryValue;
+
+  /// A small line below [value] — e.g. "As of 3:42 PM" for Live Price.
+  final String? caption;
+
+  const _GridDetail({
     required this.icon,
+    this.iconColor,
     required this.label,
-    this.value,
-    this.valueSpans,
+    required this.value,
+    this.valueColor,
     required this.isDark,
+    this.secondaryValue,
+    this.caption,
   });
 
   @override
   Widget build(BuildContext context) {
     final labelColor = isDark ? Colors.white70 : Colors.black54;
-    const valueColor = Color.fromARGB(255, 16, 205, 234);
+    final defaultValueColor = isDark
+        ? Colors.white
+        : AppColors.textPrimaryLight;
+    final resolvedValueColor = valueColor ?? defaultValueColor;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(icon, size: 14, color: labelColor),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            // Shrinks the whole line to fit one row instead of wrapping —
-            // narrower devices or larger system font scales would otherwise
-            // push the value/percentage onto an awkward second line.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                text: TextSpan(
-                  style: AppTypography.caption.copyWith(
-                    fontSize: 13,
-                    height: 1.35,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: label,
-                      style: TextStyle(color: labelColor),
-                    ),
-                    if (value != null)
-                      TextSpan(
-                        text: value,
-                        style: const TextStyle(
-                          color: valueColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    if (valueSpans != null) ...valueSpans!,
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 13, color: iconColor ?? labelColor),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.caption.copyWith(
+                  color: labelColor,
+                  fontSize: 11,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: caption == null && secondaryValue == null
+                      ? value
+                      : '$value ',
+                  style: AppTypography.body.copyWith(
+                    color: resolvedValueColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                if (secondaryValue != null)
+                  TextSpan(
+                    text: caption == null ? secondaryValue : '$secondaryValue ',
+                    style: AppTypography.body.copyWith(
+                      color: resolvedValueColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                    ),
+                  ),
+                // Same row as the value — e.g. Live Price's "As of h:mm a",
+                // not a second stacked line.
+                if (caption != null)
+                  TextSpan(
+                    text: caption,
+                    style: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+              ],
+            ),
+            maxLines: 1,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

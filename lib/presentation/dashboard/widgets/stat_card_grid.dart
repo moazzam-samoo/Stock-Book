@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_spacing.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
@@ -41,6 +42,8 @@ class StatCardGrid extends StatelessWidget {
                 label: 'TOTAL INVESTED MONEY',
                 value: summary.startingCapital,
                 isCurrency: true,
+                ghostIcon: FontAwesomeIcons.coins.data,
+                accentColor: positiveColor,
                 animationDelayMs: 100,
                 isSelected: selectedMetric == DashboardMetricType.totalInvested,
                 onTap: () =>
@@ -53,6 +56,8 @@ class StatCardGrid extends StatelessWidget {
                 label: 'TOTAL INVESTED (STOCKS)',
                 value: summary.currentlyInvested,
                 isCurrency: true,
+                ghostIcon: FontAwesomeIcons.chartLine.data,
+                accentColor: AppColors.chartIndigo,
                 animationDelayMs: 200,
                 isSelected:
                     selectedMetric == DashboardMetricType.currentlyInvested,
@@ -70,6 +75,9 @@ class StatCardGrid extends StatelessWidget {
                 label: 'REALIZED P/L',
                 value: summary.realizedPL,
                 isCurrency: true,
+                accentColor: positiveColor,
+                decoration: StatCardDecoration.sparkline,
+                sparklineIsPositive: summary.realizedPL >= 0,
                 valueColor: summary.realizedPL >= 0
                     ? positiveColor
                     : AppColors.alertRed,
@@ -88,6 +96,8 @@ class StatCardGrid extends StatelessWidget {
                 label: 'FREE CASH (UN-INVESTED)',
                 value: summary.freeCash,
                 isCurrency: true,
+                ghostIcon: FontAwesomeIcons.wallet.data,
+                accentColor: AppColors.chartViolet,
                 animationDelayMs: 400,
                 isSelected: selectedMetric == DashboardMetricType.totalFree,
                 onTap: () =>
@@ -104,6 +114,8 @@ class StatCardGrid extends StatelessWidget {
                 label: 'TOTAL LIQUID CAPITAL',
                 value: liquidFreeCash,
                 isCurrency: true,
+                accentColor: AppColors.chartBlue,
+                decoration: StatCardDecoration.wave,
                 animationDelayMs: 500,
                 isSelected: selectedMetric == DashboardMetricType.freeCash,
                 onTap: () => onSelectMetric?.call(DashboardMetricType.freeCash),
@@ -115,6 +127,8 @@ class StatCardGrid extends StatelessWidget {
                 label: 'OPEN TRADES',
                 value: summary.openLots,
                 isCurrency: false,
+                ghostIcon: FontAwesomeIcons.rightLeft.data,
+                accentColor: AppColors.chartAmber,
                 animationDelayMs: 600,
                 isSelected: selectedMetric == DashboardMetricType.openLots,
                 onTap: () => onSelectMetric?.call(DashboardMetricType.openLots),

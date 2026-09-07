@@ -11,12 +11,16 @@ class SparklineChart extends StatelessWidget {
   /// per-item value where the colour is shared — e.g. lot cards, where every
   /// profitable lot is the same green and would otherwise draw the same line.
   final int? seed;
+  final double width;
+  final double height;
 
   const SparklineChart({
     super.key,
     required this.isPositive,
     required this.color,
     this.seed,
+    this.width = 40,
+    this.height = 24,
   });
 
   @override
@@ -41,8 +45,8 @@ class SparklineChart extends StatelessWidget {
     final maxY = spots.map((e) => e.y).reduce(max);
 
     return SizedBox(
-      width: 40,
-      height: 24,
+      width: width,
+      height: height,
       child: LineChart(
         LineChartData(
           minX: 0,

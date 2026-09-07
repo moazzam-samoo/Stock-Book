@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/position.dart';
@@ -67,9 +68,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final filteredPositions = ref.watch(filteredPositionsProvider);
     // A closed cycle shows as one card per buy — each card knows the real
     // position behind it so edit/delete still land on the right document.
+    // Reversed so newest buy appears on top.
     final cards = <({Position display, Position? writeTarget})>[];
     for (final position in filteredPositions) {
-      for (final slice in PositionCalculator.splitByBuy(position)) {
+      final splits = PositionCalculator.splitByBuy(position);
+      for (final slice in splits.reversed) {
         cards.add((
           display: slice,
           writeTarget: identical(slice, position) ? null : position,
@@ -93,6 +96,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           children: [
             CustomAppBar(
               title: 'Transactions',
+              subtitle: 'Track your investments',
+              icon: FontAwesomeIcons.chartLine.data,
+              iconBadgeColor: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
               actions: [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -153,19 +159,43 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    _showSearch ? Icons.close : Icons.search,
-                    color: iconColor,
-                    size: 22,
-                  ),
-                  onPressed: () {
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
                     setState(() {
                       _showSearch = !_showSearch;
+                      if (!_showSearch) {
+                        // Closing the search bar used to leave its last
+                        // query in place forever (the bar itself is a
+                        // separate widget with its own disposed state, but
+                        // searchQueryProvider is a persistent provider) —
+                        // every other position stayed hidden until the app
+                        // restarted, reading as "stocks don't come back".
+                        ref.read(searchQueryProvider.notifier).updateQuery('');
+                      }
                     });
                   },
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark ? const Color(0xFF13151B) : Colors.white,
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF242731)
+                            : const Color(0xFFE2E8F0),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Icon(
+                      _showSearch ? Icons.close : Icons.search,
+                      color: iconColor,
+                      size: 20,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 12),
               ],
             ),
             if (_showSearch) const TransactionSearchBar(),
@@ -192,6 +222,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               vertical: 6,
                             ),
                             child: PositionCard(
+                              key: ValueKey(card.display.id),
                               position: card.display,
                               writePosition: card.writeTarget,
                             ),
@@ -203,7 +234,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ],
         ),
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 96.0),
+          padding: const EdgeInsets.only(bottom: 114.0),
           child: FloatingActionButton(
             shape: const CircleBorder(),
             backgroundColor: isDark
