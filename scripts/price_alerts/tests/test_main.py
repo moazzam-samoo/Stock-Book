@@ -32,6 +32,7 @@ def test_15a_price_fetch_failure_does_not_block_market_status_write():
 
     with (
         patch("main.fetch_market_status", return_value={"isOpen": True, "label": "Open"}),
+        patch("main.firestore_io.get_current_market_status", return_value=None),
         patch("main.firestore_io.write_market_status") as mock_write_status,
         patch("main.firestore_io.write_market_prices") as mock_write_prices,
         patch("main.fetch_listed_companies", return_value=[]),
@@ -65,6 +66,86 @@ def test_15b_market_status_failure_does_not_block_price_dependent_steps():
 
     mock_write_status.assert_not_called()
     mock_write_prices.assert_called_once_with(db, {"ENGRO": {"price": 150.0, "previousClose": 148.0}})
+
+
+def test_market_status_transition_pushes_to_every_known_token():
+    """A closed->open (or open->closed) flip is the one thing that should
+    broadcast to every signed-in user, not just whoever holds a position or
+    watches an alert on a specific ticker."""
+    db = object()  # every firestore_io call is mocked below
+
+    with (
+        patch("main.fetch_market_status", return_value={"isOpen": True, "label": "Open"}),
+        patch(
+            "main.firestore_io.get_current_market_status",
+            return_value={"isOpen": False, "label": "Closed"},
+        ),
+        patch("main.firestore_io.write_market_status") as mock_write_status,
+        patch("main.firestore_io.get_all_fcm_tokens", return_value=["tok1", "tok2"]),
+        patch("main.firestore_io.send_push") as mock_send,
+    ):
+        main._run_market_status_step(db)
+
+    mock_write_status.assert_called_once_with(db, {"isOpen": True, "label": "Open"})
+    assert mock_send.call_count == 2
+    mock_send.assert_any_call("tok1", {"type": "market_open"})
+    mock_send.assert_any_call("tok2", {"type": "market_open"})
+
+
+def test_market_status_unchanged_sends_no_push():
+    db = object()
+
+    with (
+        patch("main.fetch_market_status", return_value={"isOpen": True, "label": "Open"}),
+        patch(
+            "main.firestore_io.get_current_market_status",
+            return_value={"isOpen": True, "label": "Open"},
+        ),
+        patch("main.firestore_io.write_market_status"),
+        patch("main.firestore_io.get_all_fcm_tokens") as mock_get_tokens,
+        patch("main.firestore_io.send_push") as mock_send,
+    ):
+        main._run_market_status_step(db)
+
+    mock_get_tokens.assert_not_called()
+    mock_send.assert_not_called()
+
+
+def test_market_status_first_ever_run_sends_no_push():
+    """No previous doc (previous is None) must never be treated as "was
+    closed" — that would fire a spurious market-open push the very first
+    time this ever runs during market hours."""
+    db = object()
+
+    with (
+        patch("main.fetch_market_status", return_value={"isOpen": True, "label": "Open"}),
+        patch("main.firestore_io.get_current_market_status", return_value=None),
+        patch("main.firestore_io.write_market_status"),
+        patch("main.firestore_io.get_all_fcm_tokens") as mock_get_tokens,
+        patch("main.firestore_io.send_push") as mock_send,
+    ):
+        main._run_market_status_step(db)
+
+    mock_get_tokens.assert_not_called()
+    mock_send.assert_not_called()
+
+
+def test_market_status_one_bad_token_does_not_stop_the_rest():
+    db = object()
+
+    with (
+        patch("main.fetch_market_status", return_value={"isOpen": False, "label": "Closed"}),
+        patch(
+            "main.firestore_io.get_current_market_status",
+            return_value={"isOpen": True, "label": "Open"},
+        ),
+        patch("main.firestore_io.write_market_status"),
+        patch("main.firestore_io.get_all_fcm_tokens", return_value=["bad", "good"]),
+        patch("main.firestore_io.send_push", side_effect=[Exception("unregistered"), None]) as mock_send,
+    ):
+        main._run_market_status_step(db)  # must not raise
+
+    assert mock_send.call_count == 2
 
 
 def test_stored_ticker_whitespace_is_normalised_before_the_price_lookup():

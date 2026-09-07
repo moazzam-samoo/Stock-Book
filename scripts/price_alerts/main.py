@@ -93,8 +93,29 @@ def _run_market_status_step(db) -> None:
         print(f"Market status fetch failed, skipping this run: {e}", file=sys.stderr)
         return
 
-    if status is not None:
-        firestore_io.write_market_status(db, status)
+    if status is None:
+        return
+
+    # Read the previous state BEFORE overwriting it — this is the only way
+    # to detect a transition, since write_market_status always overwrites
+    # unconditionally. previous is None on the very first run ever; that
+    # must never be treated as "was closed" (which would fire a spurious
+    # "market open" push the first time this ever runs during market hours).
+    previous = firestore_io.get_current_market_status(db)
+    firestore_io.write_market_status(db, status)
+
+    if previous is None:
+        return
+    if previous.get("isOpen") == status["isOpen"]:
+        return
+
+    print(f"Market status changed: isOpen {previous.get('isOpen')} -> {status['isOpen']}")
+    notification_type = "market_open" if status["isOpen"] else "market_close"
+    for token in firestore_io.get_all_fcm_tokens(db):
+        try:
+            firestore_io.send_push(token, {"type": notification_type})
+        except Exception as e:  # noqa: BLE001 — one bad/expired token must not stop the rest
+            print(f"  push failed for a token: {e}", file=sys.stderr)
 
 
 def _run_sell_alerts_step(db, positions: list[dict], prices: dict[str, dict]) -> None:

@@ -107,6 +107,16 @@ def write_market_prices(db, prices: dict[str, dict]) -> None:
         batch.commit()
 
 
+def get_current_market_status(db) -> dict | None:
+    """The market_status doc as it stood *before* this run's write — read
+    this first if you need to detect a transition, since write_market_status
+    below overwrites it unconditionally. None means no doc exists yet (the
+    very first run ever); callers must treat that as "no known previous
+    state", never as "was closed"."""
+    snap = db.collection("market_status").document("current").get()
+    return snap.to_dict() if snap.exists else None
+
+
 def write_market_status(db, status: dict) -> None:
     ref = db.collection("market_status").document("current")
     ref.set(
@@ -133,6 +143,20 @@ def get_fcm_token(db, uid: str) -> str | None:
     if not snap.exists:
         return None
     return snap.to_dict().get("fcmToken")
+
+
+def get_all_fcm_tokens(db) -> list[str]:
+    """Every signed-in user's token, for a broadcast that isn't tied to any
+    one user's positions/alerts (market open/close, unlike every other push
+    this backend sends). A user who never granted notification permission
+    (or hasn't opened the app since) simply has no fcmToken field and is
+    skipped, same as get_fcm_token's None case elsewhere."""
+    tokens = []
+    for snap in db.collection("users").stream():
+        token = snap.to_dict().get("fcmToken")
+        if token:
+            tokens.append(token)
+    return tokens
 
 
 def send_push(token: str, data: dict) -> None:
