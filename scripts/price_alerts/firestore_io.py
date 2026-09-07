@@ -161,8 +161,24 @@ def get_all_fcm_tokens(db) -> list[str]:
 
 def send_push(token: str, data: dict) -> None:
     """`data` values must all be strings — a float or None fails at send
-    time on the FCM side, so callers must stringify before calling this."""
-    message = messaging.Message(data=data, token=token)
+    time on the FCM side, so callers must stringify before calling this.
+
+    Explicit high Android priority: FCM's default for a data-only message
+    (this app never sends a `notification` field — see
+    push_notification_service.dart's payload-contract doc comment) is
+    "normal", and Firebase's own docs warn normal-priority messages "may be
+    delayed significantly" — the server can queue/batch them rather than
+    deliver immediately, independent of the receiving device's own battery
+    or Doze settings entirely. This was confirmed as a real, live bug: a
+    push accepted without error by messaging.send() (no exception, nothing
+    for the caller to catch) simply never reached a real device, in both
+    foreground and background app states, until this was set.
+    """
+    message = messaging.Message(
+        data=data,
+        token=token,
+        android=messaging.AndroidConfig(priority="high"),
+    )
     messaging.send(message)
 
 
