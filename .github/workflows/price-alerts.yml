@@ -2,29 +2,23 @@ name: Price alerts
 
 on:
   schedule:
-    # Every 10 minutes, 09:15-15:30 PKT (04:15-10:30 UTC), Mon-Fri.
-    # Pakistan does not observe DST, so this offset is stable year-round.
-    #
-    # Was */5 (GitHub's documented minimum) until 2026-09-07, when it
-    # turned out to never fire at all on this repo — GitHub's own docs say
-    # high-frequency (5-minute) crons are the first dropped under load,
-    # which matches: zero schedule-triggered runs ever, across the entire
-    # first eligible day, while workflow_dispatch worked the whole time.
-    # 10 minutes is the cheap first thing to try before reaching for an
-    # external scheduler (e.g. Cloud Scheduler hitting the dispatches API)
-    # to drive this instead of relying on GitHub's own cron.
+    # Every 15 minutes, 09:15-15:30 PKT (04:15-10:30 UTC), Mon-Fri — a
+    # low-frequency BACKUP only. GitHub's own schedule trigger never fired
+    # once on this repo (confirmed via the Actions API: zero schedule runs
+    # across its entire first eligible day, both at */5 and */10, despite
+    # being active on main and workflow_dispatch working every time). The
+    # real 5-minute cadence during market hours is now driven externally
+    # by a cron-job.org job hitting this workflow's `dispatches` API
+    # endpoint directly — see WorkflowTriggerService for the same call
+    # made on-demand from the app. This schedule stays in as a cheap
+    # second line of defence in case that external job ever lapses; it
+    # deliberately no longer needs to be frequent since it isn't the
+    # primary mechanism anymore.
     #
     # This only actually fires from whatever's on the repo's DEFAULT branch
     # — GitHub ignores `schedule:` on any other branch (workflow_dispatch
     # still works from any branch, which is handy for testing before a
     # merge to main).
-    #
-    # GitHub's scheduler can also fail to pick up a newly-registered cron
-    # on its very first eligible day even once this file IS on main — the
-    # registration seems to need the file's own content to change, not
-    # just have main's tip move past it via a merge commit. If scheduled
-    # runs still aren't appearing, a trivial edit to this file (like this
-    # comment) and a push to main is the known nudge.
     #
     # Scheduled workflows are auto-disabled by GitHub after 60 days with no
     # repository activity at all. If this repo goes quiet, alerts stop
@@ -32,7 +26,7 @@ on:
     # (it simply never runs). The app's own staleness indicator (Phase 04)
     # is the user-facing mitigation; a monthly no-op commit is a cheap
     # backstop if that's not enough.
-    - cron: '*/10 4-10 * * 1-5'
+    - cron: '*/15 4-10 * * 1-5'
   workflow_dispatch: {}
 
 jobs:
