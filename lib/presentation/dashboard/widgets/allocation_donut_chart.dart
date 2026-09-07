@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/widgets/wave_decoration.dart';
 
 class AllocationDonutChart extends ConsumerStatefulWidget {
   final List<AllocationSegment> allocations;
@@ -23,7 +25,8 @@ class AllocationDonutChart extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AllocationDonutChart> createState() => _AllocationDonutChartState();
+  ConsumerState<AllocationDonutChart> createState() =>
+      _AllocationDonutChartState();
 }
 
 class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
@@ -43,10 +46,16 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final containerBg = isDark ? const Color(0xFF13151B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final positiveColor = isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight;
-    final selectedRowBg = isDark ? const Color(0xFF1E2620) : const Color(0xFFE8F5E9);
+    final positiveColor = isDark
+        ? AppColors.moneyGreen
+        : AppColors.moneyGreenOnLight;
+    final selectedRowBg = isDark
+        ? const Color(0xFF1E2620)
+        : const Color(0xFFE8F5E9);
 
     if (widget.allocations.isEmpty) {
       return Container(
@@ -70,17 +79,25 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
         ? widget.allocations.length
         : (hasMore ? 4 : widget.allocations.length);
 
-    final displayHoldings = AppCurrencyFormatter.format(widget.totalHoldings, decimalDigits: 0);
+    final displayHoldings = AppCurrencyFormatter.format(
+      widget.totalHoldings,
+      decimalDigits: 0,
+    );
 
     // Determine center label & value based on selection
-    final bool isSelected = touchedIndex >= 0 && touchedIndex < widget.allocations.length;
-    final String centerLabel = isSelected ? widget.allocations[touchedIndex].ticker : 'HOLDINGS';
+    final bool isSelected =
+        touchedIndex >= 0 && touchedIndex < widget.allocations.length;
+    final String centerLabel = isSelected
+        ? widget.allocations[touchedIndex].ticker
+        : 'HOLDINGS';
     final String centerValue = isSelected
-        ? AppCurrencyFormatter.format(widget.allocations[touchedIndex].amount, decimalDigits: 0)
+        ? AppCurrencyFormatter.format(
+            widget.allocations[touchedIndex].amount,
+            decimalDigits: 0,
+          )
         : displayHoldings;
 
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: containerBg,
         borderRadius: BorderRadius.circular(20),
@@ -95,218 +112,356 @@ class _AllocationDonutChartState extends ConsumerState<AllocationDonutChart> {
                 ),
               ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Allocation',
-                style: AppTypography.h3.copyWith(
-                  color: primaryTextColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: WaveDecoration(
+                color: AppColors.chartIndigo.withOpacity(isDark ? 0.14 : 0.08),
               ),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    touchedIndex = -1;
-                  });
-                },
-                child: Text(
-                  isSelected ? 'reset selection' : 'tap to highlight',
-                  style: AppTypography.caption.copyWith(
-                    color: isSelected ? positiveColor : AppColors.neutral500,
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Left: Donut Chart
-              SizedBox(
-                width: 140,
-                height: 140,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Center Text
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          centerLabel,
-                          style: AppTypography.caption.copyWith(
-                            color: isSelected ? positiveColor : AppColors.neutral500,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          centerValue,
-                          style: AppTypography.body.copyWith(
-                            color: primaryTextColor,
-                            fontFamily: 'JetBrains Mono',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (isSelected) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '${widget.allocations[touchedIndex].percentage.toStringAsFixed(0)}%',
-                            style: AppTypography.caption.copyWith(
-                              color: positiveColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    // Pie Chart
-                    PieChart(
-                      PieChartData(
-                        pieTouchData: PieTouchData(
-                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                            if (event is FlTapUpEvent) {
-                              if (pieTouchResponse != null &&
-                                  pieTouchResponse.touchedSection != null) {
-                                final index = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                if (index >= 0 && index < widget.allocations.length) {
-                                  setState(() {
-                                    touchedIndex = (touchedIndex == index) ? -1 : index;
-                                  });
-                                }
-                              }
-                            }
-                          },
-                        ),
-                        borderData: FlBorderData(show: false),
-                        sectionsSpace: 3,
-                        centerSpaceRadius: 45,
-                        sections: showingSections(settings),
-                      ),
-                    ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              // Right: Legend
-              Expanded(
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(visibleCount, (i) {
-                      final allocation = widget.allocations[i];
-                      final color = _getColorForTicker(allocation.ticker, settings);
-                      final isTouched = i == touchedIndex;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3.0),
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              touchedIndex = (touchedIndex == i) ? -1 : i;
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
                             decoration: BoxDecoration(
-                              color: isTouched ? selectedRowBg : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isTouched ? positiveColor : Colors.transparent,
-                                width: 1,
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.chartIndigo,
+                                  Color.lerp(
+                                    AppColors.chartIndigo,
+                                    Colors.black,
+                                    0.28,
+                                  )!,
+                                ],
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: color,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  allocation.ticker,
-                                  style: AppTypography.body.copyWith(
-                                    color: isTouched ? positiveColor : primaryTextColor,
-                                    fontWeight: isTouched ? FontWeight.w800 : FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '${allocation.percentage.toStringAsFixed(0)}%',
-                                  style: AppTypography.body.copyWith(
-                                    color: isTouched ? positiveColor : AppColors.neutral400,
-                                    fontWeight: isTouched ? FontWeight.w800 : FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
+                            child: Icon(
+                              FontAwesomeIcons.chartPie.data,
+                              color: Colors.white,
+                              size: 15,
                             ),
                           ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (hasMore) ...[
-            const SizedBox(height: 12),
-            Center(
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _isExpanded ? 'Show Less' : 'Show All (${widget.allocations.length})',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.brandIndigo,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Allocation',
+                                style: AppTypography.h3.copyWith(
+                                  color: primaryTextColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              Text(
+                                'Your portfolio distribution',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.neutral500,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: AppColors.brandIndigo,
-                        size: 16,
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            touchedIndex = -1;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                (isSelected
+                                        ? positiveColor
+                                        : AppColors.chartIndigo)
+                                    .withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 12,
+                                color: isSelected
+                                    ? positiveColor
+                                    : AppColors.chartIndigo,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isSelected
+                                    ? 'reset selection'
+                                    : 'tap to highlight',
+                                style: AppTypography.caption.copyWith(
+                                  color: isSelected
+                                      ? positiveColor
+                                      : AppColors.chartIndigo,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Left: Donut Chart
+                      SizedBox(
+                        width: 140,
+                        height: 140,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Center Text
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  centerLabel,
+                                  style: AppTypography.caption.copyWith(
+                                    color: isSelected
+                                        ? positiveColor
+                                        : AppColors.neutral500,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  centerValue,
+                                  style: AppTypography.body.copyWith(
+                                    color: primaryTextColor,
+                                    fontFamily: 'JetBrains Mono',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                if (isSelected) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${widget.allocations[touchedIndex].percentage.toStringAsFixed(0)}%',
+                                    style: AppTypography.caption.copyWith(
+                                      color: positiveColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            // Pie Chart
+                            PieChart(
+                              PieChartData(
+                                pieTouchData: PieTouchData(
+                                  touchCallback:
+                                      (FlTouchEvent event, pieTouchResponse) {
+                                        if (event is FlTapUpEvent) {
+                                          if (pieTouchResponse != null &&
+                                              pieTouchResponse.touchedSection !=
+                                                  null) {
+                                            final index = pieTouchResponse
+                                                .touchedSection!
+                                                .touchedSectionIndex;
+                                            if (index >= 0 &&
+                                                index <
+                                                    widget.allocations.length) {
+                                              setState(() {
+                                                touchedIndex =
+                                                    (touchedIndex == index)
+                                                    ? -1
+                                                    : index;
+                                              });
+                                            }
+                                          }
+                                        }
+                                      },
+                                ),
+                                borderData: FlBorderData(show: false),
+                                sectionsSpace: 3,
+                                centerSpaceRadius: 45,
+                                sections: showingSections(settings),
+                              ),
+                            ).animate().scale(
+                              duration: 500.ms,
+                              curve: Curves.easeOutBack,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Right: Legend
+                      Expanded(
+                        child: AnimatedSize(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(visibleCount, (i) {
+                              final allocation = widget.allocations[i];
+                              final color = _getColorForTicker(
+                                allocation.ticker,
+                                settings,
+                              );
+                              final isTouched = i == touchedIndex;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3.0,
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      touchedIndex = (touchedIndex == i)
+                                          ? -1
+                                          : i;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4.0,
+                                      horizontal: 6.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isTouched
+                                          ? selectedRowBg
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isTouched
+                                            ? positiveColor
+                                            : Colors.transparent,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: color,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          allocation.ticker,
+                                          style: AppTypography.body.copyWith(
+                                            color: isTouched
+                                                ? positiveColor
+                                                : primaryTextColor,
+                                            fontWeight: isTouched
+                                                ? FontWeight.w800
+                                                : FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          '${allocation.percentage.toStringAsFixed(0)}%',
+                                          style: AppTypography.body.copyWith(
+                                            color: isTouched
+                                                ? positiveColor
+                                                : AppColors.neutral400,
+                                            fontWeight: isTouched
+                                                ? FontWeight.w800
+                                                : FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.chevron_right_rounded,
+                                          size: 16,
+                                          color: isTouched
+                                              ? positiveColor
+                                              : AppColors.neutral400,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (hasMore) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 12,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _isExpanded
+                                    ? 'Show Less'
+                                    : 'Show All (${widget.allocations.length})',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.brandIndigo,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isExpanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                                color: AppColors.brandIndigo,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }

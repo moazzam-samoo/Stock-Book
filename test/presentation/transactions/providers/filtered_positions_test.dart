@@ -73,4 +73,42 @@ void main() {
     addTearDown(container.dispose);
     expect(container.read(statusFilterProvider), 'Open');
   });
+
+  // Regression: a search used to still be AND-ed with whichever status tab
+  // was active, so searching for a closed position's ticker while the
+  // default "Open" tab was selected silently returned nothing — reading as
+  // "search is broken" / "everything disappeared".
+  test(
+    'searching for a ticker finds it regardless of the active status tab',
+    () async {
+      final container = containerWith('Open');
+      await container.read(allPositionsProvider.future);
+      container.read(searchQueryProvider.notifier).updateQuery('CCC');
+
+      final tickers = container
+          .read(filteredPositionsProvider)
+          .map((p) => p.ticker)
+          .toList();
+      expect(tickers, ['CCC']);
+    },
+  );
+
+  test("clearing the search query restores the active tab's own filter", () async {
+    final container = containerWith('Open');
+    await container.read(allPositionsProvider.future);
+
+    container.read(searchQueryProvider.notifier).updateQuery('CCC');
+    expect(
+      container.read(filteredPositionsProvider).map((p) => p.ticker),
+      ['CCC'],
+    );
+
+    container.read(searchQueryProvider.notifier).updateQuery('');
+    final tickers = container
+        .read(filteredPositionsProvider)
+        .map((p) => p.ticker)
+        .toList();
+    expect(tickers, containsAll(['AAA', 'BBB']));
+    expect(tickers, isNot(contains('CCC')));
+  });
 }

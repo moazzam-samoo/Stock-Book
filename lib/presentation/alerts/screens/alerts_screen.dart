@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/presentation/alerts/providers/alerts_providers.dart';
@@ -31,7 +32,7 @@ class AlertsScreen extends ConsumerWidget {
         // position — rather than an app-bar icon, so "add" looks and behaves
         // identically everywhere in the app.
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 96.0),
+          padding: const EdgeInsets.only(bottom: 114.0),
           child: FloatingActionButton(
             shape: const CircleBorder(),
             backgroundColor: isDark
@@ -47,7 +48,12 @@ class AlertsScreen extends ConsumerWidget {
         ),
         body: Column(
           children: [
-            const CustomAppBar(title: 'Buy Alerts'),
+            CustomAppBar(
+              title: 'Buy Alerts',
+              subtitle: 'Notified when a target price hits',
+              icon: FontAwesomeIcons.bell.data,
+              iconBadgeColor: const Color(0xFF584BF6),
+            ),
             Expanded(
               child: alertsAsync.when(
                 data: (alerts) {

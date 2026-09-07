@@ -31,9 +31,17 @@ List<Position> filteredPositions(FilteredPositionsRef ref) {
   final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
   final statusFilter = ref.watch(statusFilterProvider);
 
+  final isSearching = searchQuery.isNotEmpty;
+
   final filteredList = allPositions.where((pos) {
     final matchesSearch = pos.ticker.toLowerCase().contains(searchQuery);
-    
+
+    // A search is intent to find that ticker, full stop — it shouldn't also
+    // require matching whichever status tab happened to be selected (e.g.
+    // searching for a ticker that's now Closed while still on the Open tab
+    // silently hid it, reading as "search finds nothing").
+    if (isSearching) return matchesSearch;
+
     bool matchesStatus = true;
     switch (statusFilter.toLowerCase()) {
       case 'all':

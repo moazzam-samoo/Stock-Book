@@ -58,6 +58,12 @@ class AppColors {
   static const Color chartBlue = Color(0xFF2196F3);
   static const Color chartOrange = Color(0xFFFF9800);
   static const Color chartPurple = Color.fromARGB(255, 39, 71, 176);
+
+  // Dashboard stat-card icon-badge accents (one distinct color per metric —
+  // applies only to the icon badge and its decoration, never the card shell).
+  static const Color chartIndigo = Color(0xFF4C6EF5);
+  static const Color chartViolet = Color(0xFF8B5CF6);
+  static const Color chartAmber = Color(0xFFF59E0B);
 }
 
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {

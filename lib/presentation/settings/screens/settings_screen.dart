@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:stock_investment_tracker/core/services/data_export_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -52,7 +53,12 @@ class SettingsScreen extends ConsumerWidget {
       child: AppScaffold(
         body: Column(
           children: [
-            const CustomAppBar(title: 'Settings'),
+            CustomAppBar(
+              title: 'Settings',
+              subtitle: 'App preferences & account',
+              icon: FontAwesomeIcons.gear.data,
+              iconBadgeColor: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
+            ),
             Expanded(
               child: settingsAsync.when(
                 data: (settings) => SingleChildScrollView(
