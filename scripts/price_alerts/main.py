@@ -94,6 +94,13 @@ def _run_market_status_step(db) -> None:
         return
 
     if status is None:
+        # fetch_market_status returns None both when the homepage request
+        # itself failed AND when it succeeded but the "Market Status"
+        # label text wasn't found in the page — the latter has no
+        # exception to log at the call site above, so without this line a
+        # transition-missing morning is indistinguishable from a
+        # transition-not-yet-happened one in the run log.
+        print("Market status fetch returned no data (site unreachable or label not found) — skipping this run", file=sys.stderr)
         return
 
     # Read the previous state BEFORE overwriting it — this is the only way
