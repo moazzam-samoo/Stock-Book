@@ -6,7 +6,9 @@
 > rebuild this repo is currently mid-way through; check it before starting new work here). All
 > phases 00-09 are marked **Done** in that table — there is no "not started" phase left. Further
 > updated same day (2026-09-07) for account deletion, real release signing, the 5-page onboarding
-> flow, the Company & Owners page, and two dashboard bugfixes (§9, §11 #14-15, §12, §18) — see
+> flow, the Company & Owners page, two dashboard bugfixes, the market open/close push broadcast, and
+> — the most important fix of the day — two stacked release-build-only bugs that made every push
+> notification silently fail to render (§9, §11 #14-16, §12, §15, §16.1, §18) — see
 > `PLAYSTORE_RELEASE_GUIDE.md` for what's still missing before this app can actually be published
 > (as of this update, only the on-demand-refresh item remains open there).
 > **Keep this file updated when structure, schema, or the gotchas below change.**
@@ -32,15 +34,23 @@ PDF report export.
 
 ```bash
 flutter pub get
-flutter analyze                      # Baseline: 0 errors, 25 warnings, 873 infos
-flutter test                         # ~55 test files, ~239 test()/testWidgets() cases — the old
-                                      # "60 tests" figure is stale; re-run for an exact live count
-                                      # rather than quoting one (see §12)
+flutter analyze                      # Baseline as of 2026-09-07: 0 errors, 37 warnings, 1490 infos
+flutter test                         # 255 test()/testWidgets() cases as of 2026-09-07, 243
+                                      # passing / 12 pre-existing golden failures (see §12) — the
+                                      # old "60 tests" figure is stale
 dart run build_runner build --delete-conflicting-outputs   # after touching @freezed / @riverpod
 flutter run -t lib/main.dart         # dev (default; main.dart itself forces Environment.dev)
 flutter run -t lib/main_prod.dart    # prod + Crashlytics error handlers
 flutter run -t lib/main_staging.dart
 flutter pub run flutter_launcher_icons   # regenerate launcher icons from assets/icon/Stockk.png
+
+# Store-bound / real-device release builds — always the "prod" flavor + main_prod.dart entrypoint:
+flutter build appbundle --release --flavor prod -t lib/main_prod.dart   # Play Store upload (.aab)
+flutter build apk --release --flavor prod -t lib/main_prod.dart         # sideload/manual test (.apk)
+# Both take 5-6 min on this machine — background them (run_in_background) rather than waiting
+# inline. Without --flavor prod -t lib/main_prod.dart, `flutter build apk --release` alone
+# targets main.dart/no flavor and can hang for ~2h before failing outright — this was a real,
+# confirmed incident, not a guess; always pass both flags together for a release build.
 ```
 
 Lint baseline is `very_good_analysis` with `public_member_api_docs`, `sort_pub_dependencies` and
@@ -454,14 +464,51 @@ Shell specifics:
     Store upload, verify `signingConfig` actually resolved to `"release"`, not `"debug"`** —
     there is no build-time error to catch a missing/misconfigured `key.properties` on a
     store-bound build. Template at `android/key.properties.example`.
+16. **Two stacked release-build-only bugs made every push notification (market status AND price
+    alerts, foreground AND background AND killed) silently fail to render, for weeks, with zero
+    error anywhere — found and fixed together (`27d4b13`).** This is the single most important
+    trap in this codebase for anyone debugging notifications; read this before assuming the
+    problem is FCM, the device, or the network.
+    - **(a) `Logger()`'s default filter is a silent no-op in release builds.** The `logger`
+      package's `DevelopmentFilter.shouldLog()` wraps its actual check inside an `assert()` —
+      Dart's release compiler strips `assert()` bodies entirely (`flutter build ... --release`
+      disables assertions by default), so `shouldLog` always returns `false` and **every
+      `Logger()` call anywhere in the app — including diagnostic logging added specifically to
+      debug an issue — produces nothing on a release APK**, with no exception, no warning,
+      nothing. This is what made this bug look invisible: every logcat capture on the release
+      build came back clean, which looked like "nothing happened" but actually meant "our own
+      logging can't run here." **Fix: never call `Logger()` directly — always use the shared
+      `appLogger` (`lib/core/utils/logger.dart`), which explicitly passes
+      `filter: ProductionFilter()`** (the one built-in filter that isn't gated by `assert()`,
+      behaves identically in debug and release). If you add a new `Logger()` call anywhere,
+      import and use `appLogger`, don't instantiate a fresh `Logger()`.
+    - **(b) Android's release resource shrinker deletes the custom notification sound.**
+      `_notificationDetails()` in `push_notification_service.dart` references
+      `RawResourceAndroidNotificationSound('stock_alert')` — a plain Dart string literal, which
+      is invisible to the shrinker's static analysis of compiled Java/Kotlin/XML. The shrinker
+      concluded `android/app/src/main/res/raw/stock_alert.wav` was unused and stripped it from
+      **every release build ever shipped** (confirmed by unzipping a built APK: zero files
+      under `res/raw/`). `flutter_local_notifications`' `.show()` then threw
+      `PlatformException(invalid_sound, ...)` on every single call, silently swallowed by the
+      `catch` block around it (itself invisible until bug (a) above was also fixed) — so the
+      push always arrived and the app always tried to display it, but the OS call to render it
+      always crashed first. **Fixed with Android's official keep-resources mechanism:
+      `android/app/src/main/res/raw/keep.xml`** (`tools:keep="@raw/stock_alert"`) forces the
+      shrinker to retain it regardless of static references. Verified via a rebuilt APK: the
+      file survives (renamed to an obfuscated short name by the shrinker, which is normal and
+      harmless — only *deletion* was the bug), and manually confirmed end-to-end on-device for
+      both `market_close` and a `buy` alert, foreground and background. **If you ever add
+      another raw/drawable resource that's only referenced by name from Dart** (another custom
+      sound, an icon looked up via `Resources.getIdentifier`-style dynamic lookup, etc.), add it
+      to `keep.xml` too, or it will silently vanish from release builds the exact same way.
 
 ---
 
 ## 12. Tests
 
 `test/` mirrors `lib/` — the "60 tests" figure in older revisions of this doc is stale. Live run
-as of 2026-09-07 (post account-deletion/onboarding-5-page/company-owners-page/dashboard-fixes
-work): **252 tests total, 240 passing, 12 failing** (~5-8 min for the full suite; run with a
+as of 2026-09-07 (post release-notification-bugfix work, §11 #16): **255 tests total, 243
+passing, 12 failing** (~5-8 min for the full suite; run with a
 generous timeout, see §2). All 12 failures are in `golden/theme_golden_test.dart` (Position Card
 Dark/Light, Settings Screen Dark/Light, +8 more) — **expected, not a regression to chase**: the
 UI-redesign work (`stat_card.dart`'s `StatCardDecoration`, `wave_decoration.dart`,
@@ -572,8 +619,16 @@ To add a new persisted entity, mirror `Withdrawal` end-to-end (it is the newest 
 - Backend sends **data-only FCM messages** — deliberately no `notification` field, so the client's
   own `buildNotificationContent(Map data)` (pure, top-level, unit-testable without Firebase) is the
   single source of truth for what's shown. Payload contract: `{type: "sell"|"buy", ticker,
-  positionId|alertId, price, targetPrice}`. **The notification shows `targetPrice` (what the user
+  positionId|alertId, price, targetPrice}` for price alerts, or `{type: "market_open"|
+  "market_close"}` (no ticker — handled first in the `switch`, before the ticker-required branch)
+  for the market-status broadcast (§15.3). **The notification shows `targetPrice` (what the user
   set), never `price`** (the live price that triggered it) — those only coincide by chance.
+- **See §11 #16 before debugging any notification-delivery issue** — two stacked release-build-only
+  bugs (a dead-in-release `Logger()` filter, and the release resource shrinker deleting the custom
+  notification sound) made every push silently fail to render for weeks with zero error anywhere.
+  Both are fixed, but the pattern (release build behaves differently from debug in ways that are
+  invisible without specifically checking for them) is worth remembering for any future
+  release-build-only symptom.
 - `firebaseMessagingBackgroundHandler` — top-level function, `@pragma('vm:entry-point')`, required
   because Android/iOS spin up a throwaway isolate to run it when the app is backgrounded or fully
   terminated; it reinitializes Firebase from scratch (`Firebase.apps.isEmpty` guard) since nothing
@@ -595,7 +650,10 @@ To add a new persisted entity, mirror `Withdrawal` end-to-end (it is the newest 
   fixed — `resetColdStartRouteHandledForTesting()` exists for tests).
 - Android notification channel id `stock_alerts`, sound resource `android/app/src/main/res/raw/stock_alert.wav`
   (`RawResourceAndroidNotificationSound('stock_alert')`); iOS uses `DarwinNotificationDetails(sound: 'stock_alert.wav')`.
-  Android init icon is `'ic_launcher_foreground'` (a drawable) — `'ic_launcher'` is mipmap-only and
+  **This raw resource is only kept alive in release builds by
+  `android/app/src/main/res/raw/keep.xml` — see §11 #16(b), a real, confirmed, previously-shipped
+  bug where the release resource shrinker silently deleted it.** Android init icon is
+  `'ic_launcher_foreground'` (a drawable) — `'ic_launcher'` is mipmap-only and
   `flutter_local_notifications` requires a drawable.
 - Token saved via `UserRepositoryImpl.savePushToken(token)` → `users/{uid}.fcmToken` +
   `fcmTokenUpdatedAt` (merge write). See §11 #13 for the silent-failure bug found and fixed here.
@@ -649,6 +707,19 @@ Transactions and Stock Detail (replaced an older, less useful "fetched N minutes
 written by `_run_tickers_refresh_step`, at most once/day (skipped if unchanged from the last write) —
 backs the searchable ticker autocomplete (Phase 09) shared by Add Buy, Add Alert, and Favorites.
 
+**Market open/close push broadcast.** `_run_market_status_step` (`main.py`) reads the *previous*
+`market_status/current` doc **before** overwriting it (`get_current_market_status`), compares
+`previous.isOpen` against the freshly-scraped value, and — only on a genuine transition, never on
+the very first run ever (`previous is None`) — broadcasts `{type: "market_open"|"market_close"}`
+to **every** signed-in user's token (`get_all_fcm_tokens`, unlike every other push in this backend
+which targets one specific user via `get_fcm_token`). This is a **one-shot-per-transition** design:
+once a run observes closed→open (or open→closed) and writes the new status, no later run re-fires
+for the same state — there is no daily catch-up. `fetch_market_status()`
+(`market_status_source.py`) retries once (2s pause) on either a request failure or a page-parse
+miss, and `_run_market_status_step` now explicitly logs when it returns `None` (previously silent
+— a real bug, since fixed, that made a missed transition indistinguishable from "no transition
+yet" in the run log).
+
 ---
 
 ## 16. Live-price backend & external scheduling
@@ -661,9 +732,9 @@ Orchestration/logic split cleanly for testability:
 |---|---|
 | `main.py` | Orchestration only, no business logic. `run(db, price_source=None)`: gather held positions + watched alerts → fetch prices (one batched call) → write `market_prices/` → market status step → sell-alert step → buy-alert step → tickers-refresh step. Each step is wrapped so one failing scrape (price/market-status/tickers) doesn't abort the others. |
 | `alerts.py` | Pure decision logic — `should_fire_sell`/`should_fire_buy`/`REPEAT_ALERT_STEP_PERCENT` (see §15.2). No Firebase or network imports, deliberately, so it's unit-testable with plain dicts. |
-| `firestore_io.py` | All Firestore/FCM I/O — `get_held_positions`, `get_watched_alerts`, `write_market_prices`, `write_market_status`, `get_fcm_token`, `send_push`, `mark_sell_alert_sent`/`mark_buy_alert_sent`, tickers-doc read/write. |
+| `firestore_io.py` | All Firestore/FCM I/O — `get_held_positions`, `get_watched_alerts`, `write_market_prices`, `get_current_market_status`/`write_market_status`, `get_fcm_token`/`get_all_fcm_tokens`, `send_push`, `mark_sell_alert_sent`/`mark_buy_alert_sent`, tickers-doc read/write. |
 | `price_source.py` | `PsxdataScreenerSource` — scrapes via the `psxdata` package. |
-| `market_status_source.py` | Scrapes the PSX homepage for open/closed. |
+| `market_status_source.py` | Scrapes the PSX homepage for open/closed; retries once on a transient miss (see §15.3). |
 | `tickers_source.py` | Scrapes the full listed-symbols reference set. |
 
 - `main._normalize_ticker` mirrors the Dart client's `FirestoreDataSource.normalizeTicker`
@@ -687,6 +758,12 @@ Orchestration/logic split cleanly for testability:
 - Push, then flip the flag: `_run_sell_alerts_step`/`_run_buy_alerts_step` send the push **before**
   calling `mark_*_alert_sent` — a flag write failing after a successful send means at most one
   duplicate notification; the reverse order can silently notify nobody.
+- `send_push` (`firestore_io.py`) sets `android=messaging.AndroidConfig(priority="high")`
+  **explicitly** — FCM's default priority for a data-only message (this backend never sends a
+  `notification` field) is "normal", which Firebase's own docs warn "may be delayed
+  significantly." This was a real, confirmed bug: `messaging.send()` returned successfully, no
+  exception anywhere, and the push simply never reached a real device in either foreground or
+  background — don't remove this parameter.
 - Test suite: `scripts/price_alerts/tests/` — `test_alerts.py`, `test_firestore_io.py`, `test_main.py`,
   `test_market_status_source.py`, `test_price_source.py`, `test_tickers_source.py`, with
   `conftest.py`/`fakes.py`/`fixtures/*.json` (real captured screener/symbols data, not synthetic).
@@ -939,7 +1016,11 @@ build error, when the file is absent (keeps `flutter run --release` working for 
 before the file exists). **See §11 #15 — verify `signingConfig` resolves to `"release"`
 before any Play Store upload; there's no automatic guard against shipping debug-signed.**
 A real upload keystore has since been generated and `key.properties` filled in locally — it
-is not and will never be committed.
+is not and will never be committed. A signed `.aab` (`flutter build appbundle --release --flavor
+prod -t lib/main_prod.dart`, see §2) has been built from `main` post-§11-#16 fix and confirmed —
+via `unzip -l` on the output — to actually contain `base/res/raw/stock_alert.wav`, i.e. this is
+the first release build where notifications are confirmed to actually work, ready for Play
+Store upload.
 
 ### 18.3 Legal pages (GitHub Pages)
 

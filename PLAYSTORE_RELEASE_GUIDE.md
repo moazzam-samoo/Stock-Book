@@ -171,13 +171,24 @@ in `lib/` references it (`grep -rn "assets/screenshots" lib/` → 0 hits). Also 
 look like leftover source art rather than things the running app actually loads at runtime.
 Trimming these reduces your AAB size, which matters for install conversion.
 
-### 10. No ProGuard/R8 minification configured
+### 10. Resource shrinking is active by default and already caused a real production bug — RESOLVED
 
-`build.gradle.kts`'s `release` block doesn't set `isMinifyEnabled`/`isShrinkResources`. Flutter
-apps ship fine without this, but enabling it (with a `proguard-rules.pro` tuned for
-Firebase/Riverpod/Freezed reflection-sensitive bits, tested carefully — R8 misconfiguration is a
-classic "works in debug, crashes only in release" trap) shrinks the download size further.
-Optional, not urgent.
+This section previously said `build.gradle.kts` doesn't set `isMinifyEnabled`/`isShrinkResources`,
+so shrinking was "optional, not urgent." **That assumption was wrong and cost real notification
+delivery.** Confirmed by unzipping a built release APK: every resource filename was obfuscated to
+a 2-character name (`4B.xml`, `9w.png`, etc.) and `res/raw/` was **completely empty** — Android's
+release resource shrinker is active regardless of those explicit flags (current AGP default
+behavior), and it silently deleted `stock_alert.wav` because it's only referenced via a Dart
+string literal (`RawResourceAndroidNotificationSound('stock_alert')`), invisible to the
+shrinker's static analysis. Every push notification (market status + price alerts, every app
+state) crashed internally on `PlatformException(invalid_sound, ...)` and never rendered, on
+every release build ever shipped, until this was found. **Fixed** via Android's official
+keep-resources mechanism: `android/app/src/main/res/raw/keep.xml`
+(`tools:keep="@raw/stock_alert"`). See `AGENTS.md` §11 #16 for the full story (this was
+compounded by a second bug — the `logger` package's default filter is a no-op in release builds,
+which is why this took so long to actually observe). **If you add any other raw/drawable
+resource referenced only by name from Dart, add it to `keep.xml` too**, or expect the same
+silent failure.
 
 ### 11. `versionName`/`versionCode` housekeeping
 
@@ -213,7 +224,9 @@ calls all work (if INTERNET were truly missing, everything network-related would
    deletion flow (#3's app half).
 4. Do a full real-device test of a **release-signed** build (not debug) — sign-in, add a
    position, live price refresh via the scheduled backend, a price alert firing, notification
-   delivery, PDF export, theme toggle, offline behavior.
+   delivery, PDF export, theme toggle, offline behavior. **Notification delivery specifically:
+   DONE as of 2026-09-07** — see #10 above; verified on-device, both `market_close` and a `buy`
+   alert, foreground and background, on a release build.
 5. Prepare store listing assets + fill Data Safety form (#5, #6, #7) accurately against what the
    app in front of you actually does.
 6. Clean up #8-#12 — can happen in parallel with the above or right after, none of it blocks
