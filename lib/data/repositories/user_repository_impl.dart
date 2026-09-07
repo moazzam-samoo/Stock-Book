@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
 import '../../core/constants/firestore_paths.dart';
+import '../../core/utils/logger.dart';
 import '../../domain/repositories/user_repository.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final String uid;
   final FirebaseFirestore firestore;
-  final Logger _logger = Logger();
+  final Logger _logger = appLogger;
 
   UserRepositoryImpl({
     required this.uid,
