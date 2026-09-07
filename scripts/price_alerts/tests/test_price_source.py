@@ -71,6 +71,24 @@ def test_empty_screener_with_no_history_either_returns_empty_dict():
         assert source.fetch_prices({"ENGRO"}) == {}
 
 
+def test_screener_hard_failure_still_falls_through_to_per_ticker_fallback():
+    """A raised exception from psxdata.screener() itself (network error, PSX
+    briefly down) must not take every ticker down with it — this was a real
+    bug: two unrelated tickers went stale for two consecutive runs at the
+    exact same timestamp, consistent with one bulk-call failure silently
+    skipping every ticker that run instead of just the one that failed."""
+    history = _history([
+        {"date": pd.Timestamp("2026-09-03"), "close": 10.78, "volume": 129091},
+    ])
+    with (
+        patch("price_source.psxdata.screener", side_effect=Exception("PSX unreachable")),
+        patch("price_source.psxdata.stocks", return_value=history),
+    ):
+        prices = PsxdataScreenerSource().fetch_prices({"GUSM"})
+
+    assert prices["GUSM"]["price"] == 10.78
+
+
 def test_nan_price_is_omitted_not_treated_as_zero():
     """A NaN screener price falls through to the history fallback; with no
     history either, the ticker is omitted rather than priced at 0."""
