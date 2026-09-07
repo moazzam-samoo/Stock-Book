@@ -57,6 +57,22 @@ class NotificationContent {
 /// confusing notification with blank or garbled text.
 NotificationContent? buildNotificationContent(Map<String, dynamic> data) {
   final type = data['type'] as String?;
+
+  // Market open/close pushes are the only type with no ticker — handled
+  // first, before the ticker requirement below applies to everything else.
+  switch (type) {
+    case 'market_open':
+      return const NotificationContent(
+        title: 'Market is Open',
+        body: 'PSX trading has started — your live prices are updating.',
+      );
+    case 'market_close':
+      return const NotificationContent(
+        title: 'Market is Closed',
+        body: 'PSX trading has ended for the day.',
+      );
+  }
+
   final ticker = data['ticker'] as String?;
   if (ticker == null || ticker.isEmpty) return null;
 
@@ -327,7 +343,9 @@ class PushNotificationService {
       if ((type == 'sell' || type == 'buy') && ticker != null && ticker.isNotEmpty) {
         _router.push('/stock/$ticker');
       } else {
-        // Unknown or malformed payload -> fallback to dashboard
+        // Dashboard for everything else — deliberately for 'market_open'/
+        // 'market_close' (no ticker to route to), and as the fallback for
+        // any unknown or malformed payload.
         _router.go('/');
       }
     } catch (e) {

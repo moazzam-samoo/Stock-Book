@@ -178,11 +178,23 @@ void main() {
   test('6. Malformed payload lands on dashboard', () {
     final msg = RemoteMessage(data: {'type': 'unknown', 'ticker': 'ENGRO'});
     when(mockFirebaseMessaging.getInitialMessage()).thenAnswer((_) async => msg);
-    
+
     service.initialize();
-    
+
     return Future.delayed(const Duration(milliseconds: 600), () {
       verify(mockGoRouter.go('/')).called(1);
+    });
+  });
+
+  test('6b. Market open/close payload (no ticker) lands on dashboard, not an error fallback', () {
+    final msg = RemoteMessage(data: {'type': 'market_open'});
+    when(mockFirebaseMessaging.getInitialMessage()).thenAnswer((_) async => msg);
+
+    service.initialize();
+
+    return Future.delayed(const Duration(milliseconds: 600), () {
+      verify(mockGoRouter.go('/')).called(1);
+      verifyNever(mockGoRouter.push(any));
     });
   });
 
@@ -263,6 +275,20 @@ void main() {
 
     test('an empty ticker shows nothing', () {
       expect(buildNotificationContent({'type': 'sell', 'ticker': ''}), isNull);
+    });
+
+    test('market_open payload produces content with no ticker required', () {
+      // Deliberately no 'ticker' key at all — a market-status push has none,
+      // unlike every other payload type this app sends.
+      final content = buildNotificationContent({'type': 'market_open'});
+      expect(content, isNotNull);
+      expect(content!.title, contains('Open'));
+    });
+
+    test('market_close payload produces content with no ticker required', () {
+      final content = buildNotificationContent({'type': 'market_close'});
+      expect(content, isNotNull);
+      expect(content!.title, contains('Closed'));
     });
   });
 
