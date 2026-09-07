@@ -145,8 +145,17 @@ Future<void> firebaseMessagingBackgroundHandler(
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   }
 
+  // Positive-path logging, not just failure logging: without this there is
+  // no way to tell "the push never reached the device" apart from "it
+  // arrived and something downstream silently dropped it" — the exact
+  // ambiguity that made this take days to diagnose once.
+  Logger().i('BG push received: ${message.data}');
+
   final content = buildNotificationContent(message.data);
-  if (content == null) return;
+  if (content == null) {
+    Logger().w('BG push ignored — unrecognised payload: ${message.data}');
+    return;
+  }
 
   final notifications = localNotifications ?? FlutterLocalNotificationsPlugin();
   try {
@@ -158,6 +167,7 @@ Future<void> firebaseMessagingBackgroundHandler(
       notificationDetails: _notificationDetails(),
       payload: jsonEncode(message.data),
     );
+    Logger().i('BG notification shown: ${content.title}');
   } catch (e) {
     // This runs in a throwaway background isolate with no UI and no
     // caller to report to — an uncaught exception here (e.g. a missing
@@ -234,13 +244,21 @@ class PushNotificationService {
       final token = await _firebaseMessaging.getToken();
       if (token != null) {
         await _userRepository.savePushToken(token);
+        // Logged so the device's *live* token can be compared against the
+        // one actually stored in Firestore — a mismatch between the two is
+        // invisible otherwise, and means every push targets a dead token.
+        _logger.i('FCM token registered: $token');
+      } else {
+        _logger.w('FCM getToken() returned null — this device cannot receive pushes.');
       }
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        _logger.i('FCM token refreshed: $newToken');
         _userRepository.savePushToken(newToken);
       });
 
       // 4. Listen to foreground messages
       FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+      _logger.i('Push notification listeners registered.');
 
       // 5. Listen to background taps
       FirebaseMessaging.onMessageOpenedApp.listen(_routeMessage);
@@ -296,12 +314,17 @@ class PushNotificationService {
     // `message.notification` first is kept only as a defensive fallback for
     // a manually-sent test message (e.g. Firebase Console), which does
     // attach one; production alerts never take that branch.
+    _logger.i('FG push received: ${message.data}');
+
     final notification = message.notification;
     final content = notification != null
         ? NotificationContent(title: notification.title ?? '', body: notification.body ?? '')
         : buildNotificationContent(message.data);
 
-    if (content == null) return;
+    if (content == null) {
+      _logger.w('FG push ignored — unrecognised payload: ${message.data}');
+      return;
+    }
 
     _localNotifications
         .show(
@@ -311,6 +334,7 @@ class PushNotificationService {
           notificationDetails: _notificationDetails(),
           payload: jsonEncode(message.data),
         )
+        .then((_) => _logger.i('FG notification shown: ${content.title}'))
         .catchError(
           (Object e) => _logger.e('Failed to show foreground push notification: $e'),
         );
