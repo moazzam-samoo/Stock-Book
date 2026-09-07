@@ -1,5 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:stock_investment_tracker/core/constants/legal_links.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/presentation/auth/controllers/auth_controller.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
@@ -145,11 +148,24 @@ class SignInScreen extends ConsumerWidget {
                   ),
 
                   const SizedBox(height: 16),
-                  Text(
-                    'By signing in, you agree to our Terms & Privacy Policy',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: tertiaryTextColor,
+                  Text.rich(
+                    TextSpan(
+                      style: TextStyle(fontSize: 12, color: tertiaryTextColor),
+                      children: [
+                        const TextSpan(text: 'By signing in, you agree to our '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => launchUrl(
+                                  Uri.parse(LegalLinks.privacyPolicy),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                        ),
+                      ],
                     ),
                     textAlign: TextAlign.center,
                   ),

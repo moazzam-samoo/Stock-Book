@@ -68,4 +68,78 @@ class FirebaseAuthRepository implements AuthRepository {
       throw AuthException('Failed to sign out: $e');
     }
   }
+
+  @override
+  Future<void> deleteAccount() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+
+    try {
+      await _deleteAllFirestoreData(uid);
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code != 'requires-recent-login') {
+        throw AuthException('Failed to delete account: ${e.message}');
+      }
+      // Session too old for a destructive operation — Firebase requires a
+      // fresh credential. Firestore data may already be gone from the first
+      // attempt above; re-running it is safe since every delete here is
+      // idempotent (deleting an already-absent doc is a no-op, not an error).
+      await _reauthenticate(user);
+      await _deleteAllFirestoreData(uid);
+      await user.delete();
+    } catch (e) {
+      throw AuthException('Failed to delete account: $e');
+    }
+
+    await _googleSignIn.signOut();
+  }
+
+  Future<void> _reauthenticate(User user) async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw AuthException(
+        'Re-authentication was cancelled. Please sign in again and retry deleting your account.',
+      );
+    }
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    await user.reauthenticateWithCredential(credential);
+  }
+
+  /// Deletes every Firestore doc under `users/{uid}` — must run **before**
+  /// `user.delete()`, since `firestore.rules` gates every write on
+  /// `request.auth.uid == userId`, which stops being true the instant the
+  /// auth account itself is gone.
+  Future<void> _deleteAllFirestoreData(String uid) async {
+    final firestore = FirebaseFirestore.instance;
+
+    Future<void> deleteCollection(String path) async {
+      final snapshot = await firestore.collection(path).get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+
+    // Firestore doesn't cascade-delete subcollections when a parent doc is
+    // deleted — each one has to be cleared explicitly. `lots/{id}/sales` is
+    // excluded: nothing writes there (see AGENTS.md §4.1), sales live
+    // embedded in the lot doc itself.
+    await Future.wait([
+      deleteCollection(FirestorePaths.lots(uid)),
+      deleteCollection(FirestorePaths.positions(uid)),
+      deleteCollection(FirestorePaths.priceAlerts(uid)),
+      deleteCollection(FirestorePaths.withdrawals(uid)),
+    ]);
+
+    await firestore.doc(FirestorePaths.settings(uid)).delete();
+    await firestore.doc(FirestorePaths.user(uid)).delete();
+  }
 }

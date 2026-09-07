@@ -27,4 +27,15 @@ class AuthController extends _$AuthController {
           .timeout(const Duration(seconds: 15));
     });
   }
+
+  /// No timeout, unlike the other two — this can involve a full
+  /// re-authentication round trip (the user picking their Google account
+  /// again) if the session is old, which a fixed 15s budget could cut off
+  /// mid-flow on a slow connection.
+  Future<void> deleteAccount() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(authRepositoryProvider).deleteAccount();
+    });
+  }
 }

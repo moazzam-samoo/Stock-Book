@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ import 'package:stock_investment_tracker/presentation/settings/providers/setting
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
+import 'package:stock_investment_tracker/providers/package_info_providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -91,6 +93,8 @@ class SettingsScreen extends ConsumerWidget {
                       _buildCompanySection(context, isDark),
                       const SizedBox(height: 12),
                       _buildDeveloperSection(context, isDark),
+                      const SizedBox(height: 12),
+                      _buildVersionLabel(ref, isDark),
                       const SizedBox(height: 28),
 
                       _buildSectionTitle(context, 'ACCOUNT'),
@@ -680,6 +684,23 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildVersionLabel(WidgetRef ref, bool isDark) {
+    final packageInfo = ref.watch(packageInfoProvider);
+    return Center(
+      child: Text(
+        packageInfo.when(
+          data: (info) => 'Version ${info.version} (${info.buildNumber})',
+          loading: () => '',
+          error: (_, __) => '',
+        ),
+        style: TextStyle(
+          fontSize: 11,
+          color: isDark ? AppColors.neutral500 : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDeveloperSection(BuildContext context, bool isDark) {
     final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
     final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
@@ -848,7 +869,6 @@ class SettingsScreen extends ConsumerWidget {
           Divider(height: 1, color: borderColor),
           InkWell(
             onTap: () => _confirmLogout(context, ref),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               child: Row(
@@ -859,6 +879,31 @@ class SettingsScreen extends ConsumerWidget {
                   Flexible(
                     child: Text(
                       'Log Out',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.alertRed,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, color: borderColor),
+          InkWell(
+            onTap: () => _confirmDeleteAccount(context, ref),
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.delete_forever_outlined, color: AppColors.alertRed, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Delete Account',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: AppColors.alertRed,
                             fontWeight: FontWeight.bold,
@@ -904,6 +949,62 @@ class SettingsScreen extends ConsumerWidget {
 
     if (result == true) {
       await ref.read(authControllerProvider.notifier).signOut();
+    }
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final firstConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: const Text(
+          'This permanently deletes your account and everything in it — every position, '
+          'price alert, and withdrawal record. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.alertRed),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (firstConfirm != true || !context.mounted) return;
+
+    final typedConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => const _DeleteAccountTypeToConfirmDialog(),
+    );
+    if (typedConfirm != true || !context.mounted) return;
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    ));
+
+    try {
+      await ref.read(authControllerProvider.notifier).deleteAccount();
+      final error = ref.read(authControllerProvider).error;
+      if (context.mounted) Navigator.pop(context); // close the spinner
+      if (error != null) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Could not delete account: $error')),
+        );
+      }
+      // On success the auth state stream emits null and the router
+      // redirects to sign-in on its own — no manual navigation needed here.
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Could not delete account: $e')),
+      );
     }
   }
 
@@ -1198,6 +1299,66 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: newString,
       selection: TextSelection.collapsed(offset: newCursorPosition),
+    );
+  }
+}
+
+/// Second, harder confirmation step for account deletion — typing the exact
+/// word beats a second tap-through dialog, since a destructive action this
+/// permanent deserves more friction than the same "yes/no" pattern used for
+/// merely signing out.
+class _DeleteAccountTypeToConfirmDialog extends StatefulWidget {
+  const _DeleteAccountTypeToConfirmDialog();
+
+  @override
+  State<_DeleteAccountTypeToConfirmDialog> createState() =>
+      _DeleteAccountTypeToConfirmDialogState();
+}
+
+class _DeleteAccountTypeToConfirmDialogState
+    extends State<_DeleteAccountTypeToConfirmDialog> {
+  static const _confirmWord = 'DELETE';
+  final _controller = TextEditingController();
+  bool _isMatch = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Are you absolutely sure?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Type $_confirmWord to permanently delete your account.'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+            onChanged: (value) => setState(() {
+              _isMatch = value.trim() == _confirmWord;
+            }),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _isMatch ? () => Navigator.pop(context, true) : null,
+          style: TextButton.styleFrom(foregroundColor: AppColors.alertRed),
+          child: const Text('Delete Permanently'),
+        ),
+      ],
     );
   }
 }
