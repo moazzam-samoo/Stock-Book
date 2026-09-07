@@ -40,13 +40,23 @@ class PsxdataScreenerSource:
 
         A ticker with no price anywhere is omitted entirely — never
         substituted with 0, which would falsely fire every buy alert
-        watching it. Raises `psxdata.exceptions.PSXDataError` (or a
-        subclass) on a screener failure; the caller must treat that as "abort
-        this run's price-dependent steps," not swallow it here — a silently
-        empty dict is indistinguishable from "nothing matched," which is a
-        different, valid case.
+        watching it.
+
+        A hard failure of the bulk screener call itself (network error, PSX
+        briefly down, rate-limited — anything `psxdata.screener()` itself
+        raises) is caught here and treated the same as an unusable/empty
+        response, rather than aborting the whole function: it must not take
+        every ticker down with it when many of them could still be fetched
+        individually via the per-ticker fallback below. This was a real,
+        confirmed bug — two different tickers went stale for two consecutive
+        runs at the exact same timestamp, which only makes sense if a single
+        bulk-call failure had silently skipped every ticker that run, not
+        just one.
         """
-        df = psxdata.screener()
+        try:
+            df = psxdata.screener()
+        except Exception:  # noqa: BLE001 — see docstring: must not abort the per-ticker fallback below
+            df = pd.DataFrame()
 
         result: dict[str, dict] = {}
 
