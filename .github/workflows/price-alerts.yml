@@ -12,8 +12,15 @@ on:
     #
     # This only actually fires from whatever's on the repo's DEFAULT branch
     # — GitHub ignores `schedule:` on any other branch (workflow_dispatch
-    # still works from any branch, which is why manual runs work today even
-    # though this hasn't been merged yet).
+    # still works from any branch, which is handy for testing before a
+    # merge to main).
+    #
+    # GitHub's scheduler can also fail to pick up a newly-registered cron
+    # on its very first eligible day even once this file IS on main — the
+    # registration seems to need the file's own content to change, not
+    # just have main's tip move past it via a merge commit. If scheduled
+    # runs still aren't appearing, a trivial edit to this file (like this
+    # comment) and a push to main is the known nudge.
     #
     # Scheduled workflows are auto-disabled by GitHub after 60 days with no
     # repository activity at all. If this repo goes quiet, alerts stop
