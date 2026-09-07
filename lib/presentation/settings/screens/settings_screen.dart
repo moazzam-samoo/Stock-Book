@@ -6,7 +6,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:stock_investment_tracker/core/services/data_export_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/providers/workflow_trigger_providers.dart';
@@ -30,13 +29,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
-
-  Future<void> _launchURL(String urlString) async {
-    final Uri uri = Uri.parse(urlString);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // Could not launch URL
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -90,9 +82,7 @@ class SettingsScreen extends ConsumerWidget {
 
                       _buildSectionTitle(context, 'ABOUT US'),
                       const SizedBox(height: 12),
-                      _buildCompanySection(context, isDark),
-                      const SizedBox(height: 12),
-                      _buildDeveloperSection(context, isDark),
+                      _buildCompanyOwnersNavCard(context, isDark),
                       const SizedBox(height: 12),
                       _buildVersionLabel(ref, isDark),
                       const SizedBox(height: 28),
@@ -620,66 +610,60 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCompanySection(BuildContext context, bool isDark) {
+  Widget _buildCompanyOwnersNavCard(BuildContext context, bool isDark) {
     final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
     final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/icon/android-chrome-192x192.png',
-              width: 52,
-              height: 52,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppColors.brandIndigo,
-                  borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      onTap: () => context.push('/company'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+          boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/icon/android-chrome-192x192.png',
+                width: 44,
+                height: 44,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.brandIndigo,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.business_rounded, color: Colors.white),
                 ),
-                child: const Icon(Icons.business_rounded, color: Colors.white),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Coding District',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
-                ),
-                const Text(
-                  'Software Engineering & AI Solutions',
-                  style: TextStyle(fontSize: 11, color: AppColors.neutral500),
-                ),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Company & Owners',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                  ),
+                  const Text(
+                    'Coding District, the team behind Stock Book',
+                    style: TextStyle(fontSize: 11, color: AppColors.neutral500),
+                  ),
+                ],
+              ),
             ),
-          ),
-          _buildIconLinkButton(
-            icon: Icons.language_rounded,
-            onTap: () => _launchURL('https://codingdistrict.com'),
-            isDark: isDark,
-          ),
-          const SizedBox(width: 8),
-          _buildIconLinkButton(
-            icon: Icons.business_center_rounded,
-            onTap: () => _launchURL('https://www.linkedin.com/company/codingdistrict/'),
-            isDark: isDark,
-          ),
-        ],
+            Icon(Icons.chevron_right_rounded, color: AppColors.neutral500),
+          ],
+        ),
       ),
     );
   }
@@ -697,92 +681,6 @@ class SettingsScreen extends ConsumerWidget {
           fontSize: 11,
           color: isDark ? AppColors.neutral500 : AppColors.textSecondaryLight,
         ),
-      ),
-    );
-  }
-
-  Widget _buildDeveloperSection(BuildContext context, bool isDark) {
-    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
-    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(26),
-            child: Image.asset(
-              'assets/icon/dev.png',
-              width: 52,
-              height: 52,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => CircleAvatar(
-                radius: 26,
-                backgroundColor: AppColors.brandIndigo,
-                child: const Text(
-                  'MS',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Moazzam Samoo',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
-                ),
-                const Text(
-                  'Lead Developer & Architect',
-                  style: TextStyle(fontSize: 11, color: AppColors.neutral500),
-                ),
-              ],
-            ),
-          ),
-          _buildIconLinkButton(
-            icon: Icons.person_pin_rounded,
-            onTap: () => _launchURL('https://moazzam-samoo.web.app/'),
-            isDark: isDark,
-          ),
-          const SizedBox(width: 8),
-          _buildIconLinkButton(
-            icon: Icons.link_rounded,
-            onTap: () => _launchURL(
-              'https://www.linkedin.com/in/moazzam-samoo?utm_source=share_via&utm_content=profile&utm_medium=member_android',
-            ),
-            isDark: isDark,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIconLinkButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: AppColors.brandIndigo.withOpacity(isDark ? 0.18 : 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 18, color: AppColors.brandIndigo),
       ),
     );
   }
