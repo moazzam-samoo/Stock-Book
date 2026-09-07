@@ -151,11 +151,48 @@ def test_history_fallback_failure_omits_the_ticker_without_aborting_the_run():
     with (
         patch("price_source.psxdata.screener", return_value=_load_screener_fixture()),
         patch("price_source.psxdata.stocks", side_effect=Exception("boom")),
+        patch("price_source.time.sleep"),
     ):
         prices = PsxdataScreenerSource().fetch_prices({"ENGRO", "NOPE"})
 
     assert "NOPE" not in prices
     assert prices["ENGRO"]["price"] == 485.38
+
+
+def test_history_fallback_retries_once_and_succeeds_on_the_second_attempt():
+    """A screener-absent ticker's fallback request goes out on *every* run —
+    more exposed to a one-off transient failure than a ticker the bulk
+    screener call already covers. A single hiccup here (not "this ticker
+    doesn't exist," just "that one request didn't land") must not skip the
+    ticker for the whole run and leave its Firestore doc stuck stale."""
+    history = _history([
+        {"date": pd.Timestamp("2026-09-03"), "close": 10.78, "volume": 129091},
+    ])
+
+    with (
+        patch("price_source.psxdata.screener", return_value=pd.DataFrame()),
+        patch("price_source.psxdata.stocks", side_effect=[Exception("transient"), history]),
+        patch("price_source.time.sleep") as mock_sleep,
+    ):
+        prices = PsxdataScreenerSource().fetch_prices({"GUSM"})
+
+    assert prices["GUSM"]["price"] == 10.78
+    mock_sleep.assert_called_once()
+
+
+def test_history_fallback_gives_up_after_exhausting_retries():
+    """A ticker that fails on every attempt is still omitted, not crashed
+    on — retrying doesn't turn a genuinely-unavailable ticker into an
+    infinite retry loop."""
+    with (
+        patch("price_source.psxdata.screener", return_value=pd.DataFrame()),
+        patch("price_source.psxdata.stocks", side_effect=Exception("still broken")),
+        patch("price_source.time.sleep") as mock_sleep,
+    ):
+        prices = PsxdataScreenerSource().fetch_prices({"GUSM"})
+
+    assert "GUSM" not in prices
+    mock_sleep.assert_called_once()  # one retry (2 attempts total), not more
 
 
 def test_a_ticker_that_never_traded_is_omitted_not_priced_at_zero():

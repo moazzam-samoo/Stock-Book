@@ -2,8 +2,11 @@
 
 > Persistent map of this codebase so an agent can act without re-reading everything.
 > Verified against the tree at commit `385660b` (Flutter 3.44.8, Dart SDK `^3.12.2`), then updated
-> through Phase 02 (`feat/positions-and-alerts` branch — see `phases/README.md` for the phased
-> rebuild this repo is currently mid-way through; check it before starting new work here).
+> through Phase 09 (`feat/positions-and-alerts` branch — see `phases/README.md` for the phased
+> rebuild this repo is currently mid-way through; check it before starting new work here). All
+> phases 00-09 are marked **Done** in that table — there is no "not started" phase left as of this
+> update (2026-09-07). See also `PLAYSTORE_RELEASE_GUIDE.md` for what's still missing before this
+> app can actually be published.
 > **Keep this file updated when structure, schema, or the gotchas below change.**
 
 ---
@@ -28,7 +31,9 @@ PDF report export.
 ```bash
 flutter pub get
 flutter analyze                      # Baseline: 0 errors, 25 warnings, 873 infos
-flutter test                         # 60 tests, all passing (~1m30s full suite)
+flutter test                         # ~55 test files, ~239 test()/testWidgets() cases — the old
+                                      # "60 tests" figure is stale; re-run for an exact live count
+                                      # rather than quoting one (see §12)
 dart run build_runner build --delete-conflicting-outputs   # after touching @freezed / @riverpod
 flutter run -t lib/main.dart         # dev (default; main.dart itself forces Environment.dev)
 flutter run -t lib/main_prod.dart    # prod + Crashlytics error handlers
@@ -205,7 +210,7 @@ GoRouter, `initialLocation: '/splash'`.
 | `/splash` | animated logo, 2.2s, then routes itself (redirect skips `/splash`) |
 | `/onboarding` | 3-page intro, gated by the Hive flag |
 | `/sign-in` | Google sign-in |
-| `/` , `/transactions` , `/settings` | `StatefulShellRoute` branches (bottom nav) |
+| `/` , `/transactions` , `/alerts` , `/settings` | `StatefulShellRoute` branches (bottom nav) — **four** branches now, `/alerts` (`AlertsScreen`, Phase 07) added since this doc's original 3-branch snapshot |
 | `/stock/:ticker` | `StockDetailScreen` (pushed, outside the shell) |
 | `/add-stock` | **dead placeholder** — `Center(Text('Add Stock Placeholder'))` |
 
@@ -287,8 +292,19 @@ Shell specifics:
   16-entry palette.
 - Animations: `flutter_animate` (`.animate().fadeIn().slideY()`), `flutter_staggered_animations`
   for lists, `shimmer` in `DashboardSkeleton`. `HapticFeedback.lightImpact()` on primary taps.
-- Slide-to-edit/delete rows use `flutter_slidable` (`SaleEventRow`, `WithdrawalRow`).
-  `LotCard` instead uses **long-press → `showMenu`** (Edit / Export PDF / Delete).
+- Slide-to-edit/delete rows use `flutter_slidable` (`PositionSaleRow`, `WithdrawalRow`, `AlertRow`).
+  `PositionCard` instead uses **long-press → `showMenu`** (Edit / Export PDF / Delete) — same idiom
+  `LotCard` used before its Phase 03B redesign/rename.
+- `LotCard` (657 lines) was fully redesigned and renamed to `PositionCard`
+  (`presentation/transactions/widgets/position_card.dart`, now the biggest widget in the app at
+  ~1245 lines).
+- Dashboard stat cards (`dashboard/widgets/stat_card.dart`) have a `StatCardDecoration` enum
+  (`ghostIcon` / `sparkline` / `wave`) — each card picks whichever decoration matches what the
+  metric actually means (a faint icon watermark, a reused `SparklineChart`, or
+  `wave_decoration.dart`'s wave silhouette for "liquid" capital), not one style forced on all six.
+  Badge/ghost icons come from `font_awesome_flutter: ^11.0.0` via `FontAwesomeIcons.*.data`
+  (`.data` unwraps the package's `FaIconData` wrapper into a plain `IconData` — it is not an
+  `IconData` subtype itself), used in `stat_card_grid.dart` and `allocation_donut_chart.dart`.
 
 ---
 
@@ -358,19 +374,49 @@ Shell specifics:
     see `common/offline_banner.dart`) so there's no theme coverage lost by keeping it hidden in these
     tests. If a future test genuinely needs to exercise the *offline* banner rendering itself, keep it
     isolated to its own short, single-purpose test rather than layering it onto a screen-level golden.
+12. **`ListView.builder` items without `key: ValueKey(id)` can make Flutter reuse a stale
+    Element/State across a list-index reassignment when the underlying data reorders** — e.g. a
+    filter-tab switch that changes which item sits at index 3. This was a real, confirmed bug:
+    `PositionCard` rendered its header visually overlapping the ticker after switching filter tabs,
+    because the widget at a given index kept its old state while the data underneath it changed.
+    Fixed by keying each card `ValueKey(card.display.id)` in `transactions_screen.dart`. The same
+    class of bug was suspected (and preemptively fixed, `key: ValueKey(alert.id)`) in `AlertRow`
+    for intermittent swipe-gesture failures — **any new `ListView.builder`/`AnimationLimiter` list
+    over reorderable data needs an explicit `ValueKey` on each item**, don't rely on the default
+    index-based key.
+13. **`UserRepositoryImpl.savePushToken` and both `_localNotifications.show()` call sites in
+    `push_notification_service.dart` used to swallow failures with zero logging** (a bare
+    `.catchError((_) => null)` / no error handling at all) — a token-save failure or a
+    local-notification display failure would leave no trace anywhere, meaning the backend could
+    silently keep pushing to a stale/missing token, or an alert could silently never appear, with
+    nothing in logcat/Console to explain why. Both now log via `Logger().e(...)`. If you add a new
+    fire-and-forget write or display call in a notification/background code path, log the failure —
+    don't just swallow it, even when it's correct for the exception to not propagate.
 
 ---
 
 ## 12. Tests
 
-`test/` mirrors `lib/`. 60 tests, all green (~1m30s for the full suite; run with a generous timeout,
-see §2):
+`test/` mirrors `lib/`, now **55 test files** (up from the original single-digit set) — the "60
+tests" figure in older revisions of this doc is stale. Live run as of 2026-09-07: **249 tests total,
+237 passing, 12 failing** (~5-8 min for the full suite; run with a generous timeout, see §2). All 12
+failures are in `golden/theme_golden_test.dart` (Position Card Dark/Light, Settings Screen Dark/Light,
++8 more) — **expected, not a regression to chase**: the UI-redesign work (`stat_card.dart`'s
+`StatCardDecoration`, `wave_decoration.dart`, `app_bottom_nav_bar.dart`, `allocation_donut_chart.dart`,
+the `LotCard`→`PositionCard` redesign) changed real pixels the checked-in golden masters predate.
+Regenerate with `flutter test --update-goldens` and review the diffs before committing — don't
+blind-accept, per the existing font-loading caveat below, but do expect these 12 specifically to need
+a refresh rather than a code fix. `README.md`'s "Recent Updates" section recorded **247 Dart tests +
+40 Python backend tests, both green**, as of commit `9b21a72` — just before the redesign in `d59eeb6`
+that's almost certainly what pushed the golden count from green to 12 failing.
+
+Original core coverage, still present:
 
 - `domain/calculator/portfolio_calculator_test.dart` (9) — includes the three withdrawal-semantics tests
 - `domain/calculator/portfolio_calculator_characterisation_test.dart` (4) — **do not "fix" these
   numbers if they go red.** Locks `PortfolioCalculator`'s exact output against a fixed 8-lot/12-sale/
-  3-ticker fixture, written specifically so the future position-merge migration (see
-  `phases/PHASE-03A-position-model.md`) can prove it changes nothing. Header comment explains it further.
+  3-ticker fixture, written specifically so the position-merge migration can prove it changes
+  nothing. Header comment explains it further.
 - `data/repositories/lot_repository_impl_test.dart` (4) — **mockito** with a checked-in `.mocks.dart`;
   regenerate via build_runner if the interface changes
 - `data/models/model_serialization_test.dart` (2) — Lot/Sale roundtrips
@@ -384,7 +430,7 @@ see §2):
   `updateThemeMode` with the exact persisted string
 - `theme_mode_mapping_test.dart` (5) — pure unit tests of `main.dart`'s `themeModeFrom()`
 - `golden/theme_golden_test.dart` (10) — full-screen goldens, light+dark, for Dashboard (smoke-test
-  only, see AGENTS.md #10 above), Settings, Transactions, Lot Card, Stock Detail. Needs
+  only, see AGENTS.md #10 above), Settings, Transactions, Position Card, Stock Detail. Needs
   `test/flutter_test_config.dart`'s `loadAppFonts()` to render real fonts instead of tofu boxes —
   **if goldens start failing en masse with text-shaped diffs everywhere, that's a font-loading
   problem, not a real regression; regenerate with `--update-goldens` after fixing the actual cause,
@@ -396,9 +442,36 @@ see §2):
   can't (a bad master just diffs clean against itself forever).
 - `widget_test.dart` (1) — `StatusBadge`
 
-New pure logic belongs in `PortfolioCalculator` **with a test**; that used to be the only
-consistently well-tested layer, but Phase 02 added real widget/golden coverage too — follow whichever
-existing test's pattern is closest to what you're adding rather than starting from scratch.
+New test coverage since the original set, by area (non-exhaustive — see `test/` for the full tree):
+
+- `core/services/push_notification_service_test.dart` — `buildNotificationContent` payload parsing,
+  cold-start routing branches, background-handler behaviour (mocked).
+- `core/services/workflow_trigger_service_test.dart` — every `WorkflowTriggerOutcome` branch against
+  mocked HTTP responses (204/401/403/404/timeout/unknown).
+- `data/models/{price_alert_model,market_price_model,market_status_model,position_model,ticker_info_model}_test.dart`
+  — serialization round-trips, tolerant date parsing.
+- `data/repositories/{price_alert_repository_impl,market_price_repository,market_status_repository,
+  ticker_repository_impl,user_repository_impl}_test.dart` — mockito, checked-in `.mocks.dart` per file.
+- `data/data_sources/{hive_data_source_market_prices,local/hive_data_source_tickers,
+  market_prices_chunking}_test.dart`.
+- `data/migration/position_migration_runner_test.dart`.
+- `domain/calculator/{position_calculator_live_prices,position_migration,split_by_buy,
+  stock_summary_grouping,dashboard_position_parity}_test.dart`.
+- `domain/entities/{position,price_alert}_test.dart`.
+- `presentation/alerts/**` — `alerts_providers_test.dart`, `alerts_screen_test.dart`,
+  `add_alert_bottom_sheet_test.dart`, `alert_row_test.dart`.
+- `presentation/common/{app_bottom_nav_bar,market_price_pull_to_refresh,status_badge}_test.dart`.
+- `presentation/dashboard/widgets/portfolio_header_market_clock_test.dart`.
+- `presentation/transactions/{providers/filtered_positions,widgets/position_card,
+  widgets/position_sale_row,widgets/ticker_autocomplete}_test.dart`.
+
+Python: `scripts/price_alerts/tests/` — `test_alerts.py` (repeat-fire semantics), `test_firestore_io.py`,
+`test_main.py` (orchestration/step isolation), `test_market_status_source.py`, `test_price_source.py`,
+`test_tickers_source.py`, with real captured fixture data (`tests/fixtures/*.json`), not synthetic —
+run via `pytest scripts/price_alerts` (needs `requirements-dev.txt`). 26/26 passing per Phase 08's brief.
+
+New pure logic belongs in the relevant calculator **with a test**; follow whichever existing test's
+pattern is closest to what you're adding rather than starting from scratch.
 
 ---
 
@@ -422,20 +495,199 @@ To add a new persisted entity, mirror `Withdrawal` end-to-end (it is the newest 
 
 ---
 
-## 14. Open work
+## 15. Push notifications & price alerts (Phase 05-09)
+
+### 15.1 Push notification infrastructure (Phase 05)
+
+`lib/core/services/push_notification_service.dart` + `lib/providers/push_notification_providers.dart`.
+
+- Backend sends **data-only FCM messages** — deliberately no `notification` field, so the client's
+  own `buildNotificationContent(Map data)` (pure, top-level, unit-testable without Firebase) is the
+  single source of truth for what's shown. Payload contract: `{type: "sell"|"buy", ticker,
+  positionId|alertId, price, targetPrice}`. **The notification shows `targetPrice` (what the user
+  set), never `price`** (the live price that triggered it) — those only coincide by chance.
+- `firebaseMessagingBackgroundHandler` — top-level function, `@pragma('vm:entry-point')`, required
+  because Android/iOS spin up a throwaway isolate to run it when the app is backgrounded or fully
+  terminated; it reinitializes Firebase from scratch (`Firebase.apps.isEmpty` guard) since nothing
+  else in the app is alive in that isolate. This was **the missing piece that made push alerts
+  invisible whenever the app was closed** — a data-only message has zero automatic OS display
+  without a registered background handler.
+- Foreground path: `FirebaseMessaging.onMessage` → `_onForegroundMessage` → `_localNotifications.show()`.
+- Cold-start routing has **two distinct origins**, both handled in `PushNotificationService.initialize()`:
+  (A) `FirebaseMessaging.getInitialMessage()` — launched via an OS-auto-displayed notification; never
+  actually fires today since this app never sends a `notification` field, kept as a defensive
+  fallback. (B) `_localNotifications.getNotificationAppLaunchDetails()` — launched by tapping a
+  notification the app itself displayed (via the background handler or foreground path); **this is
+  what fires in practice**.
+- `PushNotificationService._coldStartRouteHandled` is a **static, process-lifetime** guard, not
+  instance-lifetime — a new `PushNotificationService` is constructed per signed-in user
+  (`pushNotificationServiceProvider` depends on `userRepositoryProvider`), but "how was this process
+  launched" doesn't change on logout/login. Without the guard, switching accounts replayed the
+  original cold-start notification's route onto a brand-new account with no such position (real bug,
+  fixed — `resetColdStartRouteHandledForTesting()` exists for tests).
+- Android notification channel id `stock_alerts`, sound resource `android/app/src/main/res/raw/stock_alert.wav`
+  (`RawResourceAndroidNotificationSound('stock_alert')`); iOS uses `DarwinNotificationDetails(sound: 'stock_alert.wav')`.
+  Android init icon is `'ic_launcher_foreground'` (a drawable) — `'ic_launcher'` is mipmap-only and
+  `flutter_local_notifications` requires a drawable.
+- Token saved via `UserRepositoryImpl.savePushToken(token)` → `users/{uid}.fcmToken` +
+  `fcmTokenUpdatedAt` (merge write). See §11 #13 for the silent-failure bug found and fixed here.
+
+### 15.2 Buy-side price alerts (Phase 07)
+
+New `Alerts` tab (`lib/presentation/alerts/` — `screens/alerts_screen.dart`,
+`widgets/alert_row.dart`, `widgets/add_alert_bottom_sheet.dart`, `providers/alerts_providers.dart`),
+4th `StatefulShellBranch` in the router at `/alerts`.
+
+- `domain/entities/price_alert.dart` — `PriceAlert(id, ticker, targetPrice, tolerancePercent=1.0,
+  isActive=true, alertSent=false, alertSentAt, lastAlertPrice, createdAt)`. `Equatable`.
+- `data/models/price_alert_model.dart` (`@freezed`, hand-written `fromJson`/tolerant date parsing —
+  same pattern as `PositionBuyModel`) / `data/repositories/price_alert_repository_impl.dart` — plain
+  CRUD over `FirestoreDataSource`, follows the established §13 pattern exactly.
+- `FirestorePaths.priceAlerts(uid)` → `users/{uid}/price_alerts`, `priceAlert(uid, id)` → `.../{id}`.
+- **Alerts are not one-shot — they re-fire.** Once a target is first crossed, an alert keeps
+  notifying on every further move in the user's favor rather than going silent after the first push.
+  A repeat only fires once price has moved **at least 1% further** since the *last* notification
+  (`REPEAT_ALERT_STEP_PERCENT = 1.0` in `scripts/price_alerts/alerts.py`), not merely still-past-target
+  — otherwise it would refire on every 5-minute check while price merely hovers past the line.
+  `should_fire_buy`/`should_fire_sell` in that file are the canonical decision logic (pure, no
+  Firebase/network imports, unit-tested standalone) — mirror them exactly if you touch the Dart-side
+  threshold math (`alertThreshold()`/`isAlertTriggered()`).
+  - Buy: fires first at `price <= targetPrice * (1 + tolerancePercent/100)`; each repeat needs
+    `price <= lastAlertPrice * (1 - 1%)`. `isActive` no longer flips false on firing (that was the
+    old one-shot design) — it now only means "not manually paused/deleted"; repeat-firing is gated
+    purely on `lastAlertPrice`.
+  - Sell (on `Position`, not a separate entity — see Phase 06 fields on `Position`): fires first at
+    `price >= targetPrice`; each repeat needs `price >= lastAlertPrice * (1 + 1%)`.
+- **`PriceAlert.copyWith`'s re-arm rule**: editing `targetPrice` or `tolerancePercent`
+  (`targetChanged`) resets `isActive = true`, `alertSent = false`, `alertSentAt = null`,
+  `lastAlertPrice = null` — otherwise lowering an already-fired alert's target would silently stay
+  dormant forever, since nothing else flips `isActive` back on.
+- `PositionCard`/`AlertRow` both key their `ListView.builder` items with `key: ValueKey(id)` — see
+  §11 #12 for why this matters.
+
+### 15.3 Market status
+
+`domain/entities/market_status.dart` — `MarketStatus(isOpen, label, checkedAt)`, `Equatable`.
+`FirestorePaths.marketStatus()` → top-level `market_status/current` doc, written by the Python
+backend's `_run_market_status_step` (scrapes the PSX homepage). Client:
+`market_status_repository.dart` / `_impl.dart` (`watchStatus()`), wired through
+`presentation/dashboard/providers/market_status_providers.dart`'s `watchMarketStatusProvider`.
+**`currentlyOpen(MarketStatus?)`** is the freshness gate — returns `null` (not a guess) if the doc is
+missing or `checkedAt` is more than 30 minutes old; callers must treat `null` as "don't know," never
+infer open/closed from a stale reading. Powers the pulsing green "Live" / red "at Closed" badge on
+Transactions and Stock Detail (replaced an older, less useful "fetched N minutes ago" marker).
+
+`FirestorePaths.tickersDoc()` → `tickers/all`, the PSX-listed reference set (symbol + company name)
+written by `_run_tickers_refresh_step`, at most once/day (skipped if unchanged from the last write) —
+backs the searchable ticker autocomplete (Phase 09) shared by Add Buy, Add Alert, and Favorites.
+
+---
+
+## 16. Live-price backend & external scheduling
+
+### 16.1 Python backend (`scripts/price_alerts/`)
+
+Orchestration/logic split cleanly for testability:
+
+| File | Role |
+|---|---|
+| `main.py` | Orchestration only, no business logic. `run(db, price_source=None)`: gather held positions + watched alerts → fetch prices (one batched call) → write `market_prices/` → market status step → sell-alert step → buy-alert step → tickers-refresh step. Each step is wrapped so one failing scrape (price/market-status/tickers) doesn't abort the others. |
+| `alerts.py` | Pure decision logic — `should_fire_sell`/`should_fire_buy`/`REPEAT_ALERT_STEP_PERCENT` (see §15.2). No Firebase or network imports, deliberately, so it's unit-testable with plain dicts. |
+| `firestore_io.py` | All Firestore/FCM I/O — `get_held_positions`, `get_watched_alerts`, `write_market_prices`, `write_market_status`, `get_fcm_token`, `send_push`, `mark_sell_alert_sent`/`mark_buy_alert_sent`, tickers-doc read/write. |
+| `price_source.py` | `PsxdataScreenerSource` — scrapes via the `psxdata` package. |
+| `market_status_source.py` | Scrapes the PSX homepage for open/closed. |
+| `tickers_source.py` | Scrapes the full listed-symbols reference set. |
+
+- `main._normalize_ticker` mirrors the Dart client's `FirestoreDataSource.normalizeTicker`
+  (`ticker.strip().upper()`) **exactly** — both sides must agree or the backend writes
+  `market_prices/BNL` while the app looks up `market_prices/'BNL '` and finds nothing (this was a
+  real bug, since fixed).
+- `psxdata`'s `screener()` endpoint — the backend's main price source — **silently omits ~120 real,
+  actively-traded PSX equities** (confirmed live: 1016 listed symbols vs. 745 in `screener()`).
+  `price_source.py` has a per-ticker historical-price fallback specifically for those.
+- Push, then flip the flag: `_run_sell_alerts_step`/`_run_buy_alerts_step` send the push **before**
+  calling `mark_*_alert_sent` — a flag write failing after a successful send means at most one
+  duplicate notification; the reverse order can silently notify nobody.
+- Test suite: `scripts/price_alerts/tests/` — `test_alerts.py`, `test_firestore_io.py`, `test_main.py`,
+  `test_market_status_source.py`, `test_price_source.py`, `test_tickers_source.py`, with
+  `conftest.py`/`fakes.py`/`fixtures/*.json` (real captured screener/symbols data, not synthetic).
+
+### 16.2 The GitHub cron trigger has never actually fired — confirmed, not speculation
+
+`.github/workflows/price-alerts.yml` — the workflow's own comments document a real, verified bug:
+**GitHub's `schedule:` trigger has never fired once on this repo**, despite being correctly
+configured on the default branch (`main`) — confirmed empirically via the GitHub Actions API across
+its entire first eligible day, tested at `*/5`, `*/10` and `*/15` minute intervals, zero
+schedule-triggered runs recorded while `workflow_dispatch` worked every single time.
+
+**The actual 5-minute market-hours price refresh is driven externally by a cron-job.org account**
+hitting the same workflow's `dispatches` API endpoint directly
+(`POST /repos/{owner}/{repo}/actions/workflows/price-alerts.yml/dispatches`) — the identical call
+`WorkflowTriggerService` (below) makes on-demand from the app. GitHub's own `schedule:` trigger is
+kept only as an unreliable backup, demoted to `*/15` on `main`. `schedule:` only ever fires from
+whatever's on the **default branch** (GitHub ignores it on any other branch); `workflow_dispatch`
+works from any branch/ref, which is why manual/on-demand runs work regardless of merge state.
+
+Also documented in-file: GitHub auto-disables scheduled workflows after 60 days of zero repo
+activity — if this repo goes quiet, the (already-unreliable) schedule stops firing with no error
+anywhere in the workflow's own logs. The market-status staleness indicator (§15.3) is the user-facing
+mitigation. **See `PLAYSTORE_RELEASE_GUIDE.md` for why this whole chain (personal GitHub account +
+personal PAT + a personal cron-job.org account) needs to be treated as real production
+infrastructure once this app has actual users, not a side-project detail.**
+
+### 16.3 On-demand trigger from the app
+
+`lib/core/services/workflow_trigger_service.dart` (`WorkflowTriggerService`) + `lib/providers/workflow_trigger_providers.dart` + `lib/data/data_sources/local/secure_token_storage.dart` (`SecureTokenStorage`).
+
+- `SecureTokenStorage` wraps `flutter_secure_storage` (Android Keystore /
+  `encryptedSharedPreferences: true`, iOS Keychain) — deliberately **not** Firestore (would sync the
+  credential off-device) and **not** Hive (unencrypted at rest). The GitHub PAT is pasted by the user
+  in Settings, never committed, never compiled into the APK. A keystore read failure (e.g. after an
+  OS restore-to-new-device) degrades to "no token" rather than crashing pull-to-refresh.
+- `WorkflowTriggerService.trigger(token)` POSTs to
+  `api.github.com/repos/moazzam-samoo/Stock-Book/actions/workflows/price-alerts.yml/dispatches` with
+  `ref: 'main'` (hardcoded — an on-demand run always targets the same ref the schedule does, so a
+  manual refresh can't silently run different code). Returns a `WorkflowTriggerResult` /
+  `WorkflowTriggerOutcome` enum (`queued`/`noToken`/`badToken`/`forbidden`/`notFound`/`networkError`/
+  `unknownError`) with a user-safe `.message` per case.
+- `workflow_trigger_providers.dart` exposes `secureTokenStorageProvider`,
+  `workflowTriggerServiceProvider`, `hasGithubTokenProvider` (drives Settings' saved/not-saved
+  indicator), and `triggerWorkflowProvider`.
+- Two call sites: **pull-to-refresh on Transactions** (`transactions_screen.dart`), and
+  **`AddBuyController`** (fire-and-forget, only on a brand-new position, since a new ticker has no
+  `market_prices` doc yet). Settings also has a manual "test connection" button and token save/clear UI.
+- **Product-readiness note**: today this only works for whoever's device already has a personal
+  GitHub PAT with `Actions: write` on this private repo — i.e. only the developer. See
+  `PLAYSTORE_RELEASE_GUIDE.md` item #4 before shipping this to real users; a real user with no token
+  just sees "Add a GitHub token in Settings to refresh prices on demand" forever.
+
+---
+
+## 17. Open work
 
 This repo is mid-way through a phased rebuild on the `feat/positions-and-alerts` branch. **Start at
 `phases/README.md`** — it's the live index (status table, workflow, per-agent rules) for everything
 below, and supersedes the older `target-price-alerts-plan.md` / `IMPLEMENTATION_PLAN.md` at the repo
 root (kept for historical context, but `phases/` is where the current, reconciled plan lives).
 
-Done: Phase 00 (safety net — characterisation tests + JSON export/backup), Phase 01 (responsive
-starting-capital input), Phase 02 (full light theme + toggle), Phase 03A (position engine), Phase 03B
-(positions wired to the UI, migration runs on launch), Phase 03C (closed cycles split into one card
-per buy), Phase 04 (live PSX prices — see below). Ready but not started: 05 (push notification infra),
-06 (sell-target alert fields), 07 (buy alerts + new screen), 08 (Python/GitHub-Actions backend that
-actually fetches prices and sends the pushes). Each brief is self-contained — read the target brief
-plus this file before starting, not the whole chain.
+**All of Phase 00-09 are Done** (`phases/README.md`'s status table) — there is currently no phase
+marked "ready but not started." An older revision of this file read "Ready but not started: 05
+(push notification infra), 06 (sell-target alert fields), 07 (buy alerts + new screen), 08
+(Python/GitHub-Actions backend)" — **no longer accurate**; all four shipped, see §15/§16 below for
+what they actually built. Remaining loose ends, per `phases/README.md`'s own per-phase notes:
+
+- Phase 04/04B: uncommitted at review time, awaiting manual check — confirm committed before
+  assuming clean.
+- Phase 05: iOS still needs 2 manual Xcode/Firebase Console steps + a bundled notification sound
+  file; background/terminated states and permission-denial were not separately re-verified beyond
+  one real-device manual test (2026-09-05).
+- Phase 06: uncommitted at review time, awaiting commit.
+- Phase 07: uncommitted at review time.
+- Phase 08: needs its 2 manual setup steps done if not already (service-account key + GitHub repo
+  secret `FIREBASE_SERVICE_ACCOUNT_JSON`) and the composite Firestore indexes it added were
+  "best-effort, unvalidated" per the brief — confirm they actually work rather than assuming.
+- **The GitHub Actions cron schedule itself is confirmed non-functional** — see §16.2. Don't treat
+  `schedule:` firing as something you can rely on; the real cadence is the external cron-job.org job.
 
 ### Phase 04 — live prices
 

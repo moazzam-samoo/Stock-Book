@@ -5,6 +5,7 @@ Behind a Protocol so the scraping dependency can be swapped or mocked
 without touching main.py.
 """
 
+import time
 from typing import Protocol
 
 import pandas as pd
@@ -87,16 +88,32 @@ class PsxdataScreenerSource:
 
         return result
 
-    def _fetch_from_history(self, ticker: str) -> dict | None:
+    def _fetch_from_history(self, ticker: str, *, retries: int = 1) -> dict | None:
         """Most recent real close for a ticker, or None if it has never traded.
 
         Returns None rather than raising: a single unavailable ticker must not
         abort a run that has good prices for everything else.
+
+        Retries once (with a short pause) before giving up. This is the path
+        every screener-absent ticker (see `fetch_prices`) goes through on
+        *every single run* — one extra scrape per ticker, per run — so a
+        purely transient hiccup here (not "this ticker doesn't exist," just
+        "that one request didn't land") used to skip the ticker for the
+        entire run, leaving its Firestore doc's `updatedAt` stuck on
+        whichever earlier run last succeeded. A stock that already goes
+        through this fallback path every run is more exposed to exactly this
+        kind of one-off failure than one covered by the single bulk screener
+        call, so it's worth the extra request to not lose a run over it.
         """
-        try:
-            df = psxdata.stocks(ticker)
-        except Exception:  # noqa: BLE001 — one bad ticker can't take down the run
-            return None
+        df = None
+        for attempt in range(retries + 1):
+            try:
+                df = psxdata.stocks(ticker)
+                break
+            except Exception:  # noqa: BLE001 — one bad ticker can't take down the run
+                if attempt == retries:
+                    return None
+                time.sleep(1)
 
         if df.empty or "date" not in df.columns or "close" not in df.columns:
             return None

@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:logger/logger.dart';
 import '../../core/constants/firestore_paths.dart';
-import '../../core/error/app_exception.dart';
 import '../../domain/repositories/user_repository.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final String uid;
   final FirebaseFirestore firestore;
+  final Logger _logger = Logger();
 
   UserRepositoryImpl({
     required this.uid,
@@ -14,6 +15,12 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<void> savePushToken(String token) async {
+    // Deliberately swallows the error rather than throwing (a token save
+    // failing must never block sign-in/app startup), but a swallowed
+    // failure used to leave zero trace anywhere — the backend would then
+    // silently send push alerts to a stale/missing token forever, with
+    // no error on either side. Logging it here at least makes that
+    // failure mode visible instead of invisible.
     try {
       await firestore
           .doc(FirestorePaths.user(uid))
@@ -24,10 +31,9 @@ class UserRepositoryImpl implements UserRepository {
         },
         SetOptions(merge: true),
       )
-          .timeout(const Duration(seconds: 4))
-          .catchError((_) => null); // Offline tolerance
+          .timeout(const Duration(seconds: 4));
     } catch (e) {
-      throw NetworkException('Failed to save push token: $e');
+      _logger.e('Failed to save push token for $uid: $e');
     }
   }
 }

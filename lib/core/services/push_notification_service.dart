@@ -133,14 +133,24 @@ Future<void> firebaseMessagingBackgroundHandler(
   if (content == null) return;
 
   final notifications = localNotifications ?? FlutterLocalNotificationsPlugin();
-  await notifications.initialize(settings: _initializationSettings());
-  await notifications.show(
-    id: message.hashCode,
-    title: content.title,
-    body: content.body,
-    notificationDetails: _notificationDetails(),
-    payload: jsonEncode(message.data),
-  );
+  try {
+    await notifications.initialize(settings: _initializationSettings());
+    await notifications.show(
+      id: message.hashCode,
+      title: content.title,
+      body: content.body,
+      notificationDetails: _notificationDetails(),
+      payload: jsonEncode(message.data),
+    );
+  } catch (e) {
+    // This runs in a throwaway background isolate with no UI and no
+    // caller to report to — an uncaught exception here (e.g. a missing
+    // notification-sound resource, or a plugin channel not ready yet)
+    // used to just mean the alert silently never appeared, with nothing
+    // anywhere to say why. Logger writes to the platform's own log
+    // (logcat/Console), which is the only place left to look.
+    Logger().e('Failed to show background push notification: $e');
+  }
 }
 
 class PushNotificationService {
@@ -277,13 +287,17 @@ class PushNotificationService {
 
     if (content == null) return;
 
-    _localNotifications.show(
-      id: message.hashCode,
-      title: content.title,
-      body: content.body,
-      notificationDetails: _notificationDetails(),
-      payload: jsonEncode(message.data),
-    );
+    _localNotifications
+        .show(
+          id: message.hashCode,
+          title: content.title,
+          body: content.body,
+          notificationDetails: _notificationDetails(),
+          payload: jsonEncode(message.data),
+        )
+        .catchError(
+          (Object e) => _logger.e('Failed to show foreground push notification: $e'),
+        );
   }
 
   void _onLocalNotificationTapped(NotificationResponse response) {

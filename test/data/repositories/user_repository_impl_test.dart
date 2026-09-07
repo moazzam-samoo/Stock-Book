@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:stock_investment_tracker/core/constants/firestore_paths.dart';
-import 'package:stock_investment_tracker/core/error/app_exception.dart';
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/data/repositories/user_repository_impl.dart';
 
@@ -67,12 +66,11 @@ void main() {
     );
   });
 
-  test('savePushToken throws NetworkException on synchronous firestore errors', () async {
+  test('savePushToken swallows synchronous firestore errors instead of throwing', () async {
+    // A save failure must never block sign-in/app startup — it's logged
+    // (so the failure is no longer invisible) but never propagated.
     when(mockDocRef.set(any, any)).thenThrow(Exception('Firestore error'));
 
-    expect(
-      () => repository.savePushToken(token),
-      throwsA(isA<NetworkException>()),
-    );
+    await expectLater(repository.savePushToken(token), completes);
   });
 }

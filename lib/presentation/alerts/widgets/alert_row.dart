@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
@@ -376,19 +377,38 @@ class AlertRow extends ConsumerWidget {
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
-                              child: Text(
-                                livePrice != null
-                                    ? AppCurrencyFormatter.format(livePrice)
-                                    : '—',
-                                style: AppTypography.body.copyWith(
-                                  color: livePrice == null
-                                      ? secondaryTextColor
-                                      : isMarketOpen == true
-                                      ? greenColor
-                                      : primaryTextColor,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: livePrice != null
+                                          ? AppCurrencyFormatter.format(
+                                              livePrice,
+                                            )
+                                          : '—',
+                                      style: AppTypography.body.copyWith(
+                                        color: livePrice == null
+                                            ? secondaryTextColor
+                                            : isMarketOpen == true
+                                            ? greenColor
+                                            : primaryTextColor,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    if (marketPrice != null)
+                                      TextSpan(
+                                        text:
+                                            ' As of ${DateFormat('h:mm a').format(marketPrice.updatedAt)}',
+                                        style: TextStyle(
+                                          color: secondaryTextColor,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                  ],
                                 ),
+                                maxLines: 1,
                               ),
                             ),
                           ],
