@@ -103,7 +103,11 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final pillBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
 
     final pinnedTickers = ref.watch(settingsProvider).valueOrNull?.pinnedTickers ?? const <String>[];
-    final isPinned = pinnedTickers.contains(widget.position.ticker.toUpperCase());
+    // A stored ticker can carry stray trailing whitespace from free-text
+    // entry (AGENTS.md §16.1) — must normalize the same way togglePin does
+    // before comparing, or a whitespace-carrying ticker's pin never shows
+    // as pinned even though it was saved correctly.
+    final isPinned = pinnedTickers.contains(widget.position.ticker.trim().toUpperCase());
 
     final isProfit = PositionCalculator.realizedPL(widget.position) >= 0;
     final plColor = isProfit

@@ -86,11 +86,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     // since `List.sort` isn't guaranteed stable and a reordering "regression"
     // here would be subtle (same bug class as AGENTS.md §11 #12).
     final pinnedTickers = ref.watch(settingsProvider).valueOrNull?.pinnedTickers ?? const <String>[];
+    // Same trim-before-compare normalization as position_card.dart's
+    // isPinned check — a ticker with stray trailing whitespace (AGENTS.md
+    // §16.1) must match the same way it was stored via togglePin.
     final orderedCards = pinnedTickers.isEmpty
         ? cards
         : [
-            ...cards.where((c) => pinnedTickers.contains(c.display.ticker.toUpperCase())),
-            ...cards.where((c) => !pinnedTickers.contains(c.display.ticker.toUpperCase())),
+            ...cards.where((c) => pinnedTickers.contains(c.display.ticker.trim().toUpperCase())),
+            ...cards.where((c) => !pinnedTickers.contains(c.display.ticker.trim().toUpperCase())),
           ];
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
