@@ -1,0 +1,44 @@
+name: Generate premium codes
+
+on:
+  # workflow_dispatch only — deliberately never scheduled. Unlike
+  # price-alerts.yml this has no reason to ever run unattended; it's a
+  # one-off "I need N more codes right now" action, triggered manually from
+  # the Actions tab (or the GitHub API/CLI) by anyone with write access to
+  # this repo.
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'How many codes to generate'
+        required: true
+        default: '5'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r scripts/price_alerts/requirements.txt
+
+      - name: Write service account credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > service-account.json
+
+      # Reuses the exact same secret price-alerts.yml already has configured
+      # — no separate credential to manage. The generated codes print to
+      # this step's own log output; copy them from the Actions run summary
+      # after it finishes (there is deliberately no other place to list
+      # them — see generate_premium_codes.py's docstring).
+      - name: Generate codes
+        env:
+          FIREBASE_SERVICE_ACCOUNT_PATH: service-account.json
+        run: python scripts/generate_premium_codes.py --count "${{ github.event.inputs.count }}"
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f service-account.json
