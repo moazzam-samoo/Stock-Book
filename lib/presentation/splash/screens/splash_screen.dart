@@ -121,10 +121,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.auto_graph_rounded,
-                    size: 16,
-                    color: AppColors.moneyGreen.withValues(alpha: 0.8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.asset(
+                      'assets/icon/android-chrome-192x192.png',
+                      width: 16,
+                      height: 16,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(

@@ -62,7 +62,7 @@ class CompanyOwnersScreen extends StatelessWidget {
                     initials: 'KD',
                     name: 'Kheeraj Das',
                     role: 'Owner & Developer',
-                    portfolioUrl: null,
+                    portfolioUrl: 'https://kheerajdas.github.io/My-Portfolio/',
                     linkedInUrl: 'https://www.linkedin.com/in/kheeraj-das-588584345/',
                   ),
                   const SizedBox(height: 24),
