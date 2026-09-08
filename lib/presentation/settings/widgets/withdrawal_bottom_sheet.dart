@@ -20,6 +20,7 @@ class WithdrawalBottomSheet extends ConsumerStatefulWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: isDark ? const Color(0xFF13151B) : Colors.white,
       shape: const RoundedRectangleBorder(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
+import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 import 'package:stock_investment_tracker/presentation/settings/screens/settings_screen.dart';
@@ -35,6 +37,10 @@ class MockSettingsRepository implements SettingsRepository {
   @override Future<void> updateCurrency(String currency) async {}
   @override Future<void> updateStockColor(String ticker, int colorValue) async {}
   @override Future<void> updateThemeMode(String themeMode) async {}
+  @override Future<PinResult> togglePin(String ticker) async => PinResult.pinned;
+  @override
+  Future<PremiumCodeResult> redeemPremiumCode(String code) async =>
+      const PremiumCodeResult(PremiumCodeOutcome.invalidCode);
 }
 
 void main() {

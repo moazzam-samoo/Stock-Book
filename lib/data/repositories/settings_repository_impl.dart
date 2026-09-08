@@ -1,8 +1,13 @@
 import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart';
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
+import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
+import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
+
+/// Free tier cap enforced by [SettingsRepositoryImpl.togglePin].
+const int kFreePinLimit = 5;
 
 class SettingsRepositoryImpl implements SettingsRepository {
   final String _uid;
@@ -29,6 +34,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
         startingCapital: 0.0,
         currency: 'PKR',
         themeMode: 'light',
+        pinnedTickers: [],
+        isPremiumUnlocked: false,
       );
     }
 
@@ -43,6 +50,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
         startingCapital: 0.0,
         currency: 'PKR',
         themeMode: 'light',
+        pinnedTickers: [],
+        isPremiumUnlocked: false,
       );
     });
   }
@@ -111,6 +120,49 @@ class SettingsRepositoryImpl implements SettingsRepository {
     await updateSettings(current.copyWith(stockColors: newColors));
   }
 
+  @override
+  Future<PinResult> togglePin(String ticker) async {
+    final clean = ticker.toUpperCase().trim();
+    final current = await _getCurrentSettings();
+    final isPinned = current.pinnedTickers.contains(clean);
+
+    if (isPinned) {
+      final updated = current.pinnedTickers.where((t) => t != clean).toList();
+      await updateSettings(current.copyWith(pinnedTickers: updated));
+      return PinResult.unpinned;
+    }
+
+    if (!current.isPremiumUnlocked && current.pinnedTickers.length >= kFreePinLimit) {
+      return PinResult.limitReached;
+    }
+
+    await updateSettings(current.copyWith(pinnedTickers: [...current.pinnedTickers, clean]));
+    return PinResult.pinned;
+  }
+
+  @override
+  Future<PremiumCodeResult> redeemPremiumCode(String code) async {
+    final clean = code.trim().toUpperCase();
+    if (clean.isEmpty) return const PremiumCodeResult(PremiumCodeOutcome.invalidCode);
+
+    final String outcome;
+    try {
+      outcome = await _firestoreDataSource.redeemPremiumCode(code: clean, uid: _uid);
+    } catch (_) {
+      return const PremiumCodeResult(PremiumCodeOutcome.networkError);
+    }
+
+    if (outcome != 'success') {
+      return PremiumCodeResult(
+        outcome == 'invalidCode' ? PremiumCodeOutcome.invalidCode : PremiumCodeOutcome.alreadyRedeemed,
+      );
+    }
+
+    final current = await _getCurrentSettings();
+    await updateSettings(current.copyWith(isPremiumUnlocked: true));
+    return const PremiumCodeResult(PremiumCodeOutcome.success);
+  }
+
   Future<UserSettings> _getCurrentSettings() async {
     final local = await _hiveDataSource.getSettings();
     if (local != null) return local.toEntity();
@@ -119,6 +171,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
       startingCapital: 0.0,
       currency: 'PKR',
       themeMode: 'light',
+      pinnedTickers: [],
+      isPremiumUnlocked: false,
     );
   }
 }

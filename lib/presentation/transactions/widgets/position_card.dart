@@ -24,6 +24,8 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/add_s
 import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_buy_bottom_sheet.dart';
 import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/market_status_providers.dart';
+import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
+import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
 
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 
@@ -70,6 +72,23 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     });
   }
 
+  Future<void> _handlePinTap(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final controller = ref.read(settingsControllerProvider.notifier);
+    final result = await controller.togglePin(widget.position.ticker);
+    if (!context.mounted || result != PinResult.limitReached) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Free plan allows 5 pinned stocks — unlock unlimited in Settings'),
+        action: SnackBarAction(
+          label: 'Settings',
+          onPressed: () => context.push('/settings'),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -82,6 +101,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
         : const Color(0xFFE2E8F0);
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final pillBg = isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9);
+
+    final pinnedTickers = ref.watch(settingsProvider).valueOrNull?.pinnedTickers ?? const <String>[];
+    final isPinned = pinnedTickers.contains(widget.position.ticker.toUpperCase());
 
     final isProfit = PositionCalculator.realizedPL(widget.position) >= 0;
     final plColor = isProfit
@@ -258,6 +280,26 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                             ),
                           ),
                       ],
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _handlePinTap(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isPinned ? AppColors.moneyGreen.withOpacity(0.15) : pillBg,
+                      border: Border.all(
+                        color: isPinned ? AppColors.moneyGreen : borderColor,
+                      ),
+                    ),
+                    child: Icon(
+                      isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                      color: isPinned ? AppColors.moneyGreen : AppColors.neutral500,
+                      size: 16,
                     ),
                   ),
                 ),
@@ -1020,6 +1062,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
 
     final selected = await showModalBottomSheet<PositionBuy>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: cardBg,
       shape: const RoundedRectangleBorder(

@@ -328,6 +328,35 @@ class FirestoreDataSource {
     }
   }
 
+  // PREMIUM CODES
+
+  /// Atomically checks-and-flips `premium_codes/{code}.redeemed` inside a
+  /// Firestore transaction, so two simultaneous redemptions of the same
+  /// code can't both succeed (`firestore.rules`' own `resource.data.redeemed
+  /// == false` guard enforces this server-side too, but the transaction
+  /// gives a clean read of *why* it failed instead of a raw permission
+  /// error). Returns `'success'` / `'invalidCode'` / `'alreadyRedeemed'` —
+  /// mapped to [PremiumCodeOutcome] by the repository, which is what
+  /// actually decides `isPremiumUnlocked`; this layer only touches the
+  /// code document itself. Throws on a genuine network/timeout failure —
+  /// the caller maps that to [PremiumCodeOutcome.networkError].
+  Future<String> redeemPremiumCode({required String code, required String uid}) {
+    final ref = _firestore.doc(FirestorePaths.premiumCode(code));
+    return _firestore.runTransaction<String>((transaction) async {
+      final snap = await transaction.get(ref);
+      if (!snap.exists) return 'invalidCode';
+      final data = snap.data();
+      if (data == null || data['redeemed'] == true) return 'alreadyRedeemed';
+
+      transaction.update(ref, {
+        'redeemed': true,
+        'redeemedBy': uid,
+        'redeemedAt': FieldValue.serverTimestamp(),
+      });
+      return 'success';
+    }).timeout(const Duration(seconds: 8));
+  }
+
   // MARKET PRICES
 
   /// `market_prices` document IDs are always the clean PSX symbol, but a

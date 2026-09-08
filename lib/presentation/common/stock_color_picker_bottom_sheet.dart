@@ -12,6 +12,7 @@ class StockColorPickerBottomSheet extends ConsumerWidget {
   static Future<void> show(BuildContext context, String ticker) {
     return showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => StockColorPickerBottomSheet(ticker: ticker),
