@@ -21,6 +21,12 @@ _UserSettingsModel _$UserSettingsModelFromJson(Map<String, dynamic> json) =>
             (k, e) => MapEntry(k, (e as num).toInt()),
           ) ??
           const {},
+      pinnedTickers:
+          (json['pinnedTickers'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      isPremiumUnlocked: json['isPremiumUnlocked'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$UserSettingsModelToJson(_UserSettingsModel instance) =>
@@ -30,4 +36,6 @@ Map<String, dynamic> _$UserSettingsModelToJson(_UserSettingsModel instance) =>
       'currency': instance.currency,
       'themeMode': instance.themeMode,
       'stockColors': instance.stockColors,
+      'pinnedTickers': instance.pinnedTickers,
+      'isPremiumUnlocked': instance.isPremiumUnlocked,
     };

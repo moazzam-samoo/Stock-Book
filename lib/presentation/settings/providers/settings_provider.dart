@@ -1,4 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
+import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 
@@ -94,5 +96,36 @@ class SettingsController extends _$SettingsController {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => repo.updateStockColor(ticker, colorValue));
     ref.invalidate(settingsProvider);
+  }
+
+  /// Returns the [PinResult] directly (not just via `state`) so the caller
+  /// can show an immediate, specific message (e.g. the free-tier-limit
+  /// snackbar) without waiting on a provider rebuild.
+  Future<PinResult> togglePin(String ticker) async {
+    final repo = ref.read(settingsRepositoryProvider);
+    if (repo == null) return PinResult.limitReached;
+
+    state = const AsyncValue.loading();
+    var result = PinResult.limitReached;
+    state = await AsyncValue.guard(() async {
+      result = await repo.togglePin(ticker);
+    });
+    ref.invalidate(settingsProvider);
+    return result;
+  }
+
+  /// Returns the [PremiumCodeResult] directly, same reasoning as [togglePin]
+  /// — the redeem dialog needs the specific outcome message right away.
+  Future<PremiumCodeResult> redeemPremiumCode(String code) async {
+    final repo = ref.read(settingsRepositoryProvider);
+    if (repo == null) return const PremiumCodeResult(PremiumCodeOutcome.networkError);
+
+    state = const AsyncValue.loading();
+    var result = const PremiumCodeResult(PremiumCodeOutcome.networkError);
+    state = await AsyncValue.guard(() async {
+      result = await repo.redeemPremiumCode(code);
+    });
+    ref.invalidate(settingsProvider);
+    return result;
   }
 }

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserSettingsModel {
 
- List<String> get favorites; double get startingCapital; String get currency; String get themeMode; Map<String, int> get stockColors;
+ List<String> get favorites; double get startingCapital; String get currency; String get themeMode; Map<String, int> get stockColors; List<String> get pinnedTickers; bool get isPremiumUnlocked;
 /// Create a copy of UserSettingsModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserSettingsModelCopyWith<UserSettingsModel> get copyWith => _$UserSettingsMode
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSettingsModel&&const DeepCollectionEquality().equals(other.favorites, favorites)&&(identical(other.startingCapital, startingCapital) || other.startingCapital == startingCapital)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&const DeepCollectionEquality().equals(other.stockColors, stockColors));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSettingsModel&&const DeepCollectionEquality().equals(other.favorites, favorites)&&(identical(other.startingCapital, startingCapital) || other.startingCapital == startingCapital)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&const DeepCollectionEquality().equals(other.stockColors, stockColors)&&const DeepCollectionEquality().equals(other.pinnedTickers, pinnedTickers)&&(identical(other.isPremiumUnlocked, isPremiumUnlocked) || other.isPremiumUnlocked == isPremiumUnlocked));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(favorites),startingCapital,currency,themeMode,const DeepCollectionEquality().hash(stockColors));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(favorites),startingCapital,currency,themeMode,const DeepCollectionEquality().hash(stockColors),const DeepCollectionEquality().hash(pinnedTickers),isPremiumUnlocked);
 
 @override
 String toString() {
-  return 'UserSettingsModel(favorites: $favorites, startingCapital: $startingCapital, currency: $currency, themeMode: $themeMode, stockColors: $stockColors)';
+  return 'UserSettingsModel(favorites: $favorites, startingCapital: $startingCapital, currency: $currency, themeMode: $themeMode, stockColors: $stockColors, pinnedTickers: $pinnedTickers, isPremiumUnlocked: $isPremiumUnlocked)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UserSettingsModelCopyWith<$Res>  {
   factory $UserSettingsModelCopyWith(UserSettingsModel value, $Res Function(UserSettingsModel) _then) = _$UserSettingsModelCopyWithImpl;
 @useResult
 $Res call({
- List<String> favorites, double startingCapital, String currency, String themeMode, Map<String, int> stockColors
+ List<String> favorites, double startingCapital, String currency, String themeMode, Map<String, int> stockColors, List<String> pinnedTickers, bool isPremiumUnlocked
 });
 
 
@@ -65,14 +65,16 @@ class _$UserSettingsModelCopyWithImpl<$Res>
 
 /// Create a copy of UserSettingsModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? favorites = null,Object? startingCapital = null,Object? currency = null,Object? themeMode = null,Object? stockColors = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? favorites = null,Object? startingCapital = null,Object? currency = null,Object? themeMode = null,Object? stockColors = null,Object? pinnedTickers = null,Object? isPremiumUnlocked = null,}) {
   return _then(_self.copyWith(
 favorites: null == favorites ? _self.favorites : favorites // ignore: cast_nullable_to_non_nullable
 as List<String>,startingCapital: null == startingCapital ? _self.startingCapital : startingCapital // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
 as String,stockColors: null == stockColors ? _self.stockColors : stockColors // ignore: cast_nullable_to_non_nullable
-as Map<String, int>,
+as Map<String, int>,pinnedTickers: null == pinnedTickers ? _self.pinnedTickers : pinnedTickers // ignore: cast_nullable_to_non_nullable
+as List<String>,isPremiumUnlocked: null == isPremiumUnlocked ? _self.isPremiumUnlocked : isPremiumUnlocked // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -157,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> favorites,  double startingCapital,  String currency,  String themeMode,  Map<String, int> stockColors)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> favorites,  double startingCapital,  String currency,  String themeMode,  Map<String, int> stockColors,  List<String> pinnedTickers,  bool isPremiumUnlocked)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserSettingsModel() when $default != null:
-return $default(_that.favorites,_that.startingCapital,_that.currency,_that.themeMode,_that.stockColors);case _:
+return $default(_that.favorites,_that.startingCapital,_that.currency,_that.themeMode,_that.stockColors,_that.pinnedTickers,_that.isPremiumUnlocked);case _:
   return orElse();
 
 }
@@ -178,10 +180,10 @@ return $default(_that.favorites,_that.startingCapital,_that.currency,_that.theme
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> favorites,  double startingCapital,  String currency,  String themeMode,  Map<String, int> stockColors)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> favorites,  double startingCapital,  String currency,  String themeMode,  Map<String, int> stockColors,  List<String> pinnedTickers,  bool isPremiumUnlocked)  $default,) {final _that = this;
 switch (_that) {
 case _UserSettingsModel():
-return $default(_that.favorites,_that.startingCapital,_that.currency,_that.themeMode,_that.stockColors);case _:
+return $default(_that.favorites,_that.startingCapital,_that.currency,_that.themeMode,_that.stockColors,_that.pinnedTickers,_that.isPremiumUnlocked);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +200,10 @@ return $default(_that.favorites,_that.startingCapital,_that.currency,_that.theme
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> favorites,  double startingCapital,  String currency,  String themeMode,  Map<String, int> stockColors)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> favorites,  double startingCapital,  String currency,  String themeMode,  Map<String, int> stockColors,  List<String> pinnedTickers,  bool isPremiumUnlocked)?  $default,) {final _that = this;
 switch (_that) {
 case _UserSettingsModel() when $default != null:
-return $default(_that.favorites,_that.startingCapital,_that.currency,_that.themeMode,_that.stockColors);case _:
+return $default(_that.favorites,_that.startingCapital,_that.currency,_that.themeMode,_that.stockColors,_that.pinnedTickers,_that.isPremiumUnlocked);case _:
   return null;
 
 }
@@ -213,7 +215,7 @@ return $default(_that.favorites,_that.startingCapital,_that.currency,_that.theme
 @JsonSerializable()
 
 class _UserSettingsModel implements UserSettingsModel {
-  const _UserSettingsModel({final  List<String> favorites = const [], this.startingCapital = 0.0, this.currency = 'PKR', this.themeMode = 'light', final  Map<String, int> stockColors = const {}}): _favorites = favorites,_stockColors = stockColors;
+  const _UserSettingsModel({final  List<String> favorites = const [], this.startingCapital = 0.0, this.currency = 'PKR', this.themeMode = 'light', final  Map<String, int> stockColors = const {}, final  List<String> pinnedTickers = const [], this.isPremiumUnlocked = false}): _favorites = favorites,_stockColors = stockColors,_pinnedTickers = pinnedTickers;
   factory _UserSettingsModel.fromJson(Map<String, dynamic> json) => _$UserSettingsModelFromJson(json);
 
  final  List<String> _favorites;
@@ -233,6 +235,14 @@ class _UserSettingsModel implements UserSettingsModel {
   return EqualUnmodifiableMapView(_stockColors);
 }
 
+ final  List<String> _pinnedTickers;
+@override@JsonKey() List<String> get pinnedTickers {
+  if (_pinnedTickers is EqualUnmodifiableListView) return _pinnedTickers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_pinnedTickers);
+}
+
+@override@JsonKey() final  bool isPremiumUnlocked;
 
 /// Create a copy of UserSettingsModel
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +257,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSettingsModel&&const DeepCollectionEquality().equals(other._favorites, _favorites)&&(identical(other.startingCapital, startingCapital) || other.startingCapital == startingCapital)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&const DeepCollectionEquality().equals(other._stockColors, _stockColors));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSettingsModel&&const DeepCollectionEquality().equals(other._favorites, _favorites)&&(identical(other.startingCapital, startingCapital) || other.startingCapital == startingCapital)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&const DeepCollectionEquality().equals(other._stockColors, _stockColors)&&const DeepCollectionEquality().equals(other._pinnedTickers, _pinnedTickers)&&(identical(other.isPremiumUnlocked, isPremiumUnlocked) || other.isPremiumUnlocked == isPremiumUnlocked));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_favorites),startingCapital,currency,themeMode,const DeepCollectionEquality().hash(_stockColors));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_favorites),startingCapital,currency,themeMode,const DeepCollectionEquality().hash(_stockColors),const DeepCollectionEquality().hash(_pinnedTickers),isPremiumUnlocked);
 
 @override
 String toString() {
-  return 'UserSettingsModel(favorites: $favorites, startingCapital: $startingCapital, currency: $currency, themeMode: $themeMode, stockColors: $stockColors)';
+  return 'UserSettingsModel(favorites: $favorites, startingCapital: $startingCapital, currency: $currency, themeMode: $themeMode, stockColors: $stockColors, pinnedTickers: $pinnedTickers, isPremiumUnlocked: $isPremiumUnlocked)';
 }
 
 
@@ -267,7 +277,7 @@ abstract mixin class _$UserSettingsModelCopyWith<$Res> implements $UserSettingsM
   factory _$UserSettingsModelCopyWith(_UserSettingsModel value, $Res Function(_UserSettingsModel) _then) = __$UserSettingsModelCopyWithImpl;
 @override @useResult
 $Res call({
- List<String> favorites, double startingCapital, String currency, String themeMode, Map<String, int> stockColors
+ List<String> favorites, double startingCapital, String currency, String themeMode, Map<String, int> stockColors, List<String> pinnedTickers, bool isPremiumUnlocked
 });
 
 
@@ -284,14 +294,16 @@ class __$UserSettingsModelCopyWithImpl<$Res>
 
 /// Create a copy of UserSettingsModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? favorites = null,Object? startingCapital = null,Object? currency = null,Object? themeMode = null,Object? stockColors = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? favorites = null,Object? startingCapital = null,Object? currency = null,Object? themeMode = null,Object? stockColors = null,Object? pinnedTickers = null,Object? isPremiumUnlocked = null,}) {
   return _then(_UserSettingsModel(
 favorites: null == favorites ? _self._favorites : favorites // ignore: cast_nullable_to_non_nullable
 as List<String>,startingCapital: null == startingCapital ? _self.startingCapital : startingCapital // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
 as String,stockColors: null == stockColors ? _self._stockColors : stockColors // ignore: cast_nullable_to_non_nullable
-as Map<String, int>,
+as Map<String, int>,pinnedTickers: null == pinnedTickers ? _self._pinnedTickers : pinnedTickers // ignore: cast_nullable_to_non_nullable
+as List<String>,isPremiumUnlocked: null == isPremiumUnlocked ? _self.isPremiumUnlocked : isPremiumUnlocked // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

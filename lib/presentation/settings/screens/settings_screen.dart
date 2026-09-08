@@ -11,6 +11,7 @@ import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/providers/workflow_trigger_providers.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/core/utils/stock_color_utils.dart';
+import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/presentation/auth/controllers/auth_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -78,6 +79,11 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSectionTitle(context, 'PRICE REFRESH'),
                       const SizedBox(height: 12),
                       _buildPriceRefreshSection(context, ref, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'PIN STOCKS'),
+                      const SizedBox(height: 12),
+                      _buildPinStocksSection(context, ref, settings, isDark),
                       const SizedBox(height: 28),
 
                       _buildSectionTitle(context, 'ABOUT US'),
@@ -556,6 +562,173 @@ class SettingsScreen extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPinStocksSection(
+    BuildContext context,
+    WidgetRef ref,
+    UserSettings settings,
+    bool isDark,
+  ) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final isPremium = settings.isPremiumUnlocked;
+    final pinnedCount = settings.pinnedTickers.length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? null
+            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isPremium ? Icons.workspace_premium_outlined : Icons.push_pin_outlined,
+                  size: 20,
+                  color: isPremium
+                      ? (isDark ? AppColors.chartGreen : AppColors.moneyGreenOnLight)
+                      : AppColors.neutral500,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isPremium ? 'Unlimited pins unlocked' : 'Free plan — $pinnedCount/5 pins used',
+                    style: AppTypography.body.copyWith(
+                      color: primaryTextColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isPremium
+                  ? 'Pin as many stocks as you like on Transactions — pinned stocks always show first.'
+                  : 'Pin up to 5 stocks on Transactions to keep them at the top. Have a code? Unlock unlimited pins below.',
+              style: AppTypography.caption.copyWith(color: AppColors.neutral500, fontSize: 13),
+            ),
+            if (!isPremium) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: () => _showRedeemCodeDialog(context, ref),
+                icon: const Icon(Icons.redeem_outlined, size: 18),
+                label: const Text('Enter code'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRedeemCodeDialog(BuildContext context, WidgetRef ref) {
+    var code = '';
+    // isSubmitting/errorMessage live here, outside StatefulBuilder's
+    // builder callback — that callback re-runs on every setDialogState
+    // call, so a `var` declared inside it would reset to its initial value
+    // on every rebuild, silently discarding the state just set.
+    var isSubmitting = false;
+    String? errorMessage;
+
+    // Deliberately does NOT close on tapping Redeem and rely on a snackbar
+    // afterward — a snackbar shown from a context that may no longer be on
+    // screen by the time an async Firestore call resolves is easy to miss
+    // entirely, which read as "nothing happened" during testing. This stays
+    // open with an in-dialog spinner/error/success state instead, so the
+    // result is impossible to miss regardless of timing.
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          Future<void> submit() async {
+            final trimmed = code.trim();
+            if (trimmed.isEmpty) return;
+            setDialogState(() {
+              isSubmitting = true;
+              errorMessage = null;
+            });
+            final result = await ref.read(settingsControllerProvider.notifier).redeemPremiumCode(trimmed);
+            if (!dialogCtx.mounted) return;
+            if (result.outcome == PremiumCodeOutcome.success) {
+              Navigator.pop(dialogCtx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(result.message),
+                  backgroundColor: AppColors.moneyGreenOnLight,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            } else {
+              setDialogState(() {
+                isSubmitting = false;
+                errorMessage = result.message;
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Unlock unlimited pins'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter your unlock code to pin unlimited stocks.',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  autofocus: true,
+                  enabled: !isSubmitting,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    hintText: 'STCK-XXXX-XXXX',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (val) => code = val,
+                  onSubmitted: (_) => submit(),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMessage!,
+                    style: const TextStyle(color: AppColors.dangerRed, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: isSubmitting ? null : submit,
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Redeem'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

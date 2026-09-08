@@ -4,6 +4,8 @@ class UserSettings {
   final String currency;
   final String themeMode;
   final Map<String, int> stockColors;
+  final List<String> pinnedTickers;
+  final bool isPremiumUnlocked;
 
   const UserSettings({
     required this.favorites,
@@ -11,6 +13,8 @@ class UserSettings {
     required this.currency,
     required this.themeMode,
     this.stockColors = const {},
+    this.pinnedTickers = const [],
+    this.isPremiumUnlocked = false,
   });
 
   UserSettings copyWith({
@@ -19,6 +23,8 @@ class UserSettings {
     String? currency,
     String? themeMode,
     Map<String, int>? stockColors,
+    List<String>? pinnedTickers,
+    bool? isPremiumUnlocked,
   }) {
     return UserSettings(
       favorites: favorites ?? this.favorites,
@@ -26,6 +32,8 @@ class UserSettings {
       currency: currency ?? this.currency,
       themeMode: themeMode ?? this.themeMode,
       stockColors: stockColors ?? this.stockColors,
+      pinnedTickers: pinnedTickers ?? this.pinnedTickers,
+      isPremiumUnlocked: isPremiumUnlocked ?? this.isPremiumUnlocked,
     );
   }
 }

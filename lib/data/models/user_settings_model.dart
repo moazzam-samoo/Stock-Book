@@ -12,6 +12,8 @@ abstract class UserSettingsModel with _$UserSettingsModel {
     @Default('PKR') String currency,
     @Default('light') String themeMode,
     @Default({}) Map<String, int> stockColors,
+    @Default([]) List<String> pinnedTickers,
+    @Default(false) bool isPremiumUnlocked,
   }) = _UserSettingsModel;
 
   factory UserSettingsModel.fromJson(Map<String, dynamic> json) => _$UserSettingsModelFromJson(json);
@@ -25,6 +27,8 @@ extension UserSettingsModelExtension on UserSettingsModel {
       currency: currency,
       themeMode: themeMode,
       stockColors: stockColors,
+      pinnedTickers: pinnedTickers,
+      isPremiumUnlocked: isPremiumUnlocked,
     );
   }
 
@@ -35,6 +39,8 @@ extension UserSettingsModelExtension on UserSettingsModel {
       currency: entity.currency,
       themeMode: entity.themeMode,
       stockColors: entity.stockColors,
+      pinnedTickers: entity.pinnedTickers,
+      isPremiumUnlocked: entity.isPremiumUnlocked,
     );
   }
 }

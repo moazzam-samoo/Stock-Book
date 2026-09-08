@@ -18,6 +18,7 @@ import 'package:stock_investment_tracker/providers/workflow_trigger_providers.da
 import 'package:stock_investment_tracker/core/services/workflow_trigger_service.dart';
 import 'package:stock_investment_tracker/presentation/common/app_scaffold.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
+import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -79,6 +80,22 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ));
       }
     }
+
+    // Pinned tickers float to the top, preserving relative order within
+    // each group — an explicit partition rather than `cards.sort(...)`
+    // since `List.sort` isn't guaranteed stable and a reordering "regression"
+    // here would be subtle (same bug class as AGENTS.md §11 #12).
+    final pinnedTickers = ref.watch(settingsProvider).valueOrNull?.pinnedTickers ?? const <String>[];
+    // Same trim-before-compare normalization as position_card.dart's
+    // isPinned check — a ticker with stray trailing whitespace (AGENTS.md
+    // §16.1) must match the same way it was stored via togglePin.
+    final orderedCards = pinnedTickers.isEmpty
+        ? cards
+        : [
+            ...cards.where((c) => pinnedTickers.contains(c.display.ticker.trim().toUpperCase())),
+            ...cards.where((c) => !pinnedTickers.contains(c.display.ticker.trim().toUpperCase())),
+          ];
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = isDark
         ? const Color(0xFF94A3B8)
@@ -201,7 +218,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             if (_showSearch) const TransactionSearchBar(),
             const FilterChipRow(),
             Expanded(
-              child: cards.isEmpty
+              child: orderedCards.isEmpty
                   ? const EmptyStateView(
                       icon: Icons.receipt_long_outlined,
                       title: 'No transactions found',
@@ -213,9 +230,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       onRefresh: () => _refreshPrices(context, ref),
                       child: ListView.builder(
                         padding: const EdgeInsets.only(bottom: 110),
-                        itemCount: cards.length,
+                        itemCount: orderedCards.length,
                         itemBuilder: (context, index) {
-                          final card = cards[index];
+                          final card = orderedCards[index];
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,

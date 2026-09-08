@@ -19,4 +19,7 @@ class FirestorePaths {
 
   // Tickers
   static String tickersDoc() => 'tickers/all';
+
+  // Premium unlock codes — top-level, one doc per unique code (Pin Stocks feature)
+  static String premiumCode(String code) => 'premium_codes/$code';
 }
