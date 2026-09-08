@@ -636,55 +636,99 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showRedeemCodeDialog(BuildContext context, WidgetRef ref) {
     var code = '';
+    // isSubmitting/errorMessage live here, outside StatefulBuilder's
+    // builder callback — that callback re-runs on every setDialogState
+    // call, so a `var` declared inside it would reset to its initial value
+    // on every rebuild, silently discarding the state just set.
+    var isSubmitting = false;
+    String? errorMessage;
+
+    // Deliberately does NOT close on tapping Redeem and rely on a snackbar
+    // afterward — a snackbar shown from a context that may no longer be on
+    // screen by the time an async Firestore call resolves is easy to miss
+    // entirely, which read as "nothing happened" during testing. This stays
+    // open with an in-dialog spinner/error/success state instead, so the
+    // result is impossible to miss regardless of timing.
     showDialog<void>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Unlock unlimited pins'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter your unlock code to pin unlimited stocks.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              autofocus: true,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                hintText: 'STCK-XXXX-XXXX',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (val) => code = val,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final trimmed = code.trim();
-              if (trimmed.isEmpty) return;
+      barrierDismissible: true,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          Future<void> submit() async {
+            final trimmed = code.trim();
+            if (trimmed.isEmpty) return;
+            setDialogState(() {
+              isSubmitting = true;
+              errorMessage = null;
+            });
+            final result = await ref.read(settingsControllerProvider.notifier).redeemPremiumCode(trimmed);
+            if (!dialogCtx.mounted) return;
+            if (result.outcome == PremiumCodeOutcome.success) {
               Navigator.pop(dialogCtx);
-              final messenger = ScaffoldMessenger.of(context);
-              final result = await ref.read(settingsControllerProvider.notifier).redeemPremiumCode(trimmed);
-              messenger.showSnackBar(
+              ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(result.message),
-                  backgroundColor: result.outcome == PremiumCodeOutcome.success
-                      ? AppColors.moneyGreenOnLight
-                      : AppColors.dangerRed,
+                  backgroundColor: AppColors.moneyGreenOnLight,
                   behavior: SnackBarBehavior.floating,
                 ),
               );
-            },
-            child: const Text('Redeem'),
-          ),
-        ],
+            } else {
+              setDialogState(() {
+                isSubmitting = false;
+                errorMessage = result.message;
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Unlock unlimited pins'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter your unlock code to pin unlimited stocks.',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  autofocus: true,
+                  enabled: !isSubmitting,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    hintText: 'STCK-XXXX-XXXX',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (val) => code = val,
+                  onSubmitted: (_) => submit(),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMessage!,
+                    style: const TextStyle(color: AppColors.dangerRed, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: isSubmitting ? null : submit,
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Redeem'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -78,15 +78,23 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final result = await controller.togglePin(widget.position.ticker);
     if (!context.mounted || result != PinResult.limitReached) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Free plan allows 5 pinned stocks — unlock unlimited in Settings'),
-        action: SnackBarAction(
-          label: 'Settings',
-          onPressed: () => context.push('/settings'),
+    final messenger = ScaffoldMessenger.of(context);
+    // The shell Scaffold (and its ScaffoldMessenger) is shared across every
+    // tab — Dashboard/Transactions/Alerts/Settings aren't separate Scaffolds
+    // — so without this, repeatedly tapping pin while at the limit queues
+    // one snackbar after another, and the queue outlives a tab switch,
+    // making it look like a single snackbar that never goes away.
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Free plan allows 5 pinned stocks — unlock unlimited in Settings'),
+          action: SnackBarAction(
+            label: 'Settings',
+            onPressed: () => context.push('/settings'),
+          ),
         ),
-      ),
-    );
+      );
   }
 
   @override
