@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/domain/entities/portfolio_summary.dart'
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/stat_card.dart';
 
 enum DashboardMetricType {
+  portfolioValue,
   totalInvested,
   currentlyInvested,
   realizedPL,

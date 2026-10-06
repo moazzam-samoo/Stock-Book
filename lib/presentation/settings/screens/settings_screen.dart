@@ -945,9 +945,10 @@ class SettingsScreen extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                'assets/icon/android-chrome-192x192.png',
+                'assets/icon/white-icon.jpg',
                 width: 44,
                 height: 44,
+                fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: 44,
                   height: 44,

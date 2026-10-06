@@ -96,6 +96,8 @@ class MetricDetailCard extends StatelessWidget {
 
   String _getTitle() {
     switch (metricType) {
+      case DashboardMetricType.portfolioValue:
+        return 'Total Portfolio Value Breakdown';
       case DashboardMetricType.totalInvested:
         return 'Total Cumulative Invested Capital';
       case DashboardMetricType.currentlyInvested:
@@ -113,6 +115,8 @@ class MetricDetailCard extends StatelessWidget {
 
   IconData _getIcon() {
     switch (metricType) {
+      case DashboardMetricType.portfolioValue:
+        return Icons.account_balance_wallet_outlined;
       case DashboardMetricType.totalInvested:
         return Icons.account_balance_outlined;
       case DashboardMetricType.currentlyInvested:
@@ -135,6 +139,13 @@ class MetricDetailCard extends StatelessWidget {
     Color positiveColor,
   ) {
     switch (metricType) {
+      case DashboardMetricType.portfolioValue:
+        return _buildPortfolioValueBody(
+          primaryTextColor,
+          secondaryTextColor,
+          dividerColor,
+          positiveColor,
+        );
       case DashboardMetricType.totalInvested:
         return _buildTotalInvestedBody(primaryTextColor, positiveColor);
       case DashboardMetricType.currentlyInvested:
@@ -150,16 +161,200 @@ class MetricDetailCard extends StatelessWidget {
     }
   }
 
+  Widget _buildPortfolioValueBody(
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color dividerColor,
+    Color positiveColor,
+  ) {
+    final liquidCapital = summary.freeCash + summary.realizedPL;
+    final isProfit = summary.realizedPL >= 0;
+    final plColor = isProfit ? positiveColor : AppColors.alertRed;
+    final returnPercent = summary.startingCapital > 0
+        ? ((summary.portfolioValue - summary.startingCapital) /
+                summary.startingCapital) *
+            100
+        : (summary.currentlyInvested > 0
+            ? (summary.realizedPL / summary.currentlyInvested) * 100
+            : 0.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  AppCurrencyFormatter.format(
+                    summary.portfolioValue,
+                    decimalDigits: 2,
+                  ),
+                  style: AppTypography.h1.copyWith(
+                    color: primaryTextColor,
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: plColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: plColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isProfit ? Icons.arrow_upward : Icons.arrow_downward,
+                    size: 11,
+                    color: plColor,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${isProfit ? "+" : ""}${returnPercent.toStringAsFixed(1)}%',
+                    style: AppTypography.caption.copyWith(
+                      color: plColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDetailStat(
+                'Starting Base',
+                summary.startingCapital > 0
+                    ? AppCurrencyFormatter.formatCompact(
+                        summary.startingCapital,
+                      )
+                    : 'None set',
+                primaryTextColor: primaryTextColor,
+              ),
+            ),
+            Expanded(
+              child: _buildDetailStat(
+                'Currently Invested',
+                AppCurrencyFormatter.formatCompact(
+                  summary.currentlyInvested,
+                ),
+                primaryTextColor: primaryTextColor,
+              ),
+            ),
+            Expanded(
+              child: _buildDetailStat(
+                'Liquid Cash',
+                AppCurrencyFormatter.formatCompact(liquidCapital),
+                color: positiveColor,
+                primaryTextColor: primaryTextColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Divider(color: dividerColor, height: 1),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Net Realized P/L:',
+              style: AppTypography.body.copyWith(
+                color: secondaryTextColor,
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              AppCurrencyFormatter.format(summary.realizedPL, showSign: true),
+              style: AppTypography.body.copyWith(
+                color: plColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        if (summary.totalWithdrawn > 0) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Profit Withdrawn:',
+                style: AppTypography.body.copyWith(
+                  color: secondaryTextColor,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                AppCurrencyFormatter.format(summary.totalWithdrawn),
+                style: AppTypography.body.copyWith(
+                  color: AppColors.neutral500,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: dividerColor.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, size: 13, color: AppColors.neutral500),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  summary.startingCapital > 0
+                      ? 'Portfolio Value = Starting Capital + Net Realized P/L'
+                      : 'Portfolio Value = Currently Invested + Net Realized P/L',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.neutral500,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTotalInvestedBody(Color primaryTextColor, Color positiveColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppCurrencyFormatter.format(summary.totalInvested, decimalDigits: 0),
-          style: AppTypography.h1.copyWith(
-            color: primaryTextColor,
-            fontFamily: 'JetBrains Mono',
-            fontSize: 24,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            AppCurrencyFormatter.format(summary.totalInvested, decimalDigits: 0),
+            style: AppTypography.h1.copyWith(
+              color: primaryTextColor,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 24,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -184,12 +379,16 @@ class MetricDetailCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppCurrencyFormatter.format(summary.freeCash, decimalDigits: 0),
-          style: AppTypography.h1.copyWith(
-            color: primaryTextColor,
-            fontFamily: 'JetBrains Mono',
-            fontSize: 24,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            AppCurrencyFormatter.format(summary.freeCash, decimalDigits: 0),
+            style: AppTypography.h1.copyWith(
+              color: primaryTextColor,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 24,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -220,12 +419,16 @@ class MetricDetailCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppCurrencyFormatter.format(summary.currentlyInvested, decimalDigits: 0),
-          style: AppTypography.h1.copyWith(
-            color: primaryTextColor,
-            fontFamily: 'JetBrains Mono',
-            fontSize: 24,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            AppCurrencyFormatter.format(summary.currentlyInvested, decimalDigits: 0),
+            style: AppTypography.h1.copyWith(
+              color: primaryTextColor,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 24,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -254,12 +457,16 @@ class MetricDetailCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppCurrencyFormatter.format(summary.realizedPL, showSign: true, decimalDigits: 2),
-          style: AppTypography.h1.copyWith(
-            color: isProfit ? positiveColor : AppColors.alertRed,
-            fontFamily: 'JetBrains Mono',
-            fontSize: 24,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            AppCurrencyFormatter.format(summary.realizedPL, showSign: true, decimalDigits: 2),
+            style: AppTypography.h1.copyWith(
+              color: isProfit ? positiveColor : AppColors.alertRed,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 24,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -391,12 +598,16 @@ class MetricDetailCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppCurrencyFormatter.format(liquidCash, decimalDigits: 0),
-          style: AppTypography.h1.copyWith(
-            color: primaryTextColor,
-            fontFamily: 'JetBrains Mono',
-            fontSize: 24,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            AppCurrencyFormatter.format(liquidCash, decimalDigits: 0),
+            style: AppTypography.h1.copyWith(
+              color: primaryTextColor,
+              fontFamily: 'JetBrains Mono',
+              fontSize: 24,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -496,15 +707,18 @@ class MetricDetailCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: AppTypography.body.copyWith(
-            color: color ?? primaryTextColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: AppTypography.body.copyWith(
+              color: color ?? primaryTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+            maxLines: 1,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

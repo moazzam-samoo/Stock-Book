@@ -223,10 +223,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       : 0.0),
                             lastSyncTime: _lastSyncTime,
                             isOffline: _isOffline,
+                            isSelected: _selectedMetric ==
+                                DashboardMetricType.portfolioValue,
+                            onTapTotalValue: () {
+                              setState(() {
+                                if (_selectedMetric ==
+                                    DashboardMetricType.portfolioValue) {
+                                  _selectedMetric = null;
+                                } else {
+                                  _selectedMetric =
+                                      DashboardMetricType.portfolioValue;
+                                }
+                              });
+                            },
                           )
                           .animate()
                           .fadeIn(duration: 400.ms)
                           .slideY(begin: -0.1, end: 0),
+
+                      if (_selectedMetric ==
+                          DashboardMetricType.portfolioValue) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        MetricDetailCard(
+                          metricType: DashboardMetricType.portfolioValue,
+                          summary: portfolioSummary,
+                          stockSummaries: stockSummaries,
+                          positions: positions,
+                          withdrawals: withdrawals,
+                          onClose: () {
+                            setState(() {
+                              _selectedMetric = null;
+                            });
+                          },
+                        ),
+                      ],
 
                       const SizedBox(height: AppSpacing.xl),
 
@@ -244,7 +274,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         },
                       ),
 
-                      if (_selectedMetric != null) ...[
+                      if (_selectedMetric != null &&
+                          _selectedMetric !=
+                              DashboardMetricType.portfolioValue) ...[
                         const SizedBox(height: AppSpacing.md),
                         MetricDetailCard(
                           metricType: _selectedMetric!,

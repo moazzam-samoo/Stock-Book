@@ -17,6 +17,8 @@ class PortfolioHeader extends ConsumerWidget {
   final double profitLossPercentage;
   final DateTime? lastSyncTime;
   final bool isOffline;
+  final VoidCallback? onTapTotalValue;
+  final bool isSelected;
 
   const PortfolioHeader({
     super.key,
@@ -24,6 +26,8 @@ class PortfolioHeader extends ConsumerWidget {
     required this.profitLossPercentage,
     this.lastSyncTime,
     this.isOffline = false,
+    this.onTapTotalValue,
+    this.isSelected = false,
   });
 
   Widget _buildUserAvatar(String? photoUrl, String? displayName) {
@@ -60,47 +64,86 @@ class PortfolioHeader extends ConsumerWidget {
     final photoUrl = user?.photoURL;
     final displayName = user?.displayName;
 
-    final displayValue = AppCurrencyFormatter.format(totalValue, decimalDigits: 0);
+    final displayValue = totalValue.abs() >= 100000
+        ? AppCurrencyFormatter.formatCompact(totalValue)
+        : AppCurrencyFormatter.format(totalValue, decimalDigits: 0);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'TOTAL PORTFOLIO VALUE',
-              style: AppTypography.caption.copyWith(
-                color: isDark ? AppColors.neutral500 : const Color(0xFF64748B),
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-                fontSize: 11,
+          child: GestureDetector(
+            onTap: onTapTotalValue,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 2.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'TOTAL PORTFOLIO VALUE',
+                        style: AppTypography.caption.copyWith(
+                          color: isSelected
+                              ? (isDark
+                                  ? AppColors.moneyGreen
+                                  : AppColors.moneyGreenOnLight)
+                              : (isDark
+                                  ? AppColors.neutral500
+                                  : const Color(0xFF64748B)),
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        isSelected
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.info_outline_rounded,
+                        size: 13,
+                        color: isSelected
+                            ? (isDark
+                                ? AppColors.moneyGreen
+                                : AppColors.moneyGreenOnLight)
+                            : (isDark
+                                ? AppColors.neutral500
+                                : const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            displayValue,
+                            style: AppTypography.display.copyWith(
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimaryLight,
+                              fontFamily: 'JetBrains Mono',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      TrendChip(percentage: profitLossPercentage),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Text(
-                    displayValue,
-                    style: AppTypography.display.copyWith(
-                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                      fontFamily: 'JetBrains Mono',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 28,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TrendChip(percentage: profitLossPercentage),
-              ],
-            ),
-          ],
-        ),
+          ),
         ), // Close Expanded
         const SizedBox(width: AppSpacing.md),
         Column(

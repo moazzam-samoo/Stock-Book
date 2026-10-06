@@ -77,8 +77,10 @@ class StatCard extends StatelessWidget {
     final formatNumber = NumberFormat.decimalPattern();
 
     final displayValue = isCurrency
-        ? AppCurrencyFormatter.format(value, decimalDigits: 0)
-        : formatNumber.format(value);
+        ? AppCurrencyFormatter.formatCompact(value)
+        : (value.abs() >= 100000
+            ? NumberFormat.compact().format(value)
+            : formatNumber.format(value));
 
     final baseCardBg = isDark ? const Color(0xFF13151B) : Colors.white;
 
@@ -163,16 +165,19 @@ class StatCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          displayValue,
-                          style: AppTypography.h2.copyWith(
-                            color: valueColor ?? defaultValColor,
-                            fontFamily: 'JetBrains Mono',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            displayValue,
+                            style: AppTypography.h2.copyWith(
+                              color: valueColor ?? defaultValColor,
+                              fontFamily: 'JetBrains Mono',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                            ),
+                            maxLines: 1,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                         if (tag != null) ...[
                           const SizedBox(height: 5),
