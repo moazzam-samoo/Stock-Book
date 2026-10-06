@@ -121,7 +121,7 @@ void main() {
   );
 
   testWidgets(
-    'a split closed cycle renders one card per buy, each with its own cost and profit',
+    'a closed cycle renders as one unified card with combined shares, average price, and total profit',
     (tester) async {
       final closed = PositionCalculator.applySell(
         position,
@@ -130,35 +130,31 @@ void main() {
         shares: 1700,
         pricePerShare: 9.0,
       );
-      final slices = PositionCalculator.splitByBuy(closed);
-      expect(slices.length, 2);
 
       await tester.pumpWidget(wrap(
-        Column(
-          children: [
-            for (final slice in slices)
-              PositionCard(
-                position: slice,
-                showStockDetailNavigation: false,
-                writePosition: closed,
-              ),
-          ],
+        PositionCard(
+          position: closed,
+          showStockDetailNavigation: false,
         ),
       ));
       await tester.pumpAndSettle();
 
-      // Two distinct cards, both CLOSED — not one merged card.
-      expect(find.byType(PositionCard), findsNWidgets(2));
-      expect(find.text('CLOSED'), findsNWidgets(2));
+      // One single unified card, CLOSED — not split per buy.
+      expect(find.byType(PositionCard), findsOneWidget);
+      expect(find.text('CLOSED'), findsOneWidget);
 
-      // Each card is headed by its own buy's share count, not the pooled 1,700.
-      expect(find.text('500 sh'), findsOneWidget);
-      expect(find.text('1,200 sh'), findsOneWidget);
-      expect(find.text('1,700 sh'), findsNothing);
+      // Card is headed by the pooled total sold shares (1,700 sh)
+      expect(find.text('1,700 sh'), findsOneWidget);
 
-      // And each shows the price that buy was actually made at.
-      expect(findRichTextContaining('8.73'), findsWidgets);
-      expect(findRichTextContaining('8.38'), findsWidgets);
+      // Expanding the card shows both original buys and the sale in one lot
+      await tester.tap(find.byType(PositionCard));
+      await tester.pumpAndSettle();
+
+      expect(find.text('BUY HISTORY'), findsOneWidget);
+      expect(find.text('SALE HISTORY'), findsOneWidget);
+      expect(find.text('Bought 500 @ Rs 8.73'), findsOneWidget);
+      expect(find.text('Bought 1,200 @ Rs 8.38'), findsOneWidget);
+      expect(find.text('Sold 1,700 @ Rs 9'), findsOneWidget);
     },
   );
 

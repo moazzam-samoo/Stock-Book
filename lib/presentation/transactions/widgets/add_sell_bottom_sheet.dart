@@ -42,12 +42,27 @@ class AddSellBottomSheet extends ConsumerStatefulWidget {
 
 class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _sharesController;
   DateTime? _sellDate = DateTime.now();
   double _sharesSold = 0.0;
   double _sellPrice = 0.0;
 
   int get _sharesHeld => PositionCalculator.sharesHeld(widget.position);
   double get _avgCost => PositionCalculator.avgCost(widget.position);
+
+  @override
+  void initState() {
+    super.initState();
+    final held = _sharesHeld;
+    _sharesSold = held.toDouble();
+    _sharesController = TextEditingController(text: held > 0 ? '$held' : '');
+  }
+
+  @override
+  void dispose() {
+    _sharesController.dispose();
+    super.dispose();
+  }
 
   double get _amountReceived => _sharesSold * _sellPrice;
   double get _profitLoss => (_sellPrice - _avgCost) * _sharesSold;
@@ -219,6 +234,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                   children: [
                     Expanded(
                       child: NumericInput(
+                        controller: _sharesController,
                         label: 'Shares Sold',
                         onChanged: (val) {
                           setState(() {

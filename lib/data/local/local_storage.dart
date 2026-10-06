@@ -11,8 +11,22 @@ class LocalStorage {
     
     // Open boxes
     await Hive.openBox(settingsBox);
+    await Hive.openBox('settingsBox');
     await Hive.openBox(authBox);
     await Hive.openBox(cacheBox);
     await Hive.openBox(marketPricesCacheBox);
+  }
+
+  static String? getCachedThemeMode() {
+    try {
+      if (Hive.isBoxOpen('settingsBox')) {
+        final box = Hive.box('settingsBox');
+        final data = box.get('user_settings');
+        if (data is Map && data['themeMode'] is String) {
+          return data['themeMode'] as String;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 }

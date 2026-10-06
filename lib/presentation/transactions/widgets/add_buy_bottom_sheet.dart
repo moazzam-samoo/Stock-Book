@@ -7,6 +7,7 @@ import 'package:stock_investment_tracker/presentation/common/date_picker_field.d
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/add_buy_controller.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
 
 class AddBuyBottomSheet extends ConsumerStatefulWidget {
@@ -64,6 +65,65 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
     final results = await Connectivity().checkConnectivity();
     final isOffline =
         results.contains(ConnectivityResult.none) || results.isEmpty;
+
+    final summary = ref.read(portfolioSummaryProvider);
+    if (summary.startingCapital > 0) {
+      final freeCash = summary.freeCash;
+      final realizedPL = summary.realizedPL;
+      final liquidCapital = freeCash + realizedPL;
+
+      if (_amountInvested > liquidCapital) {
+        if (!mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(
+              Icons.money_off_rounded,
+              color: AppColors.alertRed,
+              size: 36,
+            ),
+            title: const Text('Insufficient Capital'),
+            content: Text(
+              'You do not have enough free cash or realized profit to complete this purchase.\n\n'
+              'Required: ${AppCurrencyFormatter.format(_amountInvested)}\n'
+              'Available: ${AppCurrencyFormatter.format(liquidCapital)}',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Got it'),
+              ),
+            ],
+          ),
+        );
+        return;
+      } else if (_amountInvested > freeCash) {
+        if (!mounted) return;
+        final shortfall = _amountInvested - freeCash;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Use Profit for Investment?'),
+            content: Text(
+              'Your purchase of ${AppCurrencyFormatter.format(_amountInvested)} exceeds your free cash of ${AppCurrencyFormatter.format(freeCash)}.\n\n'
+              'The shortfall of ${AppCurrencyFormatter.format(shortfall)} will be funded from your realized profit.\n\n'
+              'Do you want to proceed?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Proceed'),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
+    }
 
     await ref
         .read(addBuyControllerProvider.notifier)

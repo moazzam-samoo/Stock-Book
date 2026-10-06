@@ -23,6 +23,8 @@ import 'package:stock_investment_tracker/presentation/dashboard/providers/dashbo
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
+import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
+import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
 import 'package:stock_investment_tracker/providers/package_info_providers.dart';
 import 'package:go_router/go_router.dart';
@@ -79,6 +81,11 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSectionTitle(context, 'PRICE REFRESH'),
                       const SizedBox(height: 12),
                       _buildPriceRefreshSection(context, ref, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'REPORTS & EXPORT'),
+                      const SizedBox(height: 12),
+                      _buildReportsSection(context, ref, isDark),
                       const SizedBox(height: 28),
 
                       _buildSectionTitle(context, 'PIN STOCKS'),
@@ -303,66 +310,75 @@ class SettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Currency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: settings.currency,
-                      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.neutral500),
-                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                      dropdownColor: inputBg,
-                      items: const [
-                        DropdownMenuItem(value: 'PKR', child: Text('PKR')),
-                        DropdownMenuItem(value: 'USD', child: Text('USD')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          ref.read(settingsControllerProvider.notifier).updateCurrency(val);
-                        }
-                      },
-                    ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Currency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.neutral500)),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: inputBg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: settings.currency,
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.neutral500),
+                            style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                            dropdownColor: inputBg,
+                            items: const [
+                              DropdownMenuItem(value: 'PKR', child: Text('PKR')),
+                              DropdownMenuItem(value: 'USD', child: Text('USD')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                ref.read(settingsControllerProvider.notifier).updateCurrency(val);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: borderColor),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: settings.themeMode,
-                      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.neutral500),
-                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                      dropdownColor: inputBg,
-                      items: const [
-                        DropdownMenuItem(value: 'dark', child: Text('Dark')),
-                        DropdownMenuItem(value: 'light', child: Text('Light')),
-                        DropdownMenuItem(value: 'system', child: Text('System')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          ref.read(settingsControllerProvider.notifier).updateThemeMode(val);
-                        }
-                      },
-                    ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Theme', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.neutral500)),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: inputBg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: settings.themeMode,
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.neutral500),
+                            style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                            dropdownColor: inputBg,
+                            items: const [
+                              DropdownMenuItem(value: 'dark', child: Text('Dark')),
+                              DropdownMenuItem(value: 'light', child: Text('Light')),
+                              DropdownMenuItem(value: 'system', child: Text('System')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                ref.read(settingsControllerProvider.notifier).updateThemeMode(val);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -391,74 +407,102 @@ class SettingsScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: total withdrawn + remaining profit
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          // Header: tappable — navigates to WithdrawalListScreen
+          InkWell(
+            onTap: () => context.push('/withdrawals'),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Profit Withdrawals',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          withdrawals.isEmpty
+                              ? 'Tap to record profit cash-outs'
+                              : '${withdrawals.length} withdrawal${withdrawals.length == 1 ? '' : 's'} · ${AppCurrencyFormatter.format(summary.grossRealizedPL)} earned',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
                     children: [
-                      Text('Total Withdrawn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-                      const SizedBox(height: 2),
                       Text(
-                        withdrawals.isEmpty
-                            ? 'No withdrawals yet'
-                            : '${withdrawals.length} withdrawal${withdrawals.length == 1 ? '' : 's'} · ${AppCurrencyFormatter.format(summary.grossRealizedPL)} profit earned',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.neutral500),
+                        AppCurrencyFormatter.format(summary.totalWithdrawn),
+                        style: TextStyle(
+                          fontFamily: 'JetBrains Mono',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: summary.totalWithdrawn > 0 ? AppColors.warningYellow : primaryTextColor,
+                        ),
                       ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.chevron_right_rounded, color: AppColors.neutral500, size: 20),
                     ],
                   ),
-                ),
-                Text(
-                  AppCurrencyFormatter.format(summary.totalWithdrawn),
-                  style: TextStyle(
-                    fontFamily: 'JetBrains Mono',
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: summary.totalWithdrawn > 0 ? AppColors.warningYellow : primaryTextColor,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Divider(height: 1, color: borderColor),
-
-          if (withdrawals.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-              child: Column(
-                children: withdrawals.map((w) => WithdrawalRow(withdrawal: w)).toList(),
-              ),
-            ),
-
+          // Action row
           Padding(
-            padding: EdgeInsets.fromLTRB(16, withdrawals.isEmpty ? 16 : 6, 16, 16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton.icon(
-                onPressed: () => WithdrawalBottomSheet.show(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? const Color(0xFF2A2416) : const Color(0xFFFEF9E7),
-                  foregroundColor: AppColors.warningYellow,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 42,
+                    child: ElevatedButton.icon(
+                      onPressed: () => WithdrawalBottomSheet.show(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF2A2416) : const Color(0xFFFEF9E7),
+                        foregroundColor: AppColors.warningYellow,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.north_east_rounded, size: 16, color: AppColors.warningYellow),
+                      label: const Text(
+                        'Add Withdrawal',
+                        style: TextStyle(color: AppColors.warningYellow, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.north_east_rounded, size: 18, color: AppColors.warningYellow),
-                label: const Text(
-                  'Add Withdrawal',
-                  style: TextStyle(color: AppColors.warningYellow, fontWeight: FontWeight.bold, fontSize: 14),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/withdrawals'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: borderColor),
+                      foregroundColor: primaryTextColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.list_rounded, size: 16, color: AppColors.neutral500),
+                    label: const Text(
+                      'View All',
+                      style: TextStyle(color: AppColors.neutral500, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
 
   /// Lets the user supply their own GitHub token so pull-to-refresh can ask
   /// the backend to run immediately instead of waiting for its 5-minute
@@ -561,6 +605,103 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportsSection(
+    BuildContext context,
+    WidgetRef ref,
+    bool isDark,
+  ) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
+            HapticFeedback.lightImpact();
+            final positions = ref.read(allPositionsProvider).valueOrNull ?? [];
+            final summary = ref.read(portfolioSummaryProvider);
+            final stockSummaries = ref.read(stockSummariesProvider);
+            final withdrawals =
+                ref.read(allWithdrawalsProvider).valueOrNull ?? [];
+            await PdfReportService.exportOverallPortfolioPdf(
+              positions: positions,
+              summary: summary,
+              stockSummaries: stockSummaries,
+              withdrawals: withdrawals,
+            );
+          },
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.chartBlue.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    color: AppColors.chartBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Export Portfolio PDF',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Full report: all stocks, profits & withdrawals',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.neutral500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.neutral500,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1294,10 +1435,11 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
                 width: 40,
                 child: _isDirty
                     ? IconButton(
-                        icon: const Icon(Icons.check_circle, color: AppColors.moneyGreen, size: 20),
+                        icon: const Icon(Icons.check_circle, color: AppColors.moneyGreen, size: 22),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         onPressed: _save,
+                        tooltip: 'Save',
                       )
                     : const SizedBox(),
               ),

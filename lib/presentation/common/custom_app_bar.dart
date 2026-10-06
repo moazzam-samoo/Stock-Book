@@ -15,6 +15,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final IconData? icon;
   final Color? iconBadgeColor;
   final String? subtitle;
+  final double? titleFontSize;
 
   const CustomAppBar({
     super.key,
@@ -25,6 +26,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.icon,
     this.iconBadgeColor,
     this.subtitle,
+    this.titleFontSize,
   });
 
   @override
@@ -84,7 +86,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       style: AppTypography.h1.copyWith(
                         color: titleColor,
                         fontWeight: FontWeight.w800,
-                        fontSize: 26,
+                        fontSize: titleFontSize ?? 26,
                         letterSpacing: -0.5,
                       ),
                       maxLines: 1,
@@ -99,7 +101,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           style: AppTypography.h1.copyWith(
                             color: titleColor,
                             fontWeight: FontWeight.w800,
-                            fontSize: 22,
+                            fontSize: titleFontSize ?? 22,
                             letterSpacing: -0.5,
                           ),
                           maxLines: 1,

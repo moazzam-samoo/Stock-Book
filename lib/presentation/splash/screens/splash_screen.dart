@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
+import 'package:stock_investment_tracker/data/local/local_storage.dart';
 import 'package:stock_investment_tracker/presentation/auth/providers/auth_providers.dart';
 import 'package:stock_investment_tracker/presentation/onboarding/providers/onboarding_provider.dart';
+import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -41,7 +43,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final settingsAsync = ref.watch(settingsProvider);
+    final themeMode =
+        settingsAsync.valueOrNull?.themeMode ?? LocalStorage.getCachedThemeMode();
+    final isDark = themeMode == 'dark' ||
+        (themeMode == 'system' &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark) ||
+        (themeMode == null &&
+            (Theme.of(context).brightness == Brightness.dark ||
+                MediaQuery.platformBrightnessOf(context) == Brightness.dark));
     final bgColor = isDark ? AppColors.background : Colors.white;
     final titleColor = isDark ? Colors.white : AppColors.textPrimaryLight;
 
@@ -120,23 +130,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               padding: const EdgeInsets.only(bottom: 36),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.asset(
-                      'assets/icon/android-chrome-192x192.png',
-                      width: 16,
-                      height: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
                   Text(
                     'Powered by Coding District',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.neutral500.withValues(alpha: 0.8),
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : AppColors.neutral500.withValues(alpha: 0.8),
                       letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.asset(
+                      isDark
+                          ? 'assets/icon/white-icon.jpg'
+                          : 'assets/icon/android-chrome-192x192.png',
+                      width: 18,
+                      height: 18,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ],

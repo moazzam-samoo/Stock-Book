@@ -10,6 +10,7 @@ import '../dashboard/screens/dashboard_screen.dart';
 import '../dashboard/screens/stock_detail_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../settings/screens/company_owners_screen.dart';
+import '../settings/screens/withdrawal_list_screen.dart';
 import '../transactions/screens/transactions_screen.dart';
 import '../alerts/screens/alerts_screen.dart';
 import '../splash/screens/splash_screen.dart';
@@ -147,6 +148,10 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: '/company',
         builder: (context, state) => const CompanyOwnersScreen(),
+      ),
+      GoRoute(
+        path: '/withdrawals',
+        builder: (context, state) => const WithdrawalListScreen(),
       ),
     ],
   );

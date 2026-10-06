@@ -22,13 +22,21 @@ import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/sparkline_chart.dart';
 
-class StockDetailScreen extends ConsumerWidget {
+class StockDetailScreen extends ConsumerStatefulWidget {
   final String ticker;
 
   const StockDetailScreen({super.key, required this.ticker});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StockDetailScreen> createState() => _StockDetailScreenState();
+}
+
+class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
+  bool _showAllClosed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ticker = widget.ticker;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final positionsAsyncValue = ref.watch(allPositionsProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
@@ -178,47 +186,19 @@ class StockDetailScreen extends ConsumerWidget {
 
                 final openPositions = stockPositions
                     .where((p) => p.status != PositionStatus.closed)
-                    .toList();
+                    .toList()
+                  ..sort((a, b) => b.openedAt.compareTo(a.openedAt));
+
                 final closedPositions = stockPositions
                     .where((p) => p.status == PositionStatus.closed)
-                    .toList();
-
-                final openCards =
-                    <({Position display, Position? writeTarget})>[];
-                for (final position in openPositions) {
-                  final splits = PositionCalculator.splitByBuy(position);
-                  for (final slice in splits) {
-                    openCards.add((
-                      display: slice,
-                      writeTarget: identical(slice, position) ? null : position,
-                    ));
-                  }
-                }
-                openCards.sort(
-                  (a, b) => b.display.openedAt.compareTo(a.display.openedAt),
-                );
-
-                final closedCards =
-                    <({Position display, Position? writeTarget})>[];
-                for (final position in closedPositions) {
-                  final splits = PositionCalculator.splitByBuy(position);
-                  for (final slice in splits) {
-                    closedCards.add((
-                      display: slice,
-                      writeTarget: identical(slice, position) ? null : position,
-                    ));
-                  }
-                }
-                // Sort by latest date on top: newer buy on top, tie-break by closedAt
-                closedCards.sort((a, b) {
-                  final dateComp = b.display.openedAt.compareTo(
-                    a.display.openedAt,
-                  );
-                  if (dateComp != 0) return dateComp;
-                  final closedA = a.display.closedAt ?? a.display.openedAt;
-                  final closedB = b.display.closedAt ?? b.display.openedAt;
-                  return closedB.compareTo(closedA);
-                });
+                    .toList()
+                  ..sort((a, b) {
+                    final dateComp = b.openedAt.compareTo(a.openedAt);
+                    if (dateComp != 0) return dateComp;
+                    final closedA = a.closedAt ?? a.openedAt;
+                    final closedB = b.closedAt ?? b.openedAt;
+                    return closedB.compareTo(closedA);
+                  });
 
                 final refreshBg = isDark
                     ? const Color(0xFF13151B)
@@ -772,7 +752,7 @@ class StockDetailScreen extends ConsumerWidget {
                                 icon: Icons.business_center_outlined,
                                 title: 'Open Positions',
                                 badgeText:
-                                    '${openCards.length} ${openCards.length == 1 ? 'Open Position' : 'Open Positions'}',
+                                    '${openPositions.length} ${openPositions.length == 1 ? 'Open Position' : 'Open Positions'}',
                                 badgeDotColor: isDark
                                     ? AppColors.moneyGreen
                                     : AppColors.moneyGreenOnLight,
@@ -780,7 +760,7 @@ class StockDetailScreen extends ConsumerWidget {
                                 primaryTextColor: primaryTextColor,
                               ),
                               const SizedBox(height: 16),
-                              if (openCards.isEmpty)
+                              if (openPositions.isEmpty)
                                 Center(
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -795,33 +775,77 @@ class StockDetailScreen extends ConsumerWidget {
                                   ),
                                 )
                               else
-                                ...openCards.map(
-                                  (card) => PositionCard(
-                                    position: card.display,
+                                ...openPositions.map(
+                                  (position) => PositionCard(
+                                    position: position,
                                     showStockDetailNavigation: false,
-                                    writePosition: card.writeTarget,
                                   ),
                                 ),
 
                               const SizedBox(height: 32),
 
-                              if (closedCards.isNotEmpty) ...[
+                              if (closedPositions.isNotEmpty) ...[
                                 _buildSectionHeader(
                                   icon: Icons.check_circle_outline_rounded,
                                   title: 'Closed Positions',
-                                  badgeText: '${closedCards.length} Closed',
+                                  badgeText: '${closedPositions.length} Closed',
                                   badgeDotColor: AppColors.alertRed,
                                   isDark: isDark,
                                   primaryTextColor: primaryTextColor,
                                 ),
                                 const SizedBox(height: 16),
-                                ...closedCards.map(
-                                  (card) => PositionCard(
-                                    position: card.display,
-                                    showStockDetailNavigation: false,
-                                    writePosition: card.writeTarget,
-                                  ),
+                                PositionCard(
+                                  position: closedPositions.first,
+                                  showStockDetailNavigation: false,
                                 ),
+                                if (closedPositions.length > 1) ...[
+                                  if (!_showAllClosed) ...[
+                                    const SizedBox(height: 12),
+                                    Center(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () {
+                                          setState(() {
+                                            _showAllClosed = true;
+                                          });
+                                        },
+                                        icon: const Icon(Icons.history_rounded, size: 18),
+                                        label: Text(
+                                          'Show other ${closedPositions.length - 1} closed ${closedPositions.length - 1 == 1 ? 'position' : 'positions'}',
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: primaryTextColor,
+                                          side: BorderSide(color: borderColor),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ] else ...[
+                                    ...closedPositions.skip(1).map(
+                                      (position) => PositionCard(
+                                        position: position,
+                                        showStockDetailNavigation: false,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Center(
+                                      child: TextButton.icon(
+                                        onPressed: () {
+                                          setState(() {
+                                            _showAllClosed = false;
+                                          });
+                                        },
+                                        icon: const Icon(Icons.expand_less_rounded, size: 18),
+                                        label: const Text('Hide other closed positions'),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.neutral500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ],
 
                               const SizedBox(height: 48),

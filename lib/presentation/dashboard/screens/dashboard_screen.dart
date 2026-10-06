@@ -21,6 +21,7 @@ import 'package:stock_investment_tracker/data/migration/position_migration_runne
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/widgets/metric_detail_card.dart';
+import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -172,11 +173,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final positionsAsyncValue = ref.watch(allPositionsProvider);
     final portfolioSummary = ref.watch(portfolioSummaryProvider);
     final stockSummaries = ref.watch(stockSummariesProvider);
-    // "Your Stocks" lists what you currently hold. Tickers you've sold out of
-    // stay in `stockSummaries` (the PDF report and metric drill-downs need
-    // their booked profit) — they're just not part of this list.
+    // "Your Stocks" lists what you currently hold. If none are held,
+    // closed stocks are shown as "Your Closed Shares" history.
     final heldStockSummaries =
         stockSummaries.where((s) => s.sharesHeld > 0).toList();
+    final closedStockSummaries =
+        stockSummaries.where((s) => s.sharesHeld == 0).toList();
+    final hasActiveStocks = heldStockSummaries.isNotEmpty;
+    final hasClosedStocks = closedStockSummaries.isNotEmpty;
     final allocationData = ref.watch(allocationDataProvider);
     final withdrawals = ref.watch(allWithdrawalsProvider).valueOrNull ?? [];
 
@@ -269,16 +273,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Your Stocks',
-                            style: AppTypography.h2.copyWith(
-                              color: primaryTextColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                hasActiveStocks
+                                    ? 'Your Stocks'
+                                    : (hasClosedStocks
+                                        ? 'Your Closed Shares'
+                                        : 'Your Stocks'),
+                                style: AppTypography.h2.copyWith(
+                                  color: primaryTextColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              if (!hasActiveStocks && hasClosedStocks) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF242731)
+                                        : const Color(0xFFE2E8F0),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'History',
+                                    style: AppTypography.caption.copyWith(
+                                      color: isDark
+                                          ? AppColors.neutral400
+                                          : AppColors.neutral500,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           GestureDetector(
-                            onTap: () => context.go('/transactions'),
+                            onTap: () {
+                              if (!hasActiveStocks && hasClosedStocks) {
+                                ref
+                                    .read(statusFilterProvider.notifier)
+                                    .updateFilter('Closed');
+                              }
+                              context.go('/transactions');
+                            },
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 4.0,
@@ -299,22 +343,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      if (heldStockSummaries.isEmpty)
-                        Column(
-                          children: [
-                            EmptyStateView(
-                              icon: Icons.show_chart,
-                              title: 'No stocks yet',
-                              message:
-                                  'Add your first stock purchase to track your portfolio.',
-                              buttonLabel: 'Add your first stock',
-                              onButtonPressed: () {
-                                context.go('/transactions');
-                              },
-                            ),
-                          ],
-                        )
-                      else
+                      if (hasActiveStocks)
                         Container(
                           decoration: BoxDecoration(
                             color: cardBg,
@@ -346,6 +375,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               );
                             },
                           ),
+                        )
+                      else if (hasClosedStocks)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: closedStockSummaries.length,
+                            separatorBuilder: (context, index) => Divider(
+                              height: 1,
+                              color: borderColor,
+                              indent: 16,
+                              endIndent: 16,
+                            ),
+                            itemBuilder: (context, index) {
+                              final summary = closedStockSummaries[index];
+                              return StockRow(
+                                summary: summary,
+                                animationDelayMs: index * 100,
+                                onTap: () {
+                                  context.push('/stock/${summary.ticker}');
+                                },
+                              );
+                            },
+                          ),
+                        )
+                      else
+                        Column(
+                          children: [
+                            EmptyStateView(
+                              icon: Icons.show_chart,
+                              title: 'No stocks yet',
+                              message:
+                                  'Add your first stock purchase to track your portfolio.',
+                              buttonLabel: 'Add your first stock',
+                              onButtonPressed: () {
+                                context.go('/transactions');
+                              },
+                            ),
+                          ],
                         ),
                       const SizedBox(
                         height: 100,

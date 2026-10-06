@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
-import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
@@ -11,8 +10,6 @@ import 'package:stock_investment_tracker/presentation/transactions/widgets/trans
 import 'package:stock_investment_tracker/presentation/transactions/widgets/filter_chip_row.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/add_transaction_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/common/empty_state_view.dart';
-import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
-import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
 import 'package:stock_investment_tracker/providers/market_prices_providers.dart';
 import 'package:stock_investment_tracker/providers/workflow_trigger_providers.dart';
 import 'package:stock_investment_tracker/core/services/workflow_trigger_service.dart';
@@ -67,19 +64,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredPositions = ref.watch(filteredPositionsProvider);
-    // A closed cycle shows as one card per buy — each card knows the real
-    // position behind it so edit/delete still land on the right document.
-    // Reversed so newest buy appears on top.
-    final cards = <({Position display, Position? writeTarget})>[];
-    for (final position in filteredPositions) {
-      final splits = PositionCalculator.splitByBuy(position);
-      for (final slice in splits.reversed) {
-        cards.add((
-          display: slice,
-          writeTarget: identical(slice, position) ? null : position,
-        ));
-      }
-    }
 
     // Pinned tickers float to the top, preserving relative order within
     // each group — an explicit partition rather than `cards.sort(...)`
@@ -90,10 +74,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     // isPinned check — a ticker with stray trailing whitespace (AGENTS.md
     // §16.1) must match the same way it was stored via togglePin.
     final orderedCards = pinnedTickers.isEmpty
-        ? cards
+        ? filteredPositions
         : [
-            ...cards.where((c) => pinnedTickers.contains(c.display.ticker.trim().toUpperCase())),
-            ...cards.where((c) => !pinnedTickers.contains(c.display.ticker.trim().toUpperCase())),
+            ...filteredPositions.where((p) => pinnedTickers.contains(p.ticker.trim().toUpperCase())),
+            ...filteredPositions.where((p) => !pinnedTickers.contains(p.ticker.trim().toUpperCase())),
           ];
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -117,65 +101,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               icon: FontAwesomeIcons.chartLine.data,
               iconBadgeColor: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
               actions: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      // The overall report covers the whole portfolio — it must
-                      // not depend on which filter chip happens to be selected
-                      // (the default one now hides closed positions).
-                      final positions =
-                          ref.read(allPositionsProvider).valueOrNull ?? [];
-                      final summary = ref.read(portfolioSummaryProvider);
-                      final stockSummaries = ref.read(stockSummariesProvider);
-                      final withdrawals =
-                          ref.read(allWithdrawalsProvider).valueOrNull ?? [];
-                      await PdfReportService.exportOverallPortfolioPdf(
-                        positions: positions,
-                        summary: summary,
-                        stockSummaries: stockSummaries,
-                        withdrawals: withdrawals,
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF10233A)
-                            : const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.chartBlue.withOpacity(0.25),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.picture_as_pdf_outlined,
-                            size: 16,
-                            color: AppColors.chartBlue,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Export PDF',
-                            style: TextStyle(
-                              color: AppColors.chartBlue,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () {
@@ -232,16 +157,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         padding: const EdgeInsets.only(bottom: 110),
                         itemCount: orderedCards.length,
                         itemBuilder: (context, index) {
-                          final card = orderedCards[index];
+                          final position = orderedCards[index];
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 6,
                             ),
                             child: PositionCard(
-                              key: ValueKey(card.display.id),
-                              position: card.display,
-                              writePosition: card.writeTarget,
+                              key: ValueKey(position.id),
+                              position: position,
                             ),
                           );
                         },

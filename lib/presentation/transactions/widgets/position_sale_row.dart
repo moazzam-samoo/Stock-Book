@@ -186,64 +186,82 @@ class PositionSaleRow extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Received ',
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.neutral500,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          AppCurrencyFormatter.format(positionSale.amountReceived),
-                          style: AppTypography.body.copyWith(
-                            color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: plColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: plColor.withOpacity(0.25)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isProfit
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            size: 12,
-                            color: plColor,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(positionSaleProfit.abs())}',
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Received ',
                             style: AppTypography.caption.copyWith(
-                              color: plColor,
-                              fontWeight: FontWeight.w800,
+                              color: AppColors.neutral500,
                               fontSize: 12,
                             ),
+                            children: [
+                              TextSpan(
+                                text: AppCurrencyFormatter.format(
+                                  positionSale.amountReceived,
+                                ),
+                                style: AppTypography.body.copyWith(
+                                  color: isDark
+                                      ? AppColors.moneyGreen
+                                      : AppColors.moneyGreenOnLight,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '(${isProfit ? "+" : ""}${profitPercent.toStringAsFixed(1)}%)',
-                            style: AppTypography.caption.copyWith(
-                              color: plColor.withOpacity(0.8),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                        ],
+                          decoration: BoxDecoration(
+                            color: plColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border:
+                                Border.all(color: plColor.withOpacity(0.25)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isProfit
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                                size: 12,
+                                color: plColor,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(positionSaleProfit.abs())}',
+                                style: AppTypography.caption.copyWith(
+                                  color: plColor,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${isProfit ? "+" : ""}${profitPercent.toStringAsFixed(1)}%)',
+                                style: AppTypography.caption.copyWith(
+                                  color: plColor.withOpacity(0.8),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
