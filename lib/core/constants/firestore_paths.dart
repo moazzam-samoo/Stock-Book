@@ -22,4 +22,7 @@ class FirestorePaths {
 
   // Premium unlock codes — top-level, one doc per unique code (Pin Stocks feature)
   static String premiumCode(String code) => 'premium_codes/$code';
+
+  // Global app configuration (Tax rates, app flags) — set by Admin
+  static String globalTaxRates() => 'config/tax_rates';
 }

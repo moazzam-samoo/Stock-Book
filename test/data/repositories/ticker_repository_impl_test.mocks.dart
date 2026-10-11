@@ -14,6 +14,8 @@ import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart'
     as _i8;
+import 'package:stock_investment_tracker/data/models/admin_tax_rates_model.dart'
+    as _i11;
 import 'package:stock_investment_tracker/data/models/market_price_model.dart'
     as _i10;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
@@ -654,4 +656,21 @@ class MockHiveDataSource extends _i1.Mock implements _i8.HiveDataSource {
             ),
           )
           as _i5.Future<List<Map<String, dynamic>>>);
+
+  @override
+  _i5.Future<void> saveAdminTaxRates(_i11.AdminTaxRatesModel? rates) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveAdminTaxRates, [rates]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i11.AdminTaxRatesModel?> getAdminTaxRates() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAdminTaxRates, []),
+            returnValue: _i5.Future<_i11.AdminTaxRatesModel?>.value(),
+          )
+          as _i5.Future<_i11.AdminTaxRatesModel?>);
 }

@@ -1,3 +1,5 @@
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
+
 class UserSettings {
   final List<String> favorites;
   final double startingCapital;
@@ -6,6 +8,7 @@ class UserSettings {
   final Map<String, int> stockColors;
   final List<String> pinnedTickers;
   final bool isPremiumUnlocked;
+  final TaxSettings taxSettings;
 
   const UserSettings({
     required this.favorites,
@@ -15,6 +18,7 @@ class UserSettings {
     this.stockColors = const {},
     this.pinnedTickers = const [],
     this.isPremiumUnlocked = false,
+    this.taxSettings = const TaxSettings(),
   });
 
   UserSettings copyWith({
@@ -25,6 +29,7 @@ class UserSettings {
     Map<String, int>? stockColors,
     List<String>? pinnedTickers,
     bool? isPremiumUnlocked,
+    TaxSettings? taxSettings,
   }) {
     return UserSettings(
       favorites: favorites ?? this.favorites,
@@ -34,6 +39,7 @@ class UserSettings {
       stockColors: stockColors ?? this.stockColors,
       pinnedTickers: pinnedTickers ?? this.pinnedTickers,
       isPremiumUnlocked: isPremiumUnlocked ?? this.isPremiumUnlocked,
+      taxSettings: taxSettings ?? this.taxSettings,
     );
   }
 }

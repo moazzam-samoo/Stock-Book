@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:stock_investment_tracker/domain/entities/admin_tax_rates.dart';
 import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
 import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 
@@ -28,6 +30,36 @@ Stream<UserSettings> settings(SettingsRef ref) async* {
   } catch (e) {
     yield defaultSettings;
   }
+}
+
+@riverpod
+Stream<AdminTaxRates> adminTaxRates(AdminTaxRatesRef ref) async* {
+  final repo = ref.watch(settingsRepositoryProvider);
+  if (repo == null) {
+    yield AdminTaxRates.psxDefaults;
+    return;
+  }
+
+  try {
+    await for (final rates in repo.watchAdminTaxRates()) {
+      yield rates;
+    }
+  } catch (e) {
+    yield AdminTaxRates.psxDefaults;
+  }
+}
+
+@riverpod
+EffectiveTaxRates effectiveTaxRates(EffectiveTaxRatesRef ref) {
+  final userSettings = ref.watch(settingsProvider).valueOrNull;
+  final adminRates =
+      ref.watch(adminTaxRatesProvider).valueOrNull ?? AdminTaxRates.psxDefaults;
+
+  if (userSettings == null) {
+    return EffectiveTaxRates.disabled;
+  }
+
+  return userSettings.taxSettings.resolveEffective(adminRates);
 }
 
 // keepAlive: this notifier is only ever reached via ref.read(...notifier),
@@ -127,5 +159,14 @@ class SettingsController extends _$SettingsController {
     });
     ref.invalidate(settingsProvider);
     return result;
+  }
+
+  Future<void> updateTaxSettings(TaxSettings taxSettings) async {
+    final repo = ref.read(settingsRepositoryProvider);
+    if (repo == null) return;
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => repo.updateTaxSettings(taxSettings));
+    ref.invalidate(settingsProvider);
   }
 }

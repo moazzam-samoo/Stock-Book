@@ -6,16 +6,18 @@
 import 'dart:async' as _i3;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i9;
+import 'package:mockito/src/dummies.dart' as _i10;
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart'
     as _i2;
+import 'package:stock_investment_tracker/data/models/admin_tax_rates_model.dart'
+    as _i9;
 import 'package:stock_investment_tracker/data/models/lot_model.dart' as _i4;
 import 'package:stock_investment_tracker/data/models/market_price_model.dart'
-    as _i10;
+    as _i11;
 import 'package:stock_investment_tracker/data/models/position_model.dart'
     as _i5;
 import 'package:stock_investment_tracker/data/models/price_alert_model.dart'
-    as _i11;
+    as _i12;
 import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i6;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
     as _i8;
@@ -258,6 +260,14 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
+  _i3.Stream<_i9.AdminTaxRatesModel?> watchGlobalTaxRates() =>
+      (super.noSuchMethod(
+            Invocation.method(#watchGlobalTaxRates, []),
+            returnValue: _i3.Stream<_i9.AdminTaxRatesModel?>.empty(),
+          )
+          as _i3.Stream<_i9.AdminTaxRatesModel?>);
+
+  @override
   _i3.Future<String> redeemPremiumCode({
     required String? code,
     required String? uid,
@@ -265,7 +275,7 @@ class MockFirestoreDataSource extends _i1.Mock
       (super.noSuchMethod(
             Invocation.method(#redeemPremiumCode, [], {#code: code, #uid: uid}),
             returnValue: _i3.Future<String>.value(
-              _i9.dummyValue<String>(
+              _i10.dummyValue<String>(
                 this,
                 Invocation.method(#redeemPremiumCode, [], {
                   #code: code,
@@ -277,33 +287,33 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<String>);
 
   @override
-  _i3.Stream<_i10.MarketPriceModel?> watchMarketPrice(String? ticker) =>
+  _i3.Stream<_i11.MarketPriceModel?> watchMarketPrice(String? ticker) =>
       (super.noSuchMethod(
             Invocation.method(#watchMarketPrice, [ticker]),
-            returnValue: _i3.Stream<_i10.MarketPriceModel?>.empty(),
+            returnValue: _i3.Stream<_i11.MarketPriceModel?>.empty(),
           )
-          as _i3.Stream<_i10.MarketPriceModel?>);
+          as _i3.Stream<_i11.MarketPriceModel?>);
 
   @override
-  _i3.Stream<List<_i10.MarketPriceModel>> watchMarketPrices(
+  _i3.Stream<List<_i11.MarketPriceModel>> watchMarketPrices(
     List<String>? tickers,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#watchMarketPrices, [tickers]),
-            returnValue: _i3.Stream<List<_i10.MarketPriceModel>>.empty(),
+            returnValue: _i3.Stream<List<_i11.MarketPriceModel>>.empty(),
           )
-          as _i3.Stream<List<_i10.MarketPriceModel>>);
+          as _i3.Stream<List<_i11.MarketPriceModel>>);
 
   @override
-  _i3.Stream<List<_i11.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
+  _i3.Stream<List<_i12.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchAllPriceAlerts, [uid]),
-            returnValue: _i3.Stream<List<_i11.PriceAlertModel>>.empty(),
+            returnValue: _i3.Stream<List<_i12.PriceAlertModel>>.empty(),
           )
-          as _i3.Stream<List<_i11.PriceAlertModel>>);
+          as _i3.Stream<List<_i12.PriceAlertModel>>);
 
   @override
-  _i3.Future<void> addPriceAlert(String? uid, _i11.PriceAlertModel? alert) =>
+  _i3.Future<void> addPriceAlert(String? uid, _i12.PriceAlertModel? alert) =>
       (super.noSuchMethod(
             Invocation.method(#addPriceAlert, [uid, alert]),
             returnValue: _i3.Future<void>.value(),
@@ -312,7 +322,7 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i3.Future<void>);
 
   @override
-  _i3.Future<void> updatePriceAlert(String? uid, _i11.PriceAlertModel? alert) =>
+  _i3.Future<void> updatePriceAlert(String? uid, _i12.PriceAlertModel? alert) =>
       (super.noSuchMethod(
             Invocation.method(#updatePriceAlert, [uid, alert]),
             returnValue: _i3.Future<void>.value(),

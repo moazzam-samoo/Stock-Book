@@ -6,6 +6,7 @@ import 'package:stock_investment_tracker/domain/entities/stock_summary.dart';
 import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 import 'package:stock_investment_tracker/domain/enums/lot_status.dart';
 import 'package:stock_investment_tracker/domain/entities/position.dart';
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
 import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 
@@ -195,6 +196,7 @@ class PortfolioCalculator {
     List<Position> allPositions,
     double startingCapital, [
     double totalWithdrawn = 0.0,
+    EffectiveTaxRates? effectiveTaxRates,
   ]) {
     double currentlyInvested = 0.0;
     double grossRealizedPL = 0.0;
@@ -202,7 +204,12 @@ class PortfolioCalculator {
 
     for (final position in allPositions) {
       currentlyInvested += PositionCalculator.amountInvested(position);
-      grossRealizedPL += PositionCalculator.realizedPL(position);
+      if (effectiveTaxRates != null && effectiveTaxRates.taxEnabled) {
+        grossRealizedPL +=
+            PositionCalculator.realizedPLWithTax(position, effectiveTaxRates);
+      } else {
+        grossRealizedPL += PositionCalculator.realizedPL(position);
+      }
       if (position.status != PositionStatus.closed) {
         openLots++;
       }
@@ -263,8 +270,9 @@ class PortfolioCalculator {
   /// *dashboard widget's* job, not this function's — `exportOverallPortfolioPdf`
   /// and `MetricDetailCard` both read this list and need it complete.
   static List<StockSummary> calculateStockSummariesFromPositions(
-    List<Position> allPositions,
-  ) {
+    List<Position> allPositions, [
+    EffectiveTaxRates? effectiveTaxRates,
+  ]) {
     if (allPositions.isEmpty) return [];
 
     final byTicker = <String, List<Position>>{};
@@ -289,7 +297,11 @@ class PortfolioCalculator {
         final posSharesHeld = PositionCalculator.sharesHeld(pos);
         sharesHeld += posSharesHeld;
         invested += PositionCalculator.amountInvested(pos);
-        realized += PositionCalculator.realizedPL(pos);
+        if (effectiveTaxRates != null && effectiveTaxRates.taxEnabled) {
+          realized += PositionCalculator.realizedPLWithTax(pos, effectiveTaxRates);
+        } else {
+          realized += PositionCalculator.realizedPL(pos);
+        }
         // Only a position that's still contributing to what's currently
         // held can make the ticker read "Partial" — a fully closed older
         // cycle's sales (a previous buy/sell round for this same ticker)

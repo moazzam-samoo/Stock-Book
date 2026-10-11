@@ -117,7 +117,11 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     // as pinned even though it was saved correctly.
     final isPinned = pinnedTickers.contains(widget.position.ticker.trim().toUpperCase());
 
-    final isProfit = PositionCalculator.realizedPL(widget.position) >= 0;
+    final effectiveTaxes = ref.watch(effectiveTaxRatesProvider);
+    final realizedPL = effectiveTaxes.taxEnabled
+        ? PositionCalculator.realizedPLWithTax(widget.position, effectiveTaxes)
+        : PositionCalculator.realizedPL(widget.position);
+    final isProfit = realizedPL >= 0;
     final plColor = isProfit
         ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
         : AppColors.alertRed;
@@ -138,13 +142,16 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     final investedAmount = isClosed
         ? PositionCalculator.totalCapitalDeployed(widget.position)
         : PositionCalculator.amountInvested(widget.position);
+    final totalCharges = effectiveTaxes.taxEnabled
+        ? PositionCalculator.totalCharges(widget.position, effectiveTaxes)
+        : 0.0;
     final totalReceived = isClosed
         ? (widget.position.sales.isNotEmpty
-              ? widget.position.sales.fold(
-                  0.0,
-                  (sum, s) => sum + s.amountReceived,
-                )
-              : investedAmount + PositionCalculator.realizedPL(widget.position))
+              ? (widget.position.sales.fold(
+                    0.0,
+                    (sum, s) => sum + s.amountReceived,
+                  ) - totalCharges)
+              : investedAmount + realizedPL)
         : 0.0;
 
     final marketPriceAsync = !isClosed
@@ -706,7 +713,13 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                isProfit ? 'Realized Profit' : 'Realized Loss',
+                                isProfit
+                                    ? (effectiveTaxes.taxEnabled
+                                        ? 'Realized Profit (Net)'
+                                        : 'Realized Profit')
+                                    : (effectiveTaxes.taxEnabled
+                                        ? 'Realized Loss (Net)'
+                                        : 'Realized Loss'),
                                 style: AppTypography.caption.copyWith(
                                   color: plColor,
                                   fontWeight: FontWeight.bold,
@@ -717,7 +730,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${wholeFormat.format(soldShares)} of ${wholeFormat.format((widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)))} shares sold',
+                            effectiveTaxes.taxEnabled && totalCharges > 0
+                                ? '${wholeFormat.format(soldShares)} of ${wholeFormat.format((widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)))} sold • Fees/Tax -${AppCurrencyFormatter.format(totalCharges)}'
+                                : '${wholeFormat.format(soldShares)} of ${wholeFormat.format((widget.position.buys.fold<int>(0, (sum, b) => sum + b.shares)))} shares sold',
                             style: AppTypography.caption.copyWith(
                               color: AppColors.neutral500,
                               fontSize: 11,
@@ -733,7 +748,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(PositionCalculator.realizedPL(widget.position).abs())}',
+                      '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(realizedPL.abs())}',
                       style: AppTypography.body.copyWith(
                         color: plColor,
                         fontWeight: FontWeight.w800,

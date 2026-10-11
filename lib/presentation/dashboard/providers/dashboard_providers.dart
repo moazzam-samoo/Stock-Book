@@ -49,6 +49,7 @@ PortfolioSummary portfolioSummary(PortfolioSummaryRef ref) {
   final positions = ref.watch(allPositionsProvider).valueOrNull ?? [];
   final settings = ref.watch(settingsProvider).valueOrNull;
   final withdrawals = ref.watch(allWithdrawalsProvider).valueOrNull ?? [];
+  final effectiveTaxes = ref.watch(effectiveTaxRatesProvider);
 
   // Starting capital from settings, default to 0.0 PKR if not loaded
   final startingCapital = settings?.startingCapital ?? 0.0;
@@ -57,13 +58,18 @@ PortfolioSummary portfolioSummary(PortfolioSummaryRef ref) {
     positions,
     startingCapital,
     PortfolioCalculator.calculateTotalWithdrawn(withdrawals),
+    effectiveTaxes,
   );
 }
 
 @riverpod
 List<StockSummary> stockSummaries(StockSummariesRef ref) {
   final positions = ref.watch(allPositionsProvider).valueOrNull ?? [];
-  return PortfolioCalculator.calculateStockSummariesFromPositions(positions);
+  final effectiveTaxes = ref.watch(effectiveTaxRatesProvider);
+  return PortfolioCalculator.calculateStockSummariesFromPositions(
+    positions,
+    effectiveTaxes,
+  );
 }
 
 @riverpod

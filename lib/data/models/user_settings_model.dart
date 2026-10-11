@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:stock_investment_tracker/data/models/tax_settings_model.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 
 part 'user_settings_model.freezed.dart';
@@ -14,10 +15,19 @@ abstract class UserSettingsModel with _$UserSettingsModel {
     @Default({}) Map<String, int> stockColors,
     @Default([]) List<String> pinnedTickers,
     @Default(false) bool isPremiumUnlocked,
+    @JsonKey(toJson: _taxSettingsToJson, fromJson: _taxSettingsFromJson)
+    @Default(TaxSettingsModel()) TaxSettingsModel taxSettings,
   }) = _UserSettingsModel;
 
   factory UserSettingsModel.fromJson(Map<String, dynamic> json) => _$UserSettingsModelFromJson(json);
 }
+
+Map<String, dynamic> _taxSettingsToJson(TaxSettingsModel model) => model.toJson();
+
+TaxSettingsModel _taxSettingsFromJson(dynamic json) =>
+    json == null
+        ? const TaxSettingsModel()
+        : TaxSettingsModel.fromJson(Map<String, dynamic>.from(json as Map));
 
 extension UserSettingsModelExtension on UserSettingsModel {
   UserSettings toEntity() {
@@ -29,6 +39,7 @@ extension UserSettingsModelExtension on UserSettingsModel {
       stockColors: stockColors,
       pinnedTickers: pinnedTickers,
       isPremiumUnlocked: isPremiumUnlocked,
+      taxSettings: taxSettings.toEntity(),
     );
   }
 
@@ -41,6 +52,7 @@ extension UserSettingsModelExtension on UserSettingsModel {
       stockColors: entity.stockColors,
       pinnedTickers: entity.pinnedTickers,
       isPremiumUnlocked: entity.isPremiumUnlocked,
+      taxSettings: TaxSettingsModel.fromEntity(entity.taxSettings),
     );
   }
 }

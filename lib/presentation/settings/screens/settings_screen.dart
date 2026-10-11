@@ -23,6 +23,7 @@ import 'package:stock_investment_tracker/presentation/dashboard/providers/dashbo
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
+import 'package:stock_investment_tracker/presentation/settings/widgets/tax_settings_card.dart';
 import 'package:stock_investment_tracker/core/services/pdf_report_service.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
@@ -81,6 +82,11 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSectionTitle(context, 'PRICE REFRESH'),
                       const SizedBox(height: 12),
                       _buildPriceRefreshSection(context, ref, isDark),
+                      const SizedBox(height: 28),
+
+                      _buildSectionTitle(context, 'BROKER CHARGES & TAXES'),
+                      const SizedBox(height: 12),
+                      TaxSettingsCard(settings: settings, isDark: isDark),
                       const SizedBox(height: 28),
 
                       _buildSectionTitle(context, 'REPORTS & EXPORT'),

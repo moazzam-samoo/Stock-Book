@@ -62,7 +62,7 @@ final allWithdrawalsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllWithdrawalsRef = AutoDisposeStreamProviderRef<List<Withdrawal>>;
-String _$portfolioSummaryHash() => r'42dfb9b2e2efb6ae906ca7e2c3493bf47ba7964f';
+String _$portfolioSummaryHash() => r'f2b731d4179ff2867d1b1ceff90315c15da86f83';
 
 /// See also [portfolioSummary].
 @ProviderFor(portfolioSummary)
@@ -79,7 +79,7 @@ final portfolioSummaryProvider = AutoDisposeProvider<PortfolioSummary>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PortfolioSummaryRef = AutoDisposeProviderRef<PortfolioSummary>;
-String _$stockSummariesHash() => r'417f5321a996b0a930c93b71d8316f3248345750';
+String _$stockSummariesHash() => r'ea2be3b0029b57923641b3f513fbd954ace623cb';
 
 /// See also [stockSummaries].
 @ProviderFor(stockSummaries)

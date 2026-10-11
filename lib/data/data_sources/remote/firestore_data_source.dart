@@ -8,6 +8,7 @@ import 'package:stock_investment_tracker/data/models/sale_model.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
 import 'package:stock_investment_tracker/data/models/withdrawal_model.dart';
 import 'package:stock_investment_tracker/data/models/price_alert_model.dart';
+import 'package:stock_investment_tracker/data/models/admin_tax_rates_model.dart';
 
 class FirestoreDataSource {
   final FirebaseFirestore _firestore;
@@ -318,14 +319,29 @@ class FirestoreDataSource {
   }
 
   Future<void> updateSettings(String uid, UserSettingsModel settings) async {
+    final json = settings.toJson();
+    json['taxSettings'] = settings.taxSettings.toJson();
     try {
       await _firestore
           .doc(FirestorePaths.settings(uid))
-          .set(settings.toJson())
+          .set(json)
           .timeout(const Duration(seconds: 4));
     } catch (_) {
       // Timeout or offline write persisted locally
     }
+  }
+
+  // GLOBAL TAX RATES (Configured centrally by Admin)
+  Stream<AdminTaxRatesModel?> watchGlobalTaxRates() {
+    return _firestore
+        .doc(FirestorePaths.globalTaxRates())
+        .snapshots()
+        .map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return AdminTaxRatesModel.fromJson(doc.data()!);
+      }
+      return null;
+    });
   }
 
   // PREMIUM CODES

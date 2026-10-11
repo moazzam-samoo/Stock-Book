@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
 import 'package:stock_investment_tracker/data/models/market_price_model.dart';
+import 'package:stock_investment_tracker/data/models/admin_tax_rates_model.dart';
 
 class HiveDataSource {
   static const String settingsBoxName = 'settingsBox';
@@ -8,7 +9,9 @@ class HiveDataSource {
   // Settings
   Future<void> saveSettings(UserSettingsModel settings) async {
     final box = await Hive.openBox(settingsBoxName);
-    await box.put('user_settings', settings.toJson());
+    final json = settings.toJson();
+    json['taxSettings'] = settings.taxSettings.toJson();
+    await box.put('user_settings', json);
   }
 
   Future<UserSettingsModel?> getSettings() async {
@@ -72,6 +75,26 @@ class HiveDataSource {
       }).toList();
     }
     return [];
+  }
+
+  // Admin Tax Rates Cache
+  Future<void> saveAdminTaxRates(AdminTaxRatesModel rates) async {
+    final box = await Hive.openBox('cache');
+    await box.put('admin_tax_rates', rates.toJson());
+  }
+
+  Future<AdminTaxRatesModel?> getAdminTaxRates() async {
+    final box = await Hive.openBox('cache');
+    final data = box.get('admin_tax_rates');
+    if (data != null && data is Map) {
+      try {
+        final sanitized = _sanitizeMap(Map<String, dynamic>.from(data));
+        return AdminTaxRatesModel.fromJson(sanitized);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> _sanitizeMap(Map<String, dynamic> map) {

@@ -27,6 +27,9 @@ _UserSettingsModel _$UserSettingsModelFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       isPremiumUnlocked: json['isPremiumUnlocked'] as bool? ?? false,
+      taxSettings: json['taxSettings'] == null
+          ? const TaxSettingsModel()
+          : _taxSettingsFromJson(json['taxSettings']),
     );
 
 Map<String, dynamic> _$UserSettingsModelToJson(_UserSettingsModel instance) =>
@@ -38,4 +41,5 @@ Map<String, dynamic> _$UserSettingsModelToJson(_UserSettingsModel instance) =>
       'stockColors': instance.stockColors,
       'pinnedTickers': instance.pinnedTickers,
       'isPremiumUnlocked': instance.isPremiumUnlocked,
+      'taxSettings': _taxSettingsToJson(instance.taxSettings),
     };

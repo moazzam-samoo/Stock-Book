@@ -1,10 +1,14 @@
+import 'package:stock_investment_tracker/domain/entities/admin_tax_rates.dart';
 import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
 import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 
 abstract class SettingsRepository {
   Stream<UserSettings> watchSettings();
+  Stream<AdminTaxRates> watchAdminTaxRates();
   Future<void> updateSettings(UserSettings settings);
+  Future<void> updateTaxSettings(TaxSettings taxSettings);
   Future<void> addFavorite(String ticker);
   Future<void> removeFavorite(String ticker);
   Future<void> updateStartingCapital(double capital);

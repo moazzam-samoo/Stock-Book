@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/edit_sale_bottom_sheet.dart';
+import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 
 /// One positionSale inside a position's positionSale history, shown as a bordered card with the
@@ -87,8 +88,22 @@ class PositionSaleRow extends ConsumerWidget {
     // Profit booked by this individual sale, against the cost basis frozen at
     // the moment it was sold — never the position's current avg cost, which
     // later buys may have since moved. See PHASE-03A for why.
+    final effectiveTaxes = ref.watch(effectiveTaxRatesProvider);
     final costBasisAtSale = positionSale.costBasisAtSale ?? 0.0;
-    final positionSaleProfit = positionSale.realizedPL;
+    final positionSaleProfit = effectiveTaxes.taxEnabled
+        ? PositionCalculator.saleRealizedPLWithTax(
+            position,
+            positionSale,
+            effectiveTaxes,
+          )
+        : positionSale.realizedPL;
+    final chargesDeducted = effectiveTaxes.taxEnabled
+        ? PositionCalculator.saleCharges(
+            position,
+            positionSale,
+            effectiveTaxes,
+          )
+        : 0.0;
     final profitPercent = costBasisAtSale == 0
         ? 0.0
         : (positionSale.pricePerShare - costBasisAtSale) / costBasisAtSale * 100;
@@ -172,7 +187,9 @@ class PositionSaleRow extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Cost basis ${AppCurrencyFormatter.format(costBasisAtSale)}',
+                  effectiveTaxes.taxEnabled && chargesDeducted > 0
+                      ? 'Cost basis ${AppCurrencyFormatter.format(costBasisAtSale)} • Fees & tax -${AppCurrencyFormatter.format(chargesDeducted)}'
+                      : 'Cost basis ${AppCurrencyFormatter.format(costBasisAtSale)}',
                   style: AppTypography.caption.copyWith(
                     color: AppColors.neutral500,
                     fontSize: 11,
@@ -243,7 +260,7 @@ class PositionSaleRow extends ConsumerWidget {
                               ),
                               const SizedBox(width: 3),
                               Text(
-                                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(positionSaleProfit.abs())}',
+                                '${isProfit ? "+" : "-"}${AppCurrencyFormatter.format(positionSaleProfit.abs())}${effectiveTaxes.taxEnabled ? " Net" : ""}',
                                 style: AppTypography.caption.copyWith(
                                   color: plColor,
                                   fontWeight: FontWeight.w800,

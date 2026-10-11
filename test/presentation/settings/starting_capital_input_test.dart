@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
 import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
+import 'package:stock_investment_tracker/domain/entities/admin_tax_rates.dart';
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 import 'package:stock_investment_tracker/presentation/settings/screens/settings_screen.dart';
@@ -25,13 +27,14 @@ class MockSettingsRepository implements SettingsRepository {
     ));
   }
 
-  @override
-  Future<void> updateStartingCapital(double capital) async {
+  @override Future<void> updateStartingCapital(double capital) async {
     updatedCapital = capital;
   }
   
   // Unused methods
   @override Future<void> updateSettings(UserSettings settings) async {}
+  @override Future<void> updateTaxSettings(TaxSettings taxSettings) async {}
+  @override Stream<AdminTaxRates> watchAdminTaxRates() => Stream.value(const AdminTaxRates());
   @override Future<void> addFavorite(String ticker) async {}
   @override Future<void> removeFavorite(String ticker) async {}
   @override Future<void> updateCurrency(String currency) async {}

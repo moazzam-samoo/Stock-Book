@@ -10,6 +10,8 @@ import 'package:stock_investment_tracker/presentation/common/badges.dart';
 import 'package:stock_investment_tracker/presentation/common/date_picker_field.dart';
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:stock_investment_tracker/domain/calculator/trade_charge_calculator.dart';
+import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/add_sell_controller.dart';
 
 class AddSellBottomSheet extends ConsumerStatefulWidget {
@@ -118,7 +120,47 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final wholeFormat = NumberFormat('#,##0');
     final asyncState = ref.watch(addSellControllerProvider);
-    final isProfit = _profitLoss >= 0;
+    final effectiveTaxes = ref.watch(effectiveTaxRatesProvider);
+    final int qty = _sharesSold.toInt();
+    final totalBuyShares =
+        widget.position.buys.fold(0, (sum, b) => sum + b.shares);
+    final totalBuyCost = widget.position.buys
+        .fold(0.0, (sum, b) => sum + (b.shares * b.pricePerShare));
+    final avgBuyPrice =
+        totalBuyShares > 0 ? totalBuyCost / totalBuyShares : 0.0;
+
+    final double netPL =
+        (_sharesSold > 0 && _sellPrice > 0 && effectiveTaxes.taxEnabled)
+            ? TradeChargeCalculator.calculateNetRealizedPL(
+                sharesSold: qty,
+                sellPrice: _sellPrice,
+                costBasisPerShare: _avgCost,
+                totalBuyShares: totalBuyShares,
+                buyPricePerShare: avgBuyPrice,
+                rates: effectiveTaxes,
+              )
+            : _profitLoss;
+
+    final double sellCharges =
+        (_sharesSold > 0 && _sellPrice > 0 && effectiveTaxes.taxEnabled)
+            ? TradeChargeCalculator.calculateCharges(
+                quantity: qty,
+                pricePerShare: _sellPrice,
+                rates: effectiveTaxes,
+              ).total
+            : 0.0;
+
+    final double totalTaxesAndFees =
+        (_sharesSold > 0 && _sellPrice > 0 && effectiveTaxes.taxEnabled)
+            ? (_profitLoss - netPL)
+            : 0.0;
+
+    final double displayAmountReceived = effectiveTaxes.taxEnabled
+        ? (_amountReceived - sellCharges)
+        : _amountReceived;
+
+    final isProfit = (effectiveTaxes.taxEnabled ? netPL : _profitLoss) >= 0;
+    final displayPL = effectiveTaxes.taxEnabled ? netPL : _profitLoss;
     final plColor = isProfit
         ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
         : AppColors.alertRed;
@@ -278,69 +320,120 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: boxBorderColor, width: 1.2),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Amount Received',
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.neutral500,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                effectiveTaxes.taxEnabled
+                                    ? 'Amount Received (Net)'
+                                    : 'Amount Received',
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.neutral500,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                displayAmountReceived > 0
+                                    ? AppCurrencyFormatter.format(
+                                        displayAmountReceived,
+                                      )
+                                    : 'Rs —',
+                                style: AppTypography.h2.copyWith(
+                                  color: primaryTextColor,
+                                  fontFamily: 'JetBrains Mono',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _amountReceived > 0
-                                ? AppCurrencyFormatter.format(_amountReceived)
-                                : 'Rs —',
-                            style: AppTypography.h2.copyWith(
-                              color: primaryTextColor,
-                              fontFamily: 'JetBrains Mono',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
+                          if (_sharesSold > 0 && _sellPrice > 0)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  effectiveTaxes.taxEnabled
+                                      ? (isProfit
+                                          ? 'Estimated Profit (Net)'
+                                          : 'Estimated Loss (Net)')
+                                      : (isProfit
+                                          ? 'Estimated Profit'
+                                          : 'Estimated Loss'),
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.neutral500,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isProfit
+                                          ? Icons.arrow_upward
+                                          : Icons.arrow_downward,
+                                      color: plColor,
+                                      size: 14,
+                                    ),
+                                    Text(
+                                      AppCurrencyFormatter.format(
+                                        displayPL.abs(),
+                                      ),
+                                      style: AppTypography.body.copyWith(
+                                        color: plColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
                         ],
                       ),
-                      if (_sharesSold > 0 && _sellPrice > 0)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                      if (effectiveTaxes.taxEnabled &&
+                          _sharesSold > 0 &&
+                          _sellPrice > 0) ...[
+                        const SizedBox(height: 12),
+                        Divider(color: boxBorderColor, height: 1),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              isProfit ? 'Estimated Profit' : 'Estimated Loss',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.neutral500,
-                                fontSize: 11,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(
-                                  isProfit
-                                      ? Icons.arrow_upward
-                                      : Icons.arrow_downward,
-                                  color: plColor,
+                                const Icon(
+                                  Icons.receipt_long_outlined,
                                   size: 14,
+                                  color: AppColors.neutral500,
                                 ),
+                                const SizedBox(width: 6),
                                 Text(
-                                  AppCurrencyFormatter.format(
-                                    _profitLoss.abs(),
-                                  ),
-                                  style: AppTypography.body.copyWith(
-                                    color: plColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                                  'Broker Fees, Levies & CGT',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.neutral500,
+                                    fontSize: 11.5,
                                   ),
                                 ),
                               ],
                             ),
+                            Text(
+                              '-${AppCurrencyFormatter.format(totalTaxesAndFees.abs())}',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.alertRed,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
+                      ],
                     ],
                   ),
                 ),

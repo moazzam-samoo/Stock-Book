@@ -1,6 +1,8 @@
 import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/domain/entities/position_buy.dart';
 import 'package:stock_investment_tracker/domain/entities/position_sale.dart';
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
+import 'package:stock_investment_tracker/domain/calculator/trade_charge_calculator.dart';
 import 'package:stock_investment_tracker/domain/enums/position_status.dart';
 
 class _PositionEvent {
@@ -84,6 +86,71 @@ class PositionCalculator {
 
   static double realizedPL(Position p) {
     return _round(p.sales.fold(0.0, (sum, s) => sum + s.realizedPL));
+  }
+
+  /// Calculates net realized profit/loss deducting broker charges and taxes
+  /// when [rates.taxEnabled] is true.
+  static double realizedPLWithTax(Position p, EffectiveTaxRates rates) {
+    if (!rates.taxEnabled) return realizedPL(p);
+
+    final totalBuyShares = p.buys.fold(0, (sum, b) => sum + b.shares);
+    final totalBuyCost = p.buys.fold(0.0, (sum, b) => sum + (b.shares * b.pricePerShare));
+    final avgBuyPrice = totalBuyShares > 0 ? totalBuyCost / totalBuyShares : 0.0;
+
+    double totalNetPL = 0.0;
+    for (final s in p.sales) {
+      final basis = s.costBasisAtSale ?? avgCost(p);
+      final netPL = TradeChargeCalculator.calculateNetRealizedPL(
+        sharesSold: s.shares,
+        sellPrice: s.pricePerShare,
+        costBasisPerShare: basis,
+        totalBuyShares: totalBuyShares,
+        buyPricePerShare: avgBuyPrice,
+        rates: rates,
+      );
+      totalNetPL += netPL;
+    }
+    return _round(totalNetPL);
+  }
+
+  /// Calculates net realized profit/loss for a single sale on a position.
+  static double saleRealizedPLWithTax(
+    Position p,
+    PositionSale s,
+    EffectiveTaxRates rates,
+  ) {
+    if (!rates.taxEnabled) return s.realizedPL;
+
+    final totalBuyShares = p.buys.fold(0, (sum, b) => sum + b.shares);
+    final totalBuyCost =
+        p.buys.fold(0.0, (sum, b) => sum + (b.shares * b.pricePerShare));
+    final avgBuyPrice = totalBuyShares > 0 ? totalBuyCost / totalBuyShares : 0.0;
+    final basis = s.costBasisAtSale ?? avgCost(p);
+
+    return TradeChargeCalculator.calculateNetRealizedPL(
+      sharesSold: s.shares,
+      sellPrice: s.pricePerShare,
+      costBasisPerShare: basis,
+      totalBuyShares: totalBuyShares,
+      buyPricePerShare: avgBuyPrice,
+      rates: rates,
+    );
+  }
+
+  /// Calculates total broker charges & taxes incurred by a single sale.
+  static double saleCharges(
+    Position p,
+    PositionSale s,
+    EffectiveTaxRates rates,
+  ) {
+    if (!rates.taxEnabled) return 0.0;
+    return _round(s.realizedPL - saleRealizedPLWithTax(p, s, rates));
+  }
+
+  /// Total broker charges & taxes incurred by all sales on this position.
+  static double totalCharges(Position p, EffectiveTaxRates rates) {
+    if (!rates.taxEnabled) return 0.0;
+    return _round(realizedPL(p) - realizedPLWithTax(p, rates));
   }
 
   static double amountInvested(Position p) {

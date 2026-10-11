@@ -168,6 +168,9 @@ class MetricDetailCard extends StatelessWidget {
     Color positiveColor,
   ) {
     final liquidCapital = summary.freeCash + summary.realizedPL;
+    final totalGrossProfit =
+        positions.fold(0.0, (sum, p) => sum + PositionCalculator.realizedPL(p));
+    final chargesDeducted = totalGrossProfit - summary.grossRealizedPL;
     final isProfit = summary.realizedPL >= 0;
     final plColor = isProfit ? positiveColor : AppColors.alertRed;
     final returnPercent = summary.startingCapital > 0
@@ -289,6 +292,29 @@ class MetricDetailCard extends StatelessWidget {
             ),
           ],
         ),
+        if (chargesDeducted > 0.009) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Broker Charges & Taxes:',
+                style: AppTypography.body.copyWith(
+                  color: secondaryTextColor,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                '-${AppCurrencyFormatter.format(chargesDeducted)}',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.warningYellow,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
         if (summary.totalWithdrawn > 0) ...[
           const SizedBox(height: 4),
           Row(
@@ -451,6 +477,10 @@ class MetricDetailCard extends StatelessWidget {
   ) {
     final totalSalesCount = positions.fold(0, (sum, position) => sum + position.sales.length);
     final isProfit = summary.realizedPL >= 0;
+    final totalGrossProfit =
+        positions.fold(0.0, (sum, p) => sum + PositionCalculator.realizedPL(p));
+    final chargesDeducted = totalGrossProfit - summary.grossRealizedPL;
+    final hasBrokerCharges = chargesDeducted > 0.009;
     final hasWithdrawals = summary.totalWithdrawn > 0;
     final dateFormat = DateFormat('MMM d, yyyy');
 
@@ -484,23 +514,31 @@ class MetricDetailCard extends StatelessWidget {
           ],
         ),
 
-        // Withdrawal breakdown: where the gap between gross and net comes from
-        if (hasWithdrawals) ...[
+        // Ledger breakdown: where the gap between gross and net comes from
+        if (hasBrokerCharges || hasWithdrawals) ...[
           const SizedBox(height: AppSpacing.md),
           Divider(color: dividerColor, height: 1),
           const SizedBox(height: AppSpacing.sm),
           _buildLedgerRow(
             'Gross Trading Profit',
-            AppCurrencyFormatter.format(summary.grossRealizedPL, showSign: true),
-            color: summary.grossRealizedPL >= 0 ? positiveColor : AppColors.alertRed,
+            AppCurrencyFormatter.format(totalGrossProfit, showSign: true),
+            color: totalGrossProfit >= 0 ? positiveColor : AppColors.alertRed,
             primaryTextColor: primaryTextColor,
           ),
-          _buildLedgerRow(
-            'Profit Withdrawn',
-            '-${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
-            color: AppColors.warningYellow,
-            primaryTextColor: primaryTextColor,
-          ),
+          if (hasBrokerCharges)
+            _buildLedgerRow(
+              'Broker Charges & Taxes',
+              '-${AppCurrencyFormatter.format(chargesDeducted)}',
+              color: AppColors.warningYellow,
+              primaryTextColor: primaryTextColor,
+            ),
+          if (hasWithdrawals)
+            _buildLedgerRow(
+              'Profit Withdrawn',
+              '-${AppCurrencyFormatter.format(summary.totalWithdrawn)}',
+              color: AppColors.warningYellow,
+              primaryTextColor: primaryTextColor,
+            ),
           const SizedBox(height: 4),
           Divider(color: dividerColor, height: 1),
           const SizedBox(height: 4),

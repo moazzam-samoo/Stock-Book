@@ -1,8 +1,10 @@
 import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart';
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
+import 'package:stock_investment_tracker/domain/entities/admin_tax_rates.dart';
 import 'package:stock_investment_tracker/domain/entities/pin_result.dart';
 import 'package:stock_investment_tracker/domain/entities/premium_code_result.dart';
+import 'package:stock_investment_tracker/domain/entities/tax_settings.dart';
 import 'package:stock_investment_tracker/domain/entities/user_settings.dart';
 import 'package:stock_investment_tracker/domain/repositories/settings_repository.dart';
 
@@ -57,6 +59,26 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @override
+  Stream<AdminTaxRates> watchAdminTaxRates() async* {
+    // Emit local cache first if available, else fallback to hardcoded PSX constants
+    final localRates = await _hiveDataSource.getAdminTaxRates();
+    if (localRates != null) {
+      yield localRates.toEntity();
+    } else {
+      yield AdminTaxRates.psxDefaults;
+    }
+
+    // Then listen to remote Firestore stream and update local cache
+    yield* _firestoreDataSource.watchGlobalTaxRates().map((model) {
+      if (model != null) {
+        _hiveDataSource.saveAdminTaxRates(model);
+        return model.toEntity();
+      }
+      return localRates?.toEntity() ?? AdminTaxRates.psxDefaults;
+    });
+  }
+
+  @override
   Future<void> updateSettings(UserSettings settings) async {
     final model = UserSettingsModelExtension.fromEntity(settings);
     await _hiveDataSource.saveSettings(model);
@@ -65,6 +87,12 @@ class SettingsRepositoryImpl implements SettingsRepository {
     } catch (_) {
       // Local Hive storage updated successfully; Firestore will sync when re-connected
     }
+  }
+
+  @override
+  Future<void> updateTaxSettings(TaxSettings taxSettings) async {
+    final current = await _getCurrentSettings();
+    await updateSettings(current.copyWith(taxSettings: taxSettings));
   }
 
   @override

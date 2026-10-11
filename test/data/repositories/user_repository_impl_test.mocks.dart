@@ -4,21 +4,23 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
-import 'dart:typed_data' as _i14;
+import 'dart:typed_data' as _i15;
 
 import 'package:cloud_firestore/cloud_firestore.dart' as _i3;
 import 'package:firebase_core/firebase_core.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i11;
+import 'package:mockito/src/dummies.dart' as _i12;
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart'
     as _i5;
+import 'package:stock_investment_tracker/data/models/admin_tax_rates_model.dart'
+    as _i11;
 import 'package:stock_investment_tracker/data/models/lot_model.dart' as _i6;
 import 'package:stock_investment_tracker/data/models/market_price_model.dart'
-    as _i12;
+    as _i13;
 import 'package:stock_investment_tracker/data/models/position_model.dart'
     as _i7;
 import 'package:stock_investment_tracker/data/models/price_alert_model.dart'
-    as _i13;
+    as _i14;
 import 'package:stock_investment_tracker/data/models/sale_model.dart' as _i8;
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart'
     as _i10;
@@ -329,6 +331,14 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i4.Future<void>);
 
   @override
+  _i4.Stream<_i11.AdminTaxRatesModel?> watchGlobalTaxRates() =>
+      (super.noSuchMethod(
+            Invocation.method(#watchGlobalTaxRates, []),
+            returnValue: _i4.Stream<_i11.AdminTaxRatesModel?>.empty(),
+          )
+          as _i4.Stream<_i11.AdminTaxRatesModel?>);
+
+  @override
   _i4.Future<String> redeemPremiumCode({
     required String? code,
     required String? uid,
@@ -336,7 +346,7 @@ class MockFirestoreDataSource extends _i1.Mock
       (super.noSuchMethod(
             Invocation.method(#redeemPremiumCode, [], {#code: code, #uid: uid}),
             returnValue: _i4.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#redeemPremiumCode, [], {
                   #code: code,
@@ -348,33 +358,33 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i4.Future<String>);
 
   @override
-  _i4.Stream<_i12.MarketPriceModel?> watchMarketPrice(String? ticker) =>
+  _i4.Stream<_i13.MarketPriceModel?> watchMarketPrice(String? ticker) =>
       (super.noSuchMethod(
             Invocation.method(#watchMarketPrice, [ticker]),
-            returnValue: _i4.Stream<_i12.MarketPriceModel?>.empty(),
+            returnValue: _i4.Stream<_i13.MarketPriceModel?>.empty(),
           )
-          as _i4.Stream<_i12.MarketPriceModel?>);
+          as _i4.Stream<_i13.MarketPriceModel?>);
 
   @override
-  _i4.Stream<List<_i12.MarketPriceModel>> watchMarketPrices(
+  _i4.Stream<List<_i13.MarketPriceModel>> watchMarketPrices(
     List<String>? tickers,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#watchMarketPrices, [tickers]),
-            returnValue: _i4.Stream<List<_i12.MarketPriceModel>>.empty(),
+            returnValue: _i4.Stream<List<_i13.MarketPriceModel>>.empty(),
           )
-          as _i4.Stream<List<_i12.MarketPriceModel>>);
+          as _i4.Stream<List<_i13.MarketPriceModel>>);
 
   @override
-  _i4.Stream<List<_i13.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
+  _i4.Stream<List<_i14.PriceAlertModel>> watchAllPriceAlerts(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchAllPriceAlerts, [uid]),
-            returnValue: _i4.Stream<List<_i13.PriceAlertModel>>.empty(),
+            returnValue: _i4.Stream<List<_i14.PriceAlertModel>>.empty(),
           )
-          as _i4.Stream<List<_i13.PriceAlertModel>>);
+          as _i4.Stream<List<_i14.PriceAlertModel>>);
 
   @override
-  _i4.Future<void> addPriceAlert(String? uid, _i13.PriceAlertModel? alert) =>
+  _i4.Future<void> addPriceAlert(String? uid, _i14.PriceAlertModel? alert) =>
       (super.noSuchMethod(
             Invocation.method(#addPriceAlert, [uid, alert]),
             returnValue: _i4.Future<void>.value(),
@@ -383,7 +393,7 @@ class MockFirestoreDataSource extends _i1.Mock
           as _i4.Future<void>);
 
   @override
-  _i4.Future<void> updatePriceAlert(String? uid, _i13.PriceAlertModel? alert) =>
+  _i4.Future<void> updatePriceAlert(String? uid, _i14.PriceAlertModel? alert) =>
       (super.noSuchMethod(
             Invocation.method(#updatePriceAlert, [uid, alert]),
             returnValue: _i4.Future<void>.value(),
@@ -421,7 +431,7 @@ class MockFirebaseFirestore extends _i1.Mock implements _i3.FirebaseFirestore {
   String get databaseId =>
       (super.noSuchMethod(
             Invocation.getter(#databaseId),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#databaseId),
             ),
@@ -493,7 +503,7 @@ class MockFirebaseFirestore extends _i1.Mock implements _i3.FirebaseFirestore {
           as _i4.Future<void>);
 
   @override
-  _i3.LoadBundleTask loadBundle(_i14.Uint8List? bundle) =>
+  _i3.LoadBundleTask loadBundle(_i15.Uint8List? bundle) =>
       (super.noSuchMethod(
             Invocation.method(#loadBundle, [bundle]),
             returnValue: _FakeLoadBundleTask_4(
@@ -634,8 +644,8 @@ class MockFirebaseFirestore extends _i1.Mock implements _i3.FirebaseFirestore {
               {#timeout: timeout, #maxAttempts: maxAttempts},
             ),
             returnValue:
-                _i11.ifNotNull(
-                  _i11.dummyValueOrNull<T>(
+                _i12.ifNotNull(
+                  _i12.dummyValueOrNull<T>(
                     this,
                     Invocation.method(
                       #runTransaction,
@@ -720,7 +730,7 @@ class MockDocumentReference<T extends Object?> extends _i1.Mock
   String get id =>
       (super.noSuchMethod(
             Invocation.getter(#id),
-            returnValue: _i11.dummyValue<String>(this, Invocation.getter(#id)),
+            returnValue: _i12.dummyValue<String>(this, Invocation.getter(#id)),
           )
           as String);
 
@@ -739,7 +749,7 @@ class MockDocumentReference<T extends Object?> extends _i1.Mock
   String get path =>
       (super.noSuchMethod(
             Invocation.getter(#path),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#path),
             ),

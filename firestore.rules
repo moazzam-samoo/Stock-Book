@@ -71,5 +71,11 @@ service cloud.firestore {
         && request.resource.data.redeemedBy == request.auth.uid
         && request.resource.data.createdAt == resource.data.createdAt;
     }
+
+    // Global app configuration (Tax rates, app settings) — read-only for clients,
+    // written only by the Admin SDK or Firebase Console.
+    match /config/{doc} {
+      allow read: if request.auth != null;
+    }
   }
 }
