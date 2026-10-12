@@ -9,6 +9,9 @@ import 'package:stock_investment_tracker/domain/calculator/portfolio_calculator.
 import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/providers/repository_providers.dart';
 
+import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
+import 'package:stock_investment_tracker/domain/repositories/position_repository.dart';
+
 part 'dashboard_providers.g.dart';
 
 @riverpod
@@ -18,7 +21,36 @@ Stream<List<Position>> allPositions(AllPositionsRef ref) async* {
     yield [];
     return;
   }
-  yield* repo.watchAllPositions();
+  await for (final rawList in repo.watchAllPositions()) {
+    final consolidated = PositionCalculator.consolidateSameDayPositions(rawList);
+    if (consolidated.length < rawList.length) {
+      _syncConsolidatedPositions(repo, rawList);
+    }
+    yield consolidated;
+  }
+}
+
+void _syncConsolidatedPositions(PositionRepository repo, List<Position> rawList) {
+  final Map<String, List<Position>> groups = {};
+  for (final p in rawList) {
+    final key =
+        '${p.ticker.trim().toUpperCase()}::${p.openedAt.year}-${p.openedAt.month}-${p.openedAt.day}';
+    groups.putIfAbsent(key, () => []).add(p);
+  }
+
+  for (final entry in groups.entries) {
+    final group = entry.value;
+    if (group.length > 1) {
+      final consolidatedList = PositionCalculator.consolidateSameDayPositions(group);
+      if (consolidatedList.isNotEmpty) {
+        final merged = consolidatedList.first;
+        repo.updatePosition(merged);
+        for (int i = 1; i < group.length; i++) {
+          repo.deletePosition(group[i].id);
+        }
+      }
+    }
+  }
 }
 
 /// Lots are never deleted by the position migration — they remain the

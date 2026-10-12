@@ -84,7 +84,41 @@ class PositionCalculator {
     return _round(_preciseTotalCost(p));
   }
 
+  static bool isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  static bool isSameDayTrade(Position p) {
+    if (p.buys.isEmpty) return false;
+    final firstDate = p.openedAt;
+    final allBuysSameDay = p.buys.every((b) => isSameDay(b.date, firstDate));
+    final allSalesSameDay = p.sales.every((s) => isSameDay(s.date, firstDate));
+    return allBuysSameDay && allSalesSameDay;
+  }
+
+  static double historicalAvgSellPrice(Position p) {
+    final totalSharesSold = p.sales.fold(0, (sum, s) => sum + s.shares);
+    if (totalSharesSold <= 0) return 0.0;
+    final totalReceived =
+        p.sales.fold(0.0, (sum, s) => sum + (s.shares * s.pricePerShare));
+    return _round(totalReceived / totalSharesSold);
+  }
+
   static double realizedPL(Position p) {
+    if (p.sales.isEmpty) return 0.0;
+    if (isSameDayTrade(p)) {
+      final totalBought = totalSharesBought(p);
+      final totalSold = p.sales.fold(0, (sum, s) => sum + s.shares);
+      final totalReceived =
+          p.sales.fold(0.0, (sum, s) => sum + (s.shares * s.pricePerShare));
+      if (totalBought == totalSold) {
+        final totalDeployed = totalCapitalDeployed(p);
+        return _round(totalReceived - totalDeployed);
+      } else {
+        final avgBuy = totalBought > 0 ? (totalCapitalDeployed(p) / totalBought) : 0.0;
+        return _round(totalReceived - (totalSold * avgBuy));
+      }
+    }
     return _round(p.sales.fold(0.0, (sum, s) => sum + s.realizedPL));
   }
 
@@ -99,7 +133,9 @@ class PositionCalculator {
 
     double totalNetPL = 0.0;
     for (final s in p.sales) {
-      final basis = s.costBasisAtSale ?? avgCost(p);
+      final basis = isSameDayTrade(p)
+          ? avgBuyPrice
+          : (s.costBasisAtSale ?? avgCost(p));
       final netPL = TradeChargeCalculator.calculateNetRealizedPL(
         sharesSold: s.shares,
         sellPrice: s.pricePerShare,
@@ -119,13 +155,21 @@ class PositionCalculator {
     PositionSale s,
     EffectiveTaxRates rates,
   ) {
-    if (!rates.taxEnabled) return s.realizedPL;
+    if (!rates.taxEnabled) {
+      if (isSameDayTrade(p)) {
+        final avgBuyPrice = totalSharesBought(p) > 0
+            ? totalCapitalDeployed(p) / totalSharesBought(p)
+            : 0.0;
+        return _round(s.shares * (s.pricePerShare - avgBuyPrice));
+      }
+      return s.realizedPL;
+    }
 
     final totalBuyShares = p.buys.fold(0, (sum, b) => sum + b.shares);
     final totalBuyCost =
         p.buys.fold(0.0, (sum, b) => sum + (b.shares * b.pricePerShare));
     final avgBuyPrice = totalBuyShares > 0 ? totalBuyCost / totalBuyShares : 0.0;
-    final basis = s.costBasisAtSale ?? avgCost(p);
+    final basis = isSameDayTrade(p) ? avgBuyPrice : (s.costBasisAtSale ?? avgCost(p));
 
     return TradeChargeCalculator.calculateNetRealizedPL(
       sharesSold: s.shares,
@@ -168,7 +212,11 @@ class PositionCalculator {
     if (livePrice == null || livePrice == 0.0) return 0.0;
     final remaining = sharesHeld(p);
     if (remaining <= 0) return 0.0;
-    final cost = avgCost(p);
+    final cost = isSameDayTrade(p)
+        ? (totalSharesBought(p) > 0
+            ? (totalCapitalDeployed(p) / totalSharesBought(p))
+            : 0.0)
+        : avgCost(p);
     return _round(remaining * (livePrice - cost));
   }
 
@@ -187,7 +235,11 @@ class PositionCalculator {
     if (livePrice == null || livePrice == 0.0) return 0.0;
     final remaining = sharesHeld(p);
     if (remaining <= 0) return 0.0;
-    final cost = avgCost(p);
+    final cost = isSameDayTrade(p)
+        ? (totalSharesBought(p) > 0
+            ? (totalCapitalDeployed(p) / totalSharesBought(p))
+            : 0.0)
+        : avgCost(p);
     if (cost <= 0) return 0.0;
     // Calculate percentage as (livePrice - cost) / cost * 100
     // Then round to 2dp
@@ -340,6 +392,21 @@ class PositionCalculator {
     return null;
   }
 
+  /// Finds any position for [ticker] opened on the same calendar day as [date],
+  /// regardless of whether it was closed earlier in the day.
+  static Position? findSameDayPosition(
+    List<Position> positions,
+    String ticker,
+    DateTime date,
+  ) {
+    for (final p in positions) {
+      if (p.ticker == ticker && isSameDay(p.openedAt, date)) {
+        return p;
+      }
+    }
+    return null;
+  }
+
   /// Appends a new buy to [p] and returns the updated position with status
   /// (and `closedAt`, cleared since a position with a new buy cannot be
   /// closed) recomputed. Pure — callers own persisting the result.
@@ -357,7 +424,14 @@ class PositionCalculator {
         shares: shares,
         pricePerShare: pricePerShare,
       ));
-    final updated = p.copyWith(buys: updatedBuys, closedAt: null);
+    var updated = p.copyWith(buys: updatedBuys, closedAt: null);
+    if (isSameDayTrade(updated)) {
+      final sessionAvg = historicalAvgCost(updated);
+      final updatedSales = updated.sales
+          .map((s) => s.copyWith(costBasisAtSale: sessionAvg))
+          .toList();
+      updated = updated.copyWith(sales: updatedSales);
+    }
     return updated.copyWith(status: computeStatus(updated));
   }
 
@@ -371,7 +445,7 @@ class PositionCalculator {
     required int shares,
     required double pricePerShare,
   }) {
-    final costBasisAtSale = avgCost(p);
+    final costBasisAtSale = isSameDayTrade(p) ? historicalAvgCost(p) : avgCost(p);
     final updatedSales = List<PositionSale>.from(p.sales)
       ..add(PositionSale(
         id: saleId,
@@ -423,7 +497,7 @@ class PositionCalculator {
         status = PositionStatus.open;
       }
 
-      positions.add(Position(
+      final tempPos = Position(
         id: '', // Will be assigned by repository or migration
         ticker: ticker,
         status: status,
@@ -431,7 +505,15 @@ class PositionCalculator {
         closedAt: status == PositionStatus.closed ? closedAt : null,
         buys: List.from(currentBuys),
         sales: List.from(currentSales),
-      ));
+      );
+
+      final finalSales = isSameDayTrade(tempPos)
+          ? currentSales
+              .map((s) => s.copyWith(costBasisAtSale: historicalAvgCost(tempPos)))
+              .toList()
+          : List<PositionSale>.from(currentSales);
+
+      positions.add(tempPos.copyWith(sales: finalSales));
       
       currentBuys.clear();
       currentSales.clear();
@@ -442,8 +524,11 @@ class PositionCalculator {
 
     for (final ev in events) {
       if (currentShares == 0 && currentBuys.isNotEmpty) {
-        // We hit 0 on the previous event. This new event starts a new position.
-        closePosition(currentSales.last.date);
+        // If the new event is on a different calendar day, close and start a new position.
+        // If it's on the same day, keep accumulating into the same day-trading session!
+        if (openedAt != null && !isSameDay(ev.date, openedAt!)) {
+          closePosition(currentSales.last.date);
+        }
       }
 
       if (openedAt == null) {
@@ -486,5 +571,118 @@ class PositionCalculator {
     }
 
     return positions;
+  }
+
+  /// Merges positions for the same ticker on the same calendar day into a
+  /// single position, following the PSX brokerage (V-Trade / Floret Capitals)
+  /// session consolidation standard.
+  static List<Position> consolidateSameDayPositions(List<Position> positions) {
+    if (positions.length <= 1) return positions;
+
+    // Group positions by (ticker, year, month, day of openedAt)
+    final Map<String, List<Position>> groups = {};
+    for (final p in positions) {
+      final key =
+          '${p.ticker.trim().toUpperCase()}::${p.openedAt.year}-${p.openedAt.month}-${p.openedAt.day}';
+      groups.putIfAbsent(key, () => []).add(p);
+    }
+
+    final List<Position> result = [];
+
+    for (final entry in groups.entries) {
+      final group = entry.value;
+      if (group.length == 1) {
+        result.add(group.first);
+        continue;
+      }
+
+      // Multiple positions on the same calendar day for this ticker -> merge!
+      final primary = group.first;
+      final buysMap = <String, PositionBuy>{};
+      final salesMap = <String, PositionSale>{};
+
+      for (final p in group) {
+        for (final b in p.buys) {
+          buysMap[b.id] = b;
+        }
+        for (final s in p.sales) {
+          salesMap[s.id] = s;
+        }
+      }
+
+      final mergedBuys = buysMap.values.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+      final mergedSales = salesMap.values.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+
+      // Calculate session average buy price
+      final totalBuyShares =
+          mergedBuys.fold<int>(0, (sum, b) => sum + b.shares);
+      final totalBuyCost = mergedBuys.fold<double>(
+        0.0,
+        (sum, b) => sum + (b.shares * b.pricePerShare),
+      );
+      final sessionAvgBuy =
+          totalBuyShares > 0 ? (totalBuyCost / totalBuyShares) : 0.0;
+
+      // Update cost basis of sales to session avg buy price
+      final updatedSales = mergedSales.map((s) {
+        return s.copyWith(costBasisAtSale: sessionAvgBuy);
+      }).toList();
+
+      final totalSoldShares =
+          updatedSales.fold<int>(0, (sum, s) => sum + s.shares);
+      final netRemainingShares = totalBuyShares - totalSoldShares;
+
+      PositionStatus status;
+      DateTime? closedAt;
+      if (netRemainingShares <= 0) {
+        status = PositionStatus.closed;
+        closedAt = updatedSales.isNotEmpty
+            ? updatedSales.last.date
+            : primary.closedAt;
+      } else if (updatedSales.isNotEmpty) {
+        status = PositionStatus.partiallySold;
+        closedAt = null;
+      } else {
+        status = PositionStatus.open;
+        closedAt = null;
+      }
+
+      // Earliest openedAt
+      final earliestDate =
+          mergedBuys.isNotEmpty ? mergedBuys.first.date : primary.openedAt;
+
+      // Target price: first non-null
+      double? targetPrice;
+      for (final p in group) {
+        if (p.targetPrice != null && p.targetPrice! > 0) {
+          targetPrice = p.targetPrice;
+          break;
+        }
+      }
+
+      final consolidated = Position(
+        id: primary.id,
+        ticker: primary.ticker,
+        status: status,
+        openedAt: earliestDate,
+        closedAt: closedAt,
+        targetPrice: targetPrice,
+        targetAlertSent: group.any((p) => p.targetAlertSent),
+        targetAlertSentAt: group
+            .map((p) => p.targetAlertSentAt)
+            .firstWhere((d) => d != null, orElse: () => null),
+        lastAlertPrice: group
+            .map((p) => p.lastAlertPrice)
+            .firstWhere((p) => p != null, orElse: () => null),
+        buys: mergedBuys,
+        sales: updatedSales,
+      );
+
+      result.add(consolidated);
+    }
+
+    return result;
   }
 }

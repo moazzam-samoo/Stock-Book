@@ -88,11 +88,23 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
     final isOffline =
         results.contains(ConnectivityResult.none) || results.isEmpty;
 
+    final now = DateTime.now();
+    final effectiveSellDate = (_sellDate!.hour == 0 && _sellDate!.minute == 0)
+        ? DateTime(
+            _sellDate!.year,
+            _sellDate!.month,
+            _sellDate!.day,
+            now.hour,
+            now.minute,
+            now.second,
+          )
+        : _sellDate!;
+
     await ref
         .read(addSellControllerProvider.notifier)
         .submit(
           position: widget.position,
-          sellDate: _sellDate!,
+          sellDate: effectiveSellDate,
           sharesSold: _sharesSold.toInt(),
           sellPricePerShare: _sellPrice,
         );
@@ -266,8 +278,16 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
                   label: 'Sell Date',
                   initialDate: _sellDate,
                   onDateSelected: (date) {
+                    final now = DateTime.now();
                     setState(() {
-                      _sellDate = date;
+                      _sellDate = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        now.hour,
+                        now.minute,
+                        now.second,
+                      );
                     });
                   },
                 ),

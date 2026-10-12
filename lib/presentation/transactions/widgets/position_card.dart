@@ -765,14 +765,28 @@ class _PositionCardState extends ConsumerState<PositionCard> {
               const SizedBox(height: 16),
               Divider(color: borderColor, height: 1),
               const SizedBox(height: 16),
-              Text(
-                'BUY HISTORY',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.neutral500,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  fontSize: 11,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'BUY HISTORY',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (widget.position.buys.length > 1)
+                    Text(
+                      'Avg ${AppCurrencyFormatter.format(PositionCalculator.historicalAvgCost(widget.position))}',
+                      style: AppTypography.caption.copyWith(
+                        color: isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
               ...widget.position.buys.map(
@@ -780,14 +794,28 @@ class _PositionCardState extends ConsumerState<PositionCard> {
               ),
 
               const SizedBox(height: 16),
-              Text(
-                'SALE HISTORY',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.neutral500,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  fontSize: 11,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'SALE HISTORY',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.neutral500,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (widget.position.sales.length > 1)
+                    Text(
+                      'Avg ${AppCurrencyFormatter.format(PositionCalculator.historicalAvgSellPrice(widget.position))}',
+                      style: AppTypography.caption.copyWith(
+                        color: const Color(0xFFF97316),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
               if (widget.position.sales.isEmpty)

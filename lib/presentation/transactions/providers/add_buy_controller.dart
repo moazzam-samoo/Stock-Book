@@ -42,19 +42,25 @@ class AddBuyController extends _$AddBuyController {
       ticker = FirestoreDataSource.normalizeTicker(ticker);
 
       final positions = ref.read(allPositionsProvider).valueOrNull ?? [];
-      final openPosition = PositionCalculator.findOpenPosition(
+      final sameDayPosition = PositionCalculator.findSameDayPosition(
         positions,
         ticker,
+        buyDate,
       );
+      final targetPosition = sameDayPosition ??
+          PositionCalculator.findOpenPosition(
+            positions,
+            ticker,
+          );
 
-      if (openPosition != null) {
+      if (targetPosition != null) {
         final updated = PositionCalculator.applyBuy(
-          openPosition,
+          targetPosition,
           buyId: const Uuid().v4(),
           date: buyDate,
           shares: sharesPurchased.toInt(),
           pricePerShare: buyPricePerShare,
-        ).copyWith(targetPrice: targetPrice ?? openPosition.targetPrice);
+        ).copyWith(targetPrice: targetPrice ?? targetPosition.targetPrice);
         await repo.updatePosition(updated);
       } else {
         final newPosition = Position(

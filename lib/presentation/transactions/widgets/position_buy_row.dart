@@ -89,12 +89,16 @@ class PositionBuyRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final wholeFormat = NumberFormat('#,##0');
-    final dateFormat = DateFormat('MMM d, y');
+    final hasTime = buy.date.hour != 0 || buy.date.minute != 0;
+    final formattedDate = hasTime
+        ? DateFormat('MMM d, y • h:mm a').format(buy.date)
+        : DateFormat('MMM d, y').format(buy.date);
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final rowBg = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
-    final borderColor =
-        isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -154,10 +158,10 @@ class PositionBuyRow extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  dateFormat.format(buy.date),
+                  formattedDate,
                   style: AppTypography.caption.copyWith(
                     color: AppColors.neutral500,
-                    fontSize: 12,
+                    fontSize: 10,
                   ),
                 ),
               ],

@@ -125,11 +125,23 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
       }
     }
 
+    final now = DateTime.now();
+    final effectiveBuyDate = (_buyDate!.hour == 0 && _buyDate!.minute == 0)
+        ? DateTime(
+            _buyDate!.year,
+            _buyDate!.month,
+            _buyDate!.day,
+            now.hour,
+            now.minute,
+            now.second,
+          )
+        : _buyDate!;
+
     await ref
         .read(addBuyControllerProvider.notifier)
         .submit(
           ticker: _ticker,
-          buyDate: _buyDate!,
+          buyDate: effectiveBuyDate,
           sharesPurchased: _sharesPurchased,
           buyPricePerShare: _buyPrice,
           targetPrice: _targetPrice,
@@ -226,8 +238,16 @@ class _AddBuyBottomSheetState extends ConsumerState<AddBuyBottomSheet> {
                   label: 'Buy Date',
                   initialDate: _buyDate,
                   onDateSelected: (date) {
+                    final now = DateTime.now();
                     setState(() {
-                      _buyDate = date;
+                      _buyDate = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        now.hour,
+                        now.minute,
+                        now.second,
+                      );
                     });
                   },
                 ),

@@ -60,16 +60,22 @@ class PositionSaleRow extends ConsumerWidget {
       HapticFeedback.mediumImpact();
       final repo = ref.read(positionRepositoryProvider);
       if (repo != null) {
-        final updatedSales = position.sales.where((s) => s.id != positionSale.id).toList();
+        final updatedSales = position.sales
+            .where((s) => s.id != positionSale.id)
+            .toList();
         final updatedPosition = position.copyWith(sales: updatedSales);
         // Deleting a sale can un-close or un-partial a position — status is
         // stored, not derived, so it has to be restamped here or a position
         // stays stuck as PARTIAL after its only sale is removed.
         final newStatus = PositionCalculator.computeStatus(updatedPosition);
-        await repo.updatePosition(updatedPosition.copyWith(
-          status: newStatus,
-          closedAt: newStatus == PositionStatus.closed ? position.closedAt : null,
-        ));
+        await repo.updatePosition(
+          updatedPosition.copyWith(
+            status: newStatus,
+            closedAt: newStatus == PositionStatus.closed
+                ? position.closedAt
+                : null,
+          ),
+        );
       }
     }
   }
@@ -78,12 +84,17 @@ class PositionSaleRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final wholeFormat = NumberFormat('#,##0');
-    final dateFormat = DateFormat('MMM d, y');
+    final hasTime =
+        positionSale.date.hour != 0 || positionSale.date.minute != 0;
+    final formattedDate = hasTime
+        ? DateFormat('MMM d, y • h:mm a').format(positionSale.date)
+        : DateFormat('MMM d, y').format(positionSale.date);
 
     final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final rowBg = isDark ? const Color(0xFF1A1D27) : const Color(0xFFF8FAFC);
-    final borderColor =
-        isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final borderColor = isDark
+        ? const Color(0xFF242731)
+        : const Color(0xFFE2E8F0);
 
     // Profit booked by this individual sale, against the cost basis frozen at
     // the moment it was sold — never the position's current avg cost, which
@@ -106,7 +117,9 @@ class PositionSaleRow extends ConsumerWidget {
         : 0.0;
     final profitPercent = costBasisAtSale == 0
         ? 0.0
-        : (positionSale.pricePerShare - costBasisAtSale) / costBasisAtSale * 100;
+        : (positionSale.pricePerShare - costBasisAtSale) /
+              costBasisAtSale *
+              100;
     final isProfit = positionSaleProfit >= 0;
     final plColor = isProfit
         ? (isDark ? AppColors.moneyGreen : AppColors.moneyGreenOnLight)
@@ -177,10 +190,10 @@ class PositionSaleRow extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      dateFormat.format(positionSale.date),
+                      formattedDate,
                       style: AppTypography.caption.copyWith(
                         color: AppColors.neutral500,
-                        fontSize: 12,
+                        fontSize: 10,
                       ),
                     ),
                   ],
@@ -245,8 +258,9 @@ class PositionSaleRow extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: plColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
-                            border:
-                                Border.all(color: plColor.withOpacity(0.25)),
+                            border: Border.all(
+                              color: plColor.withOpacity(0.25),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
