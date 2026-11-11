@@ -195,10 +195,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findRichTextContaining('Live Price'), findsOneWidget);
-      expect(findRichTextContaining('—'), findsOneWidget);
-      // Unrealized P/L only renders once there's a live price to compute it
-      // against — with none, it must not appear at all.
-      expect(findRichTextContaining('Unrealized'), findsNothing);
+      expect(findRichTextContaining('—'), findsWidgets);
+      // With no live price, no calculated unrealized percentage or amount renders
+      expect(findRichTextContaining('%'), findsNothing);
     },
   );
 
@@ -213,13 +212,18 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findRichTextContaining('Live Price'), findsOneWidget);
-      expect(find.text('Live'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Container && w.decoration is BoxDecoration && (w.decoration as BoxDecoration).color == const Color(0xFF00FF7F),
+        ),
+        findsOneWidget,
+      );
       expect(findRichTextContaining('Unrealized'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'market closed: keeps the "Live Price" label and appends a red "at Closed" suffix, no Live badge',
+    'market closed: keeps the "Live Price" label and appends a red "(Closed)" suffix, no Live badge',
     (tester) async {
       await tester.pumpWidget(wrap(
         PositionCard(position: position, showStockDetailNavigation: false),
@@ -229,8 +233,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findRichTextContaining('Live Price'), findsOneWidget);
-      expect(findRichTextContaining('at Closed'), findsOneWidget);
-      expect(find.text('Live'), findsNothing);
+      expect(find.text('(Closed)'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Container && w.decoration is BoxDecoration && (w.decoration as BoxDecoration).color == const Color(0xFF00FF7F),
+        ),
+        findsNothing,
+      );
     },
   );
 

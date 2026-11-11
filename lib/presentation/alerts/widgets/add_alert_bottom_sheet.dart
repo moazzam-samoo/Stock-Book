@@ -8,6 +8,7 @@ import 'package:stock_investment_tracker/presentation/alerts/providers/alerts_pr
 import 'package:stock_investment_tracker/presentation/common/inputs.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/ticker_autocomplete.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:stock_investment_tracker/providers/push_notification_providers.dart';
 
 class AddAlertBottomSheet extends ConsumerStatefulWidget {
   final PriceAlert? existing;
@@ -100,6 +101,9 @@ class _AddAlertBottomSheetState extends ConsumerState<AddAlertBottomSheet> {
     setState(() {
       _isSaving = true;
     });
+
+    // Contextually request notification permission on alert creation/edit
+    await ref.read(pushNotificationServiceProvider)?.requestPermissionAndRegister();
 
     final notifier = ref.read(alertsControllerProvider.notifier);
 

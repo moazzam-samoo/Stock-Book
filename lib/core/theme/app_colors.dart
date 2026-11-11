@@ -12,6 +12,12 @@ class AppColors {
   /// wherever green is a value/text color, not `moneyGreen` unconditionally.
   static const Color moneyGreenOnLight = Color(0xFF00A651);
 
+  /// Success green that is readable on the current theme: neon [moneyGreen]
+  /// in dark mode, the darker [moneyGreenOnLight] in light mode. Use for
+  /// success snackbars instead of `moneyGreen` directly.
+  static Color successFor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? moneyGreen : moneyGreenOnLight;
+
   static const Color vibrantPink = Color(0xFFFF4081);
   static const Color alertRed = Color(0xFFFF5252);
   static const Color warningYellow = Color(0xFFFFD740);

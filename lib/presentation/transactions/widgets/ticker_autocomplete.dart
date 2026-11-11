@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
@@ -66,6 +67,10 @@ class TickerAutocomplete extends ConsumerWidget {
           controller: textController,
           focusNode: focusNode,
           textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9.-]')),
+            LengthLimitingTextInputFormatter(12),
+          ],
           style: AppTypography.body.copyWith(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: 'Stock Ticker',

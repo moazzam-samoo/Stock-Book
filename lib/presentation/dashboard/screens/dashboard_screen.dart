@@ -36,6 +36,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isOffline = false;
   bool _isMigrating = true;
   String? _migrationError;
+  bool _continueReadOnly = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
@@ -66,8 +67,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         setState(() {
           if (outcome.success) {
             _isMigrating = false;
-            // Initialize push notifications after successful migration
-            ref.read(pushNotificationServiceProvider)?.initialize();
+            // Setup passive push notification handlers without requesting permission yet
+            ref.read(pushNotificationServiceProvider)?.setupNotificationHandlers();
           } else {
             _migrationError = outcome.errorMessage ?? 'Migration failed due to an unknown error.';
           }
@@ -124,40 +125,65 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
     
-    if (_migrationError != null) {
+    if (_migrationError != null && !_continueReadOnly) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
       return AppScaffold(
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: AppColors.alertRed, size: 48),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'Database Upgrade Failed',
-                  style: AppTypography.h2.copyWith(color: primaryTextColor),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  _migrationError!,
-                  style: AppTypography.body.copyWith(color: AppColors.alertRed),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                PrimaryButton(
-                  text: 'Retry',
-                  onPressed: () {
-                    setState(() {
-                      _isMigrating = true;
-                      _migrationError = null;
-                    });
-                    _runMigration();
-                  },
-                ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.alertRed, size: 48),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Database Upgrade Failed',
+                    style: AppTypography.h2.copyWith(color: primaryTextColor),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    _migrationError!,
+                    style: AppTypography.body.copyWith(color: AppColors.alertRed),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  PrimaryButton(
+                    text: 'Retry Upgrade',
+                    onPressed: () {
+                      setState(() {
+                        _isMigrating = true;
+                        _migrationError = null;
+                      });
+                      _runMigration();
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  SecondaryButton(
+                    label: 'Continue in Read-Only Mode',
+                    onPressed: () {
+                      setState(() {
+                        _continueReadOnly = true;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextButton.icon(
+                    icon: const Icon(Icons.logout, size: 18, color: AppColors.alertRed),
+                    label: Text(
+                      'Sign Out',
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.alertRed,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: () async {
+                      await ref.read(authRepositoryProvider).signOut();
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -199,6 +225,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
+                if (_continueReadOnly && _migrationError != null)
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningYellow.withOpacity(0.12),
+                        border: Border.all(color: AppColors.warningYellow.withOpacity(0.7)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: AppColors.warningYellow, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Running in read-only mode due to an incomplete upgrade.',
+                              style: AppTypography.caption.copyWith(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _continueReadOnly = false;
+                                _isMigrating = true;
+                                _migrationError = null;
+                              });
+                              _runMigration();
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,

@@ -15,6 +15,13 @@ DateTime _parseDate(dynamic value) {
   }
 }
 
+double? _parseDouble(dynamic val) {
+  if (val == null) return null;
+  if (val is num) return val.toDouble();
+  if (val is String) return double.tryParse(val);
+  return null;
+}
+
 @freezed
 abstract class PriceAlertModel with _$PriceAlertModel {
   const factory PriceAlertModel({
@@ -34,12 +41,12 @@ abstract class PriceAlertModel with _$PriceAlertModel {
     return PriceAlertModel(
       id: (json['id'] as String?) ?? '',
       ticker: (json['ticker'] as String?) ?? '',
-      targetPrice: (json['targetPrice'] as num).toDouble(),
-      tolerancePercent: (json['tolerancePercent'] as num?)?.toDouble() ?? 1.0,
+      targetPrice: _parseDouble(json['targetPrice']) ?? 0.0,
+      tolerancePercent: _parseDouble(json['tolerancePercent']) ?? 1.0,
       isActive: (json['isActive'] as bool?) ?? true,
       alertSent: (json['alertSent'] as bool?) ?? false,
       alertSentAt: json['alertSentAt'] != null ? _parseDate(json['alertSentAt']) : null,
-      lastAlertPrice: (json['lastAlertPrice'] as num?)?.toDouble(),
+      lastAlertPrice: _parseDouble(json['lastAlertPrice']),
       createdAt: _parseDate(json['createdAt']),
     );
   }

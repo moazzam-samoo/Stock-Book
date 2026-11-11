@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
+import 'package:stock_investment_tracker/core/config/dev_tools.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
-import 'package:stock_investment_tracker/domain/entities/position.dart';
 import 'package:stock_investment_tracker/presentation/transactions/providers/transactions_providers.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/position_card.dart';
 import 'package:stock_investment_tracker/presentation/transactions/widgets/transaction_search_bar.dart';
@@ -34,6 +35,10 @@ import 'package:go_router/go_router.dart';
 /// looking broken.
 Future<void> _refreshPrices(BuildContext context, WidgetRef ref) async {
   ref.invalidate(watchMarketPriceProvider);
+
+  // Only re-read Firestore for end users. The GitHub-token workflow trigger
+  // is developer-only (see kShowDevTools) and must not run in store builds.
+  if (!kShowDevTools) return;
 
   final result = await ref.read(triggerWorkflowProvider)();
   if (!context.mounted) return;

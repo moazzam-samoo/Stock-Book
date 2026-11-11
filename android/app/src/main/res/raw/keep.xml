@@ -12,4 +12,4 @@
   https://developer.android.com/build/shrink-code#keep-resources
 -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@raw/stock_alert" />
+    tools:keep="@raw/stock_alert,@drawable/ic_stat_notification" />

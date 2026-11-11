@@ -106,6 +106,7 @@ NotificationDetails _notificationDetails() {
     channelDescription: _androidNotificationChannelDescription,
     importance: Importance.max,
     priority: Priority.high,
+    icon: 'ic_stat_notification',
     sound: RawResourceAndroidNotificationSound('stock_alert'),
   );
   const iosDetails = DarwinNotificationDetails(sound: 'stock_alert.wav');
@@ -113,10 +114,9 @@ NotificationDetails _notificationDetails() {
 }
 
 InitializationSettings _initializationSettings() {
-  // 'ic_launcher' only exists as a mipmap resource (the adaptive launcher
-  // icon) — flutter_local_notifications requires a drawable, which only
-  // 'ic_launcher_foreground' (the adaptive icon's foreground layer) is.
-  const androidInit = AndroidInitializationSettings('ic_launcher_foreground');
+  // Use monochrome status bar notification icon for Android 5.0+
+  // compatibility (avoids solid white box bug with colored launcher icons).
+  const androidInit = AndroidInitializationSettings('ic_stat_notification');
   const iosInit = DarwinInitializationSettings();
   return const InitializationSettings(android: androidInit, iOS: iosInit);
 }
@@ -187,7 +187,8 @@ class PushNotificationService {
   final Logger _logger;
   final FlutterLocalNotificationsPlugin _localNotifications;
 
-  bool _isInitialized = false;
+  bool _isHandlersSetup = false;
+  bool _isPermissionRequested = false;
 
   // Process-lifetime, not instance-lifetime: a new PushNotificationService is
   // constructed for every signed-in user (pushNotificationServiceProvider
@@ -215,68 +216,32 @@ class PushNotificationService {
         _router = router,
         _logger = appLogger;
 
+  /// Full initialization (handlers setup + permission request + token registration).
+  /// For passive startup (e.g. on Dashboard load), use [setupNotificationHandlers].
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    await requestPermissionAndRegister();
+  }
+
+  /// Sets up notification channels, foreground listeners, and cold-start handlers
+  /// passively without requesting runtime permission from the user.
+  Future<void> setupNotificationHandlers() async {
+    if (_isHandlersSetup) return;
 
     try {
-      // 1. Request permission
-      // Handles denial gracefully (no loop, no error thrown).
-      final settings = await _firebaseMessaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      if (settings.authorizationStatus != AuthorizationStatus.authorized &&
-          settings.authorizationStatus != AuthorizationStatus.provisional) {
-        _logger.i('Push notification permission denied by user.');
-        // User denied permission; we continue without push notifications.
-        _isInitialized = true;
-        return;
-      }
-
-      // 2. Setup Local Notifications (for foreground + background display)
+      // 1. Setup Local Notifications (for foreground + background display)
       await _localNotifications.initialize(
         settings: _initializationSettings(),
         onDidReceiveNotificationResponse: _onLocalNotificationTapped,
       );
 
-      // 3. Get initial token and listen for refresh
-      final token = await _firebaseMessaging.getToken();
-      if (token != null) {
-        await _userRepository.savePushToken(token);
-        // Logged so the device's *live* token can be compared against the
-        // one actually stored in Firestore — a mismatch between the two is
-        // invisible otherwise, and means every push targets a dead token.
-        _logger.i('FCM token registered: $token');
-      } else {
-        _logger.w('FCM getToken() returned null — this device cannot receive pushes.');
-      }
-      _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        _logger.i('FCM token refreshed: $newToken');
-        _userRepository.savePushToken(newToken);
-      });
-
-      // 4. Listen to foreground messages
+      // 2. Listen to foreground messages
       FirebaseMessaging.onMessage.listen(_onForegroundMessage);
       _logger.i('Push notification listeners registered.');
 
-      // 5. Listen to background taps
+      // 3. Listen to background taps
       FirebaseMessaging.onMessageOpenedApp.listen(_routeMessage);
 
-      // 6. Handle cold start. Two distinct origins, since this app only ever
-      // sends data-only messages:
-      //
-      //   A) FirebaseMessaging.getInitialMessage() — the app was launched by
-      //      tapping an OS-auto-displayed notification. Never actually
-      //      happens with this payload contract today (that requires a
-      //      `notification` field), but costs nothing to keep as a defensive
-      //      fallback in case that ever changes.
-      //   B) _localNotifications.getNotificationAppLaunchDetails() — the app
-      //      was launched by tapping a notification *we* displayed manually
-      //      (via the background handler above, or _onForegroundMessage).
-      //      This is what actually fires today. FCM's own getInitialMessage
-      //      has no visibility into a locally-shown notification at all.
+      // 4. Handle cold start
       if (!_coldStartRouteHandled) {
         _coldStartRouteHandled = true;
         final initialMessage = await _firebaseMessaging.getInitialMessage();
@@ -296,9 +261,69 @@ class PushNotificationService {
         }
       }
 
-      _isInitialized = true;
+      // Check if permission was already granted previously; if so, register token passively
+      try {
+        final currentSettings = await _firebaseMessaging.getNotificationSettings();
+        if (currentSettings.authorizationStatus == AuthorizationStatus.authorized ||
+            currentSettings.authorizationStatus == AuthorizationStatus.provisional) {
+          await _registerToken();
+        }
+      } catch (_) {
+        // Ignored if getNotificationSettings throws or is unstubbed
+      }
+
+      _isHandlersSetup = true;
     } catch (e) {
-      _logger.e('Failed to initialize push notifications: $e');
+      _logger.e('Failed to setup push notification handlers: $e');
+    }
+  }
+
+  /// Contextually requests notification permission (e.g. when an alert is created)
+  /// and registers the FCM token with Firestore.
+  Future<bool> requestPermissionAndRegister() async {
+    if (_isPermissionRequested) return true;
+    try {
+      await setupNotificationHandlers();
+
+      _isPermissionRequested = true;
+      final settings = await _firebaseMessaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        await _registerToken();
+        return true;
+      } else {
+        _logger.i('Push notification permission denied by user.');
+        return false;
+      }
+    } catch (e) {
+      _logger.e('Failed to request notification permission: $e');
+      return false;
+    }
+  }
+
+  Future<void> _registerToken() async {
+    try {
+      // Bounded: offline, getToken() can wait a long time, and callers (e.g.
+      // saving a price alert) await this before doing their own write.
+      final token =
+          await _firebaseMessaging.getToken().timeout(const Duration(seconds: 6));
+      if (token != null) {
+        await _userRepository.savePushToken(token);
+        _logger.i('FCM token registered: $token');
+      } else {
+        _logger.w('FCM getToken() returned null — this device cannot receive pushes.');
+      }
+      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        _logger.i('FCM token refreshed: $newToken');
+        _userRepository.savePushToken(newToken);
+      });
+    } catch (e) {
+      _logger.w('Failed to register FCM token: $e');
     }
   }
 

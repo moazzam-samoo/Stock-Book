@@ -39,44 +39,44 @@ void main() {
       firestoreDataSource: mockFirestore,
       hiveDataSource: mockHive,
     );
-    when(mockHive.saveSettings(any)).thenAnswer((_) async {});
+    when(mockHive.saveSettings(any, any)).thenAnswer((_) async {});
     when(mockFirestore.updateSettings(uid, any)).thenAnswer((_) async {});
   });
 
   group('togglePin', () {
     test('pins a ticker when under the free limit', () async {
-      when(mockHive.getSettings()).thenAnswer((_) async => settingsWith());
+      when(mockHive.getSettings(any)).thenAnswer((_) async => settingsWith());
 
       final result = await repository.togglePin('gusm');
 
       expect(result, PinResult.pinned);
-      final saved = verify(mockHive.saveSettings(captureAny)).captured.single as UserSettingsModel;
+      final saved = verify(mockHive.saveSettings(uid, captureAny)).captured.single as UserSettingsModel;
       expect(saved.pinnedTickers, ['GUSM']);
     });
 
     test('unpins an already-pinned ticker', () async {
-      when(mockHive.getSettings()).thenAnswer((_) async => settingsWith(pinnedTickers: ['GUSM']));
+      when(mockHive.getSettings(any)).thenAnswer((_) async => settingsWith(pinnedTickers: ['GUSM']));
 
       final result = await repository.togglePin('GUSM');
 
       expect(result, PinResult.unpinned);
-      final saved = verify(mockHive.saveSettings(captureAny)).captured.single as UserSettingsModel;
+      final saved = verify(mockHive.saveSettings(uid, captureAny)).captured.single as UserSettingsModel;
       expect(saved.pinnedTickers, isEmpty);
     });
 
     test('blocks a 6th pin on the free tier without writing anything', () async {
-      when(mockHive.getSettings()).thenAnswer(
+      when(mockHive.getSettings(any)).thenAnswer(
         (_) async => settingsWith(pinnedTickers: ['A', 'B', 'C', 'D', 'E']),
       );
 
       final result = await repository.togglePin('F');
 
       expect(result, PinResult.limitReached);
-      verifyNever(mockHive.saveSettings(any));
+      verifyNever(mockHive.saveSettings(any, any));
     });
 
     test('allows a 6th pin when premium is unlocked', () async {
-      when(mockHive.getSettings()).thenAnswer(
+      when(mockHive.getSettings(any)).thenAnswer(
         (_) async => settingsWith(pinnedTickers: ['A', 'B', 'C', 'D', 'E'], isPremiumUnlocked: true),
       );
 
@@ -88,14 +88,14 @@ void main() {
 
   group('redeemPremiumCode', () {
     test('unlocks premium on a valid, unredeemed code', () async {
-      when(mockHive.getSettings()).thenAnswer((_) async => settingsWith());
+      when(mockHive.getSettings(any)).thenAnswer((_) async => settingsWith());
       when(mockFirestore.redeemPremiumCode(code: 'STCK-AAAA-BBBB', uid: uid))
           .thenAnswer((_) async => 'success');
 
       final result = await repository.redeemPremiumCode('stck-aaaa-bbbb');
 
       expect(result.outcome, PremiumCodeOutcome.success);
-      final saved = verify(mockHive.saveSettings(captureAny)).captured.single as UserSettingsModel;
+      final saved = verify(mockHive.saveSettings(uid, captureAny)).captured.single as UserSettingsModel;
       expect(saved.isPremiumUnlocked, isTrue);
     });
 
@@ -106,7 +106,7 @@ void main() {
       final result = await repository.redeemPremiumCode('BADCODE');
 
       expect(result.outcome, PremiumCodeOutcome.invalidCode);
-      verifyNever(mockHive.saveSettings(any));
+      verifyNever(mockHive.saveSettings(any, any));
     });
 
     test('reports alreadyRedeemed without touching local settings', () async {
@@ -116,7 +116,7 @@ void main() {
       final result = await repository.redeemPremiumCode('USED-CODE');
 
       expect(result.outcome, PremiumCodeOutcome.alreadyRedeemed);
-      verifyNever(mockHive.saveSettings(any));
+      verifyNever(mockHive.saveSettings(any, any));
     });
 
     test('reports networkError when the data source throws', () async {

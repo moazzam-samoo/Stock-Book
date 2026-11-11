@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:stock_investment_tracker/core/config/dev_tools.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:stock_investment_tracker/core/constants/legal_links.dart';
 import 'package:stock_investment_tracker/core/services/data_export_service.dart';
 import 'package:stock_investment_tracker/core/theme/app_colors.dart';
 import 'package:stock_investment_tracker/core/theme/app_typography.dart';
@@ -79,10 +83,12 @@ class SettingsScreen extends ConsumerWidget {
                       _buildWithdrawalsSection(context, ref, isDark),
                       const SizedBox(height: 28),
 
-                      _buildSectionTitle(context, 'PRICE REFRESH'),
-                      const SizedBox(height: 12),
-                      _buildPriceRefreshSection(context, ref, isDark),
-                      const SizedBox(height: 28),
+                      if (kShowDevTools) ...[
+                        _buildSectionTitle(context, 'PRICE REFRESH'),
+                        const SizedBox(height: 12),
+                        _buildPriceRefreshSection(context, ref, isDark),
+                        const SizedBox(height: 28),
+                      ],
 
                       _buildSectionTitle(context, 'BROKER CHARGES & TAXES'),
                       const SizedBox(height: 12),
@@ -102,6 +108,10 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSectionTitle(context, 'ABOUT US'),
                       const SizedBox(height: 12),
                       _buildCompanyOwnersNavCard(context, isDark),
+                      const SizedBox(height: 12),
+                      _buildPrivacyPolicyTile(context, isDark),
+                      const SizedBox(height: 12),
+                      _buildDisclaimerCard(context, isDark),
                       const SizedBox(height: 12),
                       _buildVersionLabel(ref, isDark),
                       const SizedBox(height: 28),
@@ -751,7 +761,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    isPremium ? 'Unlimited pins unlocked' : 'Free plan — $pinnedCount/5 pins used',
+                    isPremium ? 'Unlimited pins unlocked' : 'Pinned stocks: $pinnedCount/5',
                     style: AppTypography.body.copyWith(
                       color: primaryTextColor,
                       fontWeight: FontWeight.w700,
@@ -764,21 +774,59 @@ class SettingsScreen extends ConsumerWidget {
             Text(
               isPremium
                   ? 'Pin as many stocks as you like on Transactions — pinned stocks always show first.'
-                  : 'Pin up to 5 stocks on Transactions to keep them at the top. Have a code? Unlock unlimited pins below.',
+                  : 'Pin up to 5 stocks on Transactions to keep them at the top. Want unlimited pins? Email us and we will send you a free gift code.',
               style: AppTypography.caption.copyWith(color: AppColors.neutral500, fontSize: 13),
             ),
             if (!isPremium) ...[
               const SizedBox(height: 14),
-              OutlinedButton.icon(
-                onPressed: () => _showRedeemCodeDialog(context, ref),
-                icon: const Icon(Icons.redeem_outlined, size: 18),
-                label: const Text('Enter code'),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _requestGiftCodeByEmail(context, ref),
+                    icon: const Icon(Icons.mail_outline, size: 18),
+                    label: const Text('Request gift code'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _showRedeemCodeDialog(context, ref),
+                    icon: const Icon(Icons.redeem_outlined, size: 18),
+                    label: const Text('Enter code'),
+                  ),
+                ],
               ),
             ],
           ],
         ),
       ),
     );
+  }
+
+  /// Opens the user's mail app with a pre-filled request for a free gift
+  /// code, including the signed-in account email so we know who to reply to.
+  Future<void> _requestGiftCodeByEmail(BuildContext context, WidgetRef ref) async {
+    final accountEmail = ref.read(authRepositoryProvider).currentUser?.email;
+    // Built by hand with encodeComponent: Uri(queryParameters:) encodes spaces
+    // as '+', which mail apps show literally ("Shares+Book+-+...").
+    final subject = Uri.encodeComponent('Shares Book - unlimited pins gift code request');
+    final body = Uri.encodeComponent(
+      'Hi, please send me a gift code for unlimited pins.\n\n'
+      'My account email: ${accountEmail ?? '(please add your email)'}',
+    );
+    final uri = Uri.parse('mailto:${LegalLinks.supportEmail}?subject=$subject&body=$body');
+    var opened = false;
+    try {
+      opened = await launchUrl(uri);
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No email app found. Please email ${LegalLinks.supportEmail} to request a code.'),
+        ),
+      );
+    }
   }
 
   void _showRedeemCodeDialog(BuildContext context, WidgetRef ref) {
@@ -976,7 +1024,7 @@ class SettingsScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
                   ),
                   const Text(
-                    'Coding District, the team behind Stock Book',
+                    'Coding District, the team behind Shares Book',
                     style: TextStyle(fontSize: 11, color: AppColors.neutral500),
                   ),
                 ],
@@ -985,6 +1033,124 @@ class SettingsScreen extends ConsumerWidget {
             Icon(Icons.chevron_right_rounded, color: AppColors.neutral500),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyPolicyTile(BuildContext context, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          launchUrl(
+            Uri.parse(LegalLinks.privacyPolicy),
+            mode: LaunchMode.externalApplication,
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.brandIndigo.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.privacy_tip_outlined,
+                  color: AppColors.brandIndigo,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Privacy Policy',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
+                      ),
+                    ),
+                    const Text(
+                      'How Shares Book protects your data',
+                      style: TextStyle(fontSize: 11, color: AppColors.neutral500),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.open_in_new_rounded, size: 18, color: AppColors.neutral500),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDisclaimerCard(BuildContext context, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF13151B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF242731) : const Color(0xFFE2E8F0);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 20,
+            color: AppColors.neutral500,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Disclaimer: Shares Book is a personal portfolio tracking tool for informational and record-keeping purposes only. It does not provide investment, financial, tax, or legal advice.',
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.45,
+                color: isDark ? AppColors.neutral400 : AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1201,26 +1367,53 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (typedConfirm != true || !context.mounted) return;
 
+    // Everything this flow needs after the await is captured HERE, up front.
+    // Once the account is deleted the auth stream emits null and the router
+    // redirects to sign-in, which disposes this screen: from then on neither
+    // `ref` (throws "Cannot use ref after the widget was disposed") nor
+    // `context` is usable. The root ScaffoldMessenger and the keepAlive
+    // controller notifier both outlive the screen, so those are safe to use.
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final successColor = AppColors.successFor(context);
+    final authController = ref.read(authControllerProvider.notifier);
+
+    BuildContext? spinnerContext;
     unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (dialogContext) {
+        spinnerContext = dialogContext;
+        return const Center(child: CircularProgressIndicator());
+      },
     ));
 
+    // Pops the spinner only if it is still on screen (if the redirect already
+    // removed it, its context is unmounted and there is nothing to pop).
+    void closeSpinner() {
+      final spinner = spinnerContext;
+      if (spinner != null && spinner.mounted) Navigator.pop(spinner);
+    }
+
     try {
-      await ref.read(authControllerProvider.notifier).deleteAccount();
-      final error = ref.read(authControllerProvider).error;
-      if (context.mounted) Navigator.pop(context); // close the spinner
+      final error = await authController.deleteAccount();
+      closeSpinner();
       if (error != null) {
         scaffoldMessenger.showSnackBar(
           SnackBar(content: Text('Could not delete account: $error')),
         );
+        return;
       }
-      // On success the auth state stream emits null and the router
-      // redirects to sign-in on its own — no manual navigation needed here.
+      // The router sends the user to sign-in on its own; the root messenger
+      // shows this there.
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text('Your account and all data were deleted successfully.'),
+          backgroundColor: successColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
-      if (context.mounted) Navigator.pop(context);
+      closeSpinner();
       scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Could not delete account: $e')),
       );
@@ -1246,7 +1439,7 @@ class SettingsScreen extends ConsumerWidget {
       );
 
       final date = DateTime.now().toIso8601String().split('T').first;
-      final filename = 'stock-book-backup-$date.json';
+      final filename = 'shares-book-backup-$date.json';
 
       await SharePlus.instance.share(
         ShareParams(
@@ -1262,9 +1455,9 @@ class SettingsScreen extends ConsumerWidget {
       );
 
       scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Export successful.'),
-          backgroundColor: AppColors.moneyGreen,
+        SnackBar(
+          content: const Text('Export successful.'),
+          backgroundColor: AppColors.successFor(context),
         ),
       );
     } catch (e) {
@@ -1398,10 +1591,10 @@ class _StartingCapitalInputState extends State<_StartingCapitalInput> {
     widget.ref.invalidate(settingsProvider);
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting capital updated successfully'),
-        backgroundColor: AppColors.moneyGreen,
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: const Text('Starting capital updated successfully'),
+        backgroundColor: AppColors.successFor(context),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

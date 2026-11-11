@@ -601,21 +601,39 @@ class MockHiveDataSource extends _i1.Mock implements _i8.HiveDataSource {
   }
 
   @override
-  _i5.Future<void> saveSettings(_i9.UserSettingsModel? settings) =>
+  _i5.Future<void> saveSettings(String? uid, _i9.UserSettingsModel? settings) =>
       (super.noSuchMethod(
-            Invocation.method(#saveSettings, [settings]),
+            Invocation.method(#saveSettings, [uid, settings]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
 
   @override
-  _i5.Future<_i9.UserSettingsModel?> getSettings() =>
+  _i5.Future<_i9.UserSettingsModel?> getSettings(String? uid) =>
       (super.noSuchMethod(
-            Invocation.method(#getSettings, []),
+            Invocation.method(#getSettings, [uid]),
             returnValue: _i5.Future<_i9.UserSettingsModel?>.value(),
           )
           as _i5.Future<_i9.UserSettingsModel?>);
+
+  @override
+  _i5.Future<void> clearSettings(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#clearSettings, [uid]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> clearAllUserSettings() =>
+      (super.noSuchMethod(
+            Invocation.method(#clearAllUserSettings, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   _i5.Future<void> saveMarketPrices(

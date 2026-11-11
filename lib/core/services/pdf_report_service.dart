@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
@@ -13,6 +14,31 @@ import 'package:stock_investment_tracker/domain/entities/withdrawal.dart';
 class PdfReportService {
   static final NumberFormat _wholeFormat = NumberFormat('#,##0');
   static final DateFormat _dateFormat = DateFormat('MMM d, y');
+
+  /// Sanitizes file names to remove illegal or directory traversal characters.
+  static String sanitizeFileName(String input) {
+    return input.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+  }
+
+  /// Cleans up stale generated PDF reports from the temporary directory.
+  static Future<void> cleanupOldTempPdfs() async {
+    try {
+      final tempDir = Directory.systemTemp;
+      if (tempDir.existsSync()) {
+        final now = DateTime.now();
+        for (final entity in tempDir.listSync()) {
+          if (entity is File && entity.path.toLowerCase().endsWith('.pdf')) {
+            try {
+              final stat = entity.statSync();
+              if (now.difference(stat.modified).inHours >= 1) {
+                entity.deleteSync();
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+  }
 
   static Future<pw.ImageProvider?> _loadAssetImage(String path) async {
     try {
@@ -570,7 +596,7 @@ class PdfReportService {
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: '${ticker}_Stock_Report.pdf',
+      name: '${sanitizeFileName(ticker)}_Stock_Report.pdf',
     );
   }
 
@@ -837,7 +863,7 @@ class PdfReportService {
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: '${position.ticker}_Position_Report.pdf',
+      name: '${sanitizeFileName(position.ticker)}_Position_Report.pdf',
     );
   }
 
@@ -1242,7 +1268,7 @@ class PdfReportService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'Stock Book',
+                      'Shares Book',
                       style: pw.TextStyle(
                         fontSize: 15,
                         fontWeight: pw.FontWeight.bold,
@@ -1304,14 +1330,20 @@ class PdfReportService {
     return pw.Column(
       children: [
         pw.Divider(color: _borderColor, thickness: 1),
-        pw.SizedBox(height: 4),
+        pw.SizedBox(height: 3),
+        pw.Text(
+          'Disclaimer: Shares Book is a personal portfolio tracking tool for informational and record-keeping purposes only. It does not provide investment, financial, tax, or legal advice.',
+          style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey500),
+          textAlign: pw.TextAlign.center,
+        ),
+        pw.SizedBox(height: 3),
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Row(
               children: [
                 pw.Text(
-                  'Stock Book · Powered by Coding District',
+                  'Shares Book · Powered by Coding District',
                   style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                 ),
                 if (cdLogo != null) ...[

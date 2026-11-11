@@ -1,3 +1,4 @@
+import 'package:stock_investment_tracker/core/utils/logger.dart';
 import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart';
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/data/models/user_settings_model.dart';
@@ -27,7 +28,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   @override
   Stream<UserSettings> watchSettings() async* {
     // Emit local cache first if available
-    final localSettings = await _hiveDataSource.getSettings();
+    final localSettings = await _hiveDataSource.getSettings(_uid);
     if (localSettings != null) {
       yield localSettings.toEntity();
     } else {
@@ -44,7 +45,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
     // Then listen to remote stream and update local cache
     yield* _firestoreDataSource.watchSettings(_uid).map((model) {
       if (model != null) {
-        _hiveDataSource.saveSettings(model);
+        _hiveDataSource.saveSettings(_uid, model);
         return model.toEntity();
       }
       return const UserSettings(
@@ -81,11 +82,16 @@ class SettingsRepositoryImpl implements SettingsRepository {
   @override
   Future<void> updateSettings(UserSettings settings) async {
     final model = UserSettingsModelExtension.fromEntity(settings);
-    await _hiveDataSource.saveSettings(model);
+    await _hiveDataSource.saveSettings(_uid, model);
     try {
       await _firestoreDataSource.updateSettings(_uid, model);
-    } catch (_) {
-      // Local Hive storage updated successfully; Firestore will sync when re-connected
+    } catch (e) {
+      // Local Hive storage updated successfully; Firestore will sync when
+      // re-connected. Transient/offline failures never reach here (see
+      // FirestoreDataSource._write) — anything that does (e.g.
+      // permission-denied) is a real failure, so leave a trace instead of
+      // swallowing it silently.
+      appLogger.e('Failed to sync settings to Firestore: $e');
     }
   }
 
@@ -192,7 +198,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   Future<UserSettings> _getCurrentSettings() async {
-    final local = await _hiveDataSource.getSettings();
+    final local = await _hiveDataSource.getSettings(_uid);
     if (local != null) return local.toEntity();
     return const UserSettings(
       favorites: [],

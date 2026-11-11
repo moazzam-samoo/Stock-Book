@@ -3,6 +3,9 @@
 /// GitHub Pages to be enabled on the repo (Settings → Pages → Source:
 /// `main` branch, `/docs` folder) for these URLs to actually resolve.
 class LegalLinks {
+  /// Same contact address as the hosted privacy-policy / account-deletion pages.
+  static const String supportEmail = 'Moazzamsamoo819@gmail.com';
+
   static const String privacyPolicy =
       'https://moazzam-samoo.github.io/Stock-Book/privacy-policy.html';
   static const String accountDeletion =

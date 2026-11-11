@@ -7,16 +7,22 @@ class HiveDataSource {
   static const String settingsBoxName = 'settingsBox';
   
   // Settings
-  Future<void> saveSettings(UserSettingsModel settings) async {
+  Future<void> saveSettings(String uid, UserSettingsModel settings) async {
     final box = await Hive.openBox(settingsBoxName);
     final json = settings.toJson();
     json['taxSettings'] = settings.taxSettings.toJson();
-    await box.put('user_settings', json);
+    await box.put('user_settings_$uid', json);
+
+    // Keep cached theme mode in general cache box for unauthenticated cold start
+    try {
+      final cache = await Hive.openBox('cache');
+      await cache.put('cached_theme_mode', settings.themeMode);
+    } catch (_) {}
   }
 
-  Future<UserSettingsModel?> getSettings() async {
+  Future<UserSettingsModel?> getSettings(String uid) async {
     final box = await Hive.openBox(settingsBoxName);
-    final data = box.get('user_settings');
+    final data = box.get('user_settings_$uid');
     if (data != null) {
       try {
         // Sanitize the map to ensure all nested maps are Map<String, dynamic>
@@ -28,6 +34,25 @@ class HiveDataSource {
       }
     }
     return null;
+  }
+
+  Future<void> clearSettings(String uid) async {
+    try {
+      final box = await Hive.openBox(settingsBoxName);
+      await box.delete('user_settings_$uid');
+    } catch (_) {}
+  }
+
+  Future<void> clearAllUserSettings() async {
+    try {
+      final box = await Hive.openBox(settingsBoxName);
+      final keysToDelete = box.keys
+          .where((k) => k.toString().startsWith('user_settings_'))
+          .toList();
+      for (final key in keysToDelete) {
+        await box.delete(key);
+      }
+    } catch (_) {}
   }
 
   // Market Prices

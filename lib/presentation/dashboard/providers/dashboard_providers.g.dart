@@ -6,7 +6,7 @@ part of 'dashboard_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$allPositionsHash() => r'90dd0e68b6e2c6508d6c1f3a6506ec2ec6fe1978';
+String _$allPositionsHash() => r'7f1f1616d6ca7ae9498ea19d36ea93f98b907a23';
 
 /// See also [allPositions].
 @ProviderFor(allPositions)

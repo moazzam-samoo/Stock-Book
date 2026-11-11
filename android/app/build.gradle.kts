@@ -39,7 +39,7 @@ android {
         applicationId = "com.stocktracker.stock_investment_tracker"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -62,17 +62,15 @@ android {
 
     buildTypes {
         release {
-            // Real signing once key.properties exists (see key.properties.example);
-            // falls back to the debug keystore only so `flutter run --release`
-            // keeps working for local testing before that file is created.
-            // NEVER ship a Play Store build built without key.properties present —
-            // check `signingConfig` actually resolved to "release", not "debug",
-            // before uploading.
+            // Real signing once key.properties exists (see key.properties.example).
+            // Fails with null if missing so release builds are never signed with debug keys.
             signingConfig = if (hasKeystoreProperties) {
                 signingConfigs.getByName("release")
             } else {
-                signingConfigs.getByName("debug")
+                null
             }
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 
@@ -80,16 +78,26 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            resValue("string", "app_name", "Stock Tracker Dev")
+            resValue("string", "app_name", "Shares Book Dev")
         }
         create("staging") {
             dimension = "env"
-            resValue("string", "app_name", "Stock Tracker Stg")
+            resValue("string", "app_name", "Shares Book Stg")
         }
         create("prod") {
             dimension = "env"
-            resValue("string", "app_name", "Stock Tracker")
+            resValue("string", "app_name", "Shares Book")
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val isReleaseTask = allTasks.any { task ->
+        val name = task.name.lowercase()
+        (name.contains("release") && (name.contains("bundle") || name.contains("assemble")))
+    }
+    if (isReleaseTask && !hasKeystoreProperties) {
+        throw GradleException("Release build attempted without key.properties! Create android/key.properties configured with the upload keystore.")
     }
 }
 

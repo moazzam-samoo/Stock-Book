@@ -50,6 +50,18 @@ class MockFirestoreDataSource extends _i1.Mock
   }
 
   @override
+  _i3.Future<void> writeWithTimeoutGuard(
+    _i3.Future<void> Function()? op,
+    String? label,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#writeWithTimeoutGuard, [op, label]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
   _i3.Stream<List<_i4.LotModel>> watchAllLots(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchAllLots, [uid]),
@@ -351,21 +363,39 @@ class MockHiveDataSource extends _i1.Mock implements _i13.HiveDataSource {
   }
 
   @override
-  _i3.Future<void> saveSettings(_i8.UserSettingsModel? settings) =>
+  _i3.Future<void> saveSettings(String? uid, _i8.UserSettingsModel? settings) =>
       (super.noSuchMethod(
-            Invocation.method(#saveSettings, [settings]),
+            Invocation.method(#saveSettings, [uid, settings]),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )
           as _i3.Future<void>);
 
   @override
-  _i3.Future<_i8.UserSettingsModel?> getSettings() =>
+  _i3.Future<_i8.UserSettingsModel?> getSettings(String? uid) =>
       (super.noSuchMethod(
-            Invocation.method(#getSettings, []),
+            Invocation.method(#getSettings, [uid]),
             returnValue: _i3.Future<_i8.UserSettingsModel?>.value(),
           )
           as _i3.Future<_i8.UserSettingsModel?>);
+
+  @override
+  _i3.Future<void> clearSettings(String? uid) =>
+      (super.noSuchMethod(
+            Invocation.method(#clearSettings, [uid]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> clearAllUserSettings() =>
+      (super.noSuchMethod(
+            Invocation.method(#clearAllUserSettings, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 
   @override
   _i3.Future<void> saveMarketPrices(

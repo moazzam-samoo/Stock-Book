@@ -36,7 +36,7 @@ class CompanyOwnersScreen extends StatelessWidget {
                   _buildCompanyCard(isDark, primaryTextColor),
                   const SizedBox(height: 28),
 
-                  _sectionTitle(context, 'WHY WE BUILT STOCK BOOK'),
+                  _sectionTitle(context, 'WHY WE BUILT SHARES BOOK'),
                   const SizedBox(height: 12),
                   _buildMotivationCard(isDark, primaryTextColor, secondaryTextColor),
                   const SizedBox(height: 28),
@@ -161,7 +161,7 @@ class CompanyOwnersScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             'Coding District is a software studio building focused, well-crafted tools '
-            'rather than bloated ones. Stock Book is one of those tools.',
+            'rather than bloated ones. Shares Book is one of those tools.',
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
@@ -182,7 +182,7 @@ class CompanyOwnersScreen extends StatelessWidget {
         'or an app built for a completely different market. We wanted something that actually '
         'understood PSX — average cost across multiple buys, realized vs. unrealized profit, '
         'live prices, and a target-price alert that doesn\'t need you to keep the app open. '
-        'Stock Book is the tool we wished existed, built for ourselves first and shared with '
+        'Shares Book is the tool we wished existed, built for ourselves first and shared with '
         'every other PSX investor who\'s hit the same wall.',
         style: TextStyle(fontSize: 13, height: 1.6, color: secondaryTextColor),
       ),

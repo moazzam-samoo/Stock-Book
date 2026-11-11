@@ -121,7 +121,7 @@ class _AddSellBottomSheetState extends ConsumerState<AddSellBottomSheet> {
           ),
           backgroundColor: isOffline
               ? AppColors.warningYellow
-              : AppColors.moneyGreen,
+              : AppColors.successFor(context),
         ),
       );
     }

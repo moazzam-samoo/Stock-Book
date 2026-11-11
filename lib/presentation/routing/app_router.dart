@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -27,7 +28,7 @@ GoRouter appRouter(AppRouterRef ref) {
 
   return GoRouter(
     initialLocation: '/splash',
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: kDebugMode,
     redirect: (context, state) {
       if (state.matchedLocation == '/splash') {
         return null;
@@ -134,10 +135,6 @@ GoRouter appRouter(AppRouterRef ref) {
             ],
           ),
         ],
-      ),
-      GoRoute(
-        path: '/add-stock',
-        builder: (context, state) => const Center(child: Text('Add Stock Placeholder')),
       ),
       GoRoute(
         path: '/stock/:ticker',

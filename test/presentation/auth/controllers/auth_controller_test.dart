@@ -36,10 +36,39 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    await container.read(authControllerProvider.notifier).deleteAccount();
+    final error = await container.read(authControllerProvider.notifier).deleteAccount();
 
     expect(fakeRepo.deleteAccountCalled, isTrue);
+    expect(error, isNull);
     expect(container.read(authControllerProvider).hasError, isFalse);
+  });
+
+  test('deleteAccount returns the failure so callers never need to re-read provider state', () async {
+    final fakeRepo = _FakeAuthRepository()
+      ..deleteAccountError = Exception('boom');
+    final container = ProviderContainer(
+      overrides: [authRepositoryProvider.overrideWithValue(fakeRepo)],
+    );
+    addTearDown(container.dispose);
+
+    final error = await container.read(authControllerProvider.notifier).deleteAccount();
+
+    expect(error, isA<Exception>());
+  });
+
+  test('controller survives with no listeners (keepAlive) so state set after a long await is safe', () async {
+    // Regression: autoDispose controller + only ref.read(...notifier) meant
+    // the controller could be disposed while deleteAccount() was in flight.
+    final fakeRepo = _FakeAuthRepository();
+    final container = ProviderContainer(
+      overrides: [authRepositoryProvider.overrideWithValue(fakeRepo)],
+    );
+    addTearDown(container.dispose);
+
+    final future = container.read(authControllerProvider.notifier).deleteAccount();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    await expectLater(future, completes);
   });
 
   test('deleteAccount surfaces a repository failure as controller error state, not a thrown exception', () async {

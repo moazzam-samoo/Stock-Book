@@ -1,19 +1,23 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../../core/error/app_exception.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../core/constants/firestore_paths.dart';
+import 'package:stock_investment_tracker/core/constants/firestore_paths.dart';
+import 'package:stock_investment_tracker/core/error/app_exception.dart';
+import 'package:stock_investment_tracker/data/data_sources/local/hive_data_source.dart';
+import 'package:stock_investment_tracker/domain/repositories/auth_repository.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
   final FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
+  final HiveDataSource _hiveDataSource;
 
   FirebaseAuthRepository({
     FirebaseAuth? firebaseAuth,
     GoogleSignIn? googleSignIn,
+    HiveDataSource? hiveDataSource,
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+        _googleSignIn = googleSignIn ?? GoogleSignIn(),
+        _hiveDataSource = hiveDataSource ?? HiveDataSource();
 
   @override
   Stream<User?> authStateChanges() => _firebaseAuth.authStateChanges();
@@ -60,6 +64,10 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     try {
+      final currentUid = _firebaseAuth.currentUser?.uid;
+      if (currentUid != null) {
+        await _hiveDataSource.clearSettings(currentUid);
+      }
       await Future.wait([
         _firebaseAuth.signOut(),
         _googleSignIn.signOut(),
@@ -76,30 +84,32 @@ class FirebaseAuthRepository implements AuthRepository {
     final uid = user.uid;
 
     try {
-      await _deleteAllFirestoreData(uid);
-      await user.delete();
-    } on FirebaseAuthException catch (e) {
-      if (e.code != 'requires-recent-login') {
-        throw AuthException('Failed to delete account: ${e.message}');
-      }
-      // Session too old for a destructive operation — Firebase requires a
-      // fresh credential. Firestore data may already be gone from the first
-      // attempt above; re-running it is safe since every delete here is
-      // idempotent (deleting an already-absent doc is a no-op, not an error).
+      // 1. Re-authenticate FIRST before deleting anything.
+      // If the user cancels the Google Sign-In prompt or re-auth fails,
+      // it throws and stops execution — preserving all user data.
       await _reauthenticate(user);
+
+      // 2. Only once credential is confirmed, delete all Firestore documents.
       await _deleteAllFirestoreData(uid);
+
+      // 3. Delete the auth account itself.
       await user.delete();
+
+      // 4. Clear local Hive cache for this user.
+      await _hiveDataSource.clearSettings(uid);
     } catch (e) {
+      if (e is AuthException) rethrow;
       throw AuthException('Failed to delete account: $e');
     }
 
+    // 5. Sign out of Google.
     await _googleSignIn.signOut();
   }
 
   Future<void> _reauthenticate(User user) async {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
-      throw AuthException(
+      throw const AuthException(
         'Re-authentication was cancelled. Please sign in again and retry deleting your account.',
       );
     }

@@ -88,7 +88,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
-          content: const Text('Free plan allows 5 pinned stocks — unlock unlimited in Settings'),
+          content: const Text('You can pin up to 5 stocks — request a free gift code in Settings for unlimited pins'),
           action: SnackBarAction(
             label: 'Settings',
             onPressed: () => context.push('/settings'),
@@ -1230,7 +1230,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
             ),
             backgroundColor: isOffline
                 ? AppColors.warningYellow
-                : AppColors.moneyGreen,
+                : AppColors.successFor(context),
           ),
         );
       }

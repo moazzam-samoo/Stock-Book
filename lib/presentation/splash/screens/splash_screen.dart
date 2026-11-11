@@ -91,12 +91,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
             const SizedBox(height: 28),
 
-            // Styled App Title "Stock Book"
+            // Styled App Title "Shares Book"
             Text(
-                  'Stock Book',
+                  'Shares Book',
                   style: GoogleFonts.outfit(
                     fontSize: 38,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: titleColor,
                     letterSpacing: 0.8,
                   ),

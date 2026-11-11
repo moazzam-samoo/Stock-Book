@@ -119,6 +119,18 @@ class MockFirestoreDataSource extends _i1.Mock
   }
 
   @override
+  _i4.Future<void> writeWithTimeoutGuard(
+    _i4.Future<void> Function()? op,
+    String? label,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#writeWithTimeoutGuard, [op, label]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
   _i4.Stream<List<_i6.LotModel>> watchAllLots(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchAllLots, [uid]),

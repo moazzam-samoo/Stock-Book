@@ -72,7 +72,7 @@ class _TaxSettingsCardState extends ConsumerState<TaxSettingsCard> {
           backgroundColor: isOffline
               ? AppColors.warningYellow
               : (value
-                  ? AppColors.moneyGreen
+                  ? AppColors.successFor(context)
                   : (widget.isDark
                       ? const Color(0xFF242731)
                       : AppColors.neutral500)),

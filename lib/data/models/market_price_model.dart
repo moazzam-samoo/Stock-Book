@@ -4,6 +4,13 @@ import 'package:stock_investment_tracker/domain/entities/market_price.dart';
 
 part 'market_price_model.freezed.dart';
 
+double? _parseDouble(dynamic val) {
+  if (val == null) return null;
+  if (val is num) return val.toDouble();
+  if (val is String) return double.tryParse(val);
+  return null;
+}
+
 @freezed
 abstract class MarketPriceModel with _$MarketPriceModel {
   const factory MarketPriceModel({
@@ -30,14 +37,14 @@ abstract class MarketPriceModel with _$MarketPriceModel {
     // inside the market-price stream's `.map()`, so a single bad document
     // used to error the whole stream — every ticker in the app showed "—",
     // indistinguishable from "no data", with the real cause invisible.
-    final price = (json['price'] as num?)?.toDouble() ?? 0.0;
+    final price = _parseDouble(json['price']) ?? 0.0;
     return MarketPriceModel(
       ticker: (json['ticker'] as String?) ?? '',
       price: price,
       // No previousClose (or a malformed one) means "no day change known",
       // which is price itself — not a crash, and not a fake 0 that would
       // render as a -100% day move.
-      previousClose: (json['previousClose'] as num?)?.toDouble() ?? price,
+      previousClose: _parseDouble(json['previousClose']) ?? price,
       updatedAt: parsedDate,
     );
   }

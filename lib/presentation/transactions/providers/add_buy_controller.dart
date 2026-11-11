@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:stock_investment_tracker/core/config/dev_tools.dart';
 import 'package:stock_investment_tracker/data/data_sources/remote/firestore_data_source.dart';
 import 'package:stock_investment_tracker/domain/calculator/position_calculator.dart';
 import 'package:stock_investment_tracker/domain/entities/position.dart';
@@ -92,7 +93,7 @@ class AddBuyController extends _$AddBuyController {
         // background convenience on top of a save that has already succeeded,
         // and it must never delay or fail the add. If the token is missing or
         // expired, pull-to-refresh is the path that reports exactly why.
-        unawaited(ref.read(triggerWorkflowProvider)());
+        if (kShowDevTools) unawaited(ref.read(triggerWorkflowProvider)());
       }
     } catch (e, st) {
       state = AsyncError(e, st);

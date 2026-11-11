@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:stock_investment_tracker/core/constants/firestore_paths.dart';
 import 'package:stock_investment_tracker/data/models/lot_model.dart';
@@ -14,6 +17,28 @@ class FirestoreDataSource {
   final FirebaseFirestore _firestore;
 
   FirestoreDataSource(this._firestore);
+
+  /// Executes [op] with a 4s timeout. TimeoutExceptions are swallowed because
+  /// Firestore's offline queue handles local persistence when offline or on slow
+  /// networks. Transient network FirebaseExceptions ('unavailable',
+  /// 'deadline-exceeded', 'aborted', 'cancelled') are safely queued, whereas
+  /// non-retryable errors (e.g. permission-denied, unauthenticated) are rethrown.
+  Future<void> _write(Future<void> Function() op, String label) async {
+    try {
+      await op().timeout(const Duration(seconds: 4));
+    } on TimeoutException {
+      // Offline / slow network — Firestore local queue owns it
+      return;
+    } on FirebaseException catch (e) {
+      final retryable = {'unavailable', 'deadline-exceeded', 'aborted', 'cancelled'};
+      if (retryable.contains(e.code)) return;
+      rethrow;
+    }
+  }
+
+  @visibleForTesting
+  Future<void> writeWithTimeoutGuard(Future<void> Function() op, String label) =>
+      _write(op, label);
 
   // LOTS
   Stream<List<LotModel>> watchAllLots(String uid) {
@@ -32,42 +57,36 @@ class FirestoreDataSource {
     final json = lot.toJson()..remove('id');
     // Explicitly serialize nested sales to avoid _SaleModel instances
     json['sales'] = lot.sales.map((s) => s.toJson()).toList();
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.lots(uid))
           .doc(lot.id)
-          .set(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json),
+      'addLot',
+    );
   }
 
   Future<void> updateLot(String uid, LotModel lot) async {
     final json = lot.toJson()..remove('id');
     // Explicitly serialize nested sales to avoid _SaleModel instances
     json['sales'] = lot.sales.map((s) => s.toJson()).toList();
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.lots(uid))
           .doc(lot.id)
-          .update(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json, SetOptions(merge: true)),
+      'updateLot',
+    );
   }
 
   Future<void> deleteLot(String uid, String lotId) async {
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.lots(uid))
           .doc(lotId)
-          .delete()
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .delete(),
+      'deleteLot',
+    );
   }
 
   // POSITIONS
@@ -88,15 +107,13 @@ class FirestoreDataSource {
     // Explicitly serialize nested buys and sales
     json['buys'] = position.buys.map((b) => b.toJson()).toList();
     json['sales'] = position.sales.map((s) => s.toJson()).toList();
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.positions(uid))
           .doc(position.id)
-          .set(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json),
+      'addPosition',
+    );
   }
 
   Future<void> updatePosition(String uid, PositionModel position) async {
@@ -104,27 +121,23 @@ class FirestoreDataSource {
     // Explicitly serialize nested buys and sales
     json['buys'] = position.buys.map((b) => b.toJson()).toList();
     json['sales'] = position.sales.map((s) => s.toJson()).toList();
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.positions(uid))
           .doc(position.id)
-          .update(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json, SetOptions(merge: true)),
+      'updatePosition',
+    );
   }
 
   Future<void> deletePosition(String uid, String positionId) async {
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.positions(uid))
           .doc(positionId)
-          .delete()
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .delete(),
+      'deletePosition',
+    );
   }
 
   // SALES (Embedded in Lots)
@@ -145,39 +158,54 @@ class FirestoreDataSource {
   }
 
   Future<void> addSale(String uid, String lotId, SaleModel sale) async {
-    final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
-    final doc = await docRef.get();
-    if (doc.exists && doc.data() != null) {
-      final data = doc.data()!;
-      data['id'] = doc.id;
-      final lot = LotModel.fromJson(data);
-      final updatedSales = List<SaleModel>.from(lot.sales)..add(sale);
-      await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
-    }
+    await _write(() async {
+      final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
+      final doc = await docRef.get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        final lot = LotModel.fromJson(data);
+        final updatedSales = List<SaleModel>.from(lot.sales)..add(sale);
+        await docRef.set(
+          {'sales': updatedSales.map((e) => e.toJson()).toList()},
+          SetOptions(merge: true),
+        );
+      }
+    }, 'addSale');
   }
 
   Future<void> updateSale(String uid, String lotId, SaleModel sale) async {
-    final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
-    final doc = await docRef.get();
-    if (doc.exists && doc.data() != null) {
-      final data = doc.data()!;
-      data['id'] = doc.id;
-      final lot = LotModel.fromJson(data);
-      final updatedSales = lot.sales.map((s) => s.id == sale.id ? sale : s).toList();
-      await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
-    }
+    await _write(() async {
+      final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
+      final doc = await docRef.get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        final lot = LotModel.fromJson(data);
+        final updatedSales = lot.sales.map((s) => s.id == sale.id ? sale : s).toList();
+        await docRef.set(
+          {'sales': updatedSales.map((e) => e.toJson()).toList()},
+          SetOptions(merge: true),
+        );
+      }
+    }, 'updateSale');
   }
 
   Future<void> deleteSale(String uid, String lotId, String saleId) async {
-    final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
-    final doc = await docRef.get();
-    if (doc.exists && doc.data() != null) {
-      final data = doc.data()!;
-      data['id'] = doc.id;
-      final lot = LotModel.fromJson(data);
-      final updatedSales = lot.sales.where((s) => s.id != saleId).toList();
-      await docRef.update({'sales': updatedSales.map((e) => e.toJson()).toList()});
-    }
+    await _write(() async {
+      final docRef = _firestore.collection(FirestorePaths.lots(uid)).doc(lotId);
+      final doc = await docRef.get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        final lot = LotModel.fromJson(data);
+        final updatedSales = lot.sales.where((s) => s.id != saleId).toList();
+        await docRef.set(
+          {'sales': updatedSales.map((e) => e.toJson()).toList()},
+          SetOptions(merge: true),
+        );
+      }
+    }, 'deleteSale');
   }
 
   // MIGRATION HELPER METHODS
@@ -269,40 +297,34 @@ class FirestoreDataSource {
 
   Future<void> addWithdrawal(String uid, WithdrawalModel withdrawal) async {
     final json = withdrawal.toJson()..remove('id');
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.withdrawals(uid))
           .doc(withdrawal.id)
-          .set(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json),
+      'addWithdrawal',
+    );
   }
 
   Future<void> updateWithdrawal(String uid, WithdrawalModel withdrawal) async {
     final json = withdrawal.toJson()..remove('id');
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.withdrawals(uid))
           .doc(withdrawal.id)
-          .update(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json, SetOptions(merge: true)),
+      'updateWithdrawal',
+    );
   }
 
   Future<void> deleteWithdrawal(String uid, String withdrawalId) async {
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.withdrawals(uid))
           .doc(withdrawalId)
-          .delete()
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .delete(),
+      'deleteWithdrawal',
+    );
   }
 
   // SETTINGS
@@ -321,14 +343,12 @@ class FirestoreDataSource {
   Future<void> updateSettings(String uid, UserSettingsModel settings) async {
     final json = settings.toJson();
     json['taxSettings'] = settings.taxSettings.toJson();
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .doc(FirestorePaths.settings(uid))
-          .set(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json),
+      'updateSettings',
+    );
   }
 
   // GLOBAL TAX RATES (Configured centrally by Admin)
@@ -448,39 +468,33 @@ class FirestoreDataSource {
 
   Future<void> addPriceAlert(String uid, PriceAlertModel alert) async {
     final json = alert.toJson()..remove('id');
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.priceAlerts(uid))
           .doc(alert.id)
-          .set(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json),
+      'addPriceAlert',
+    );
   }
 
   Future<void> updatePriceAlert(String uid, PriceAlertModel alert) async {
     final json = alert.toJson()..remove('id');
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.priceAlerts(uid))
           .doc(alert.id)
-          .update(json)
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .set(json, SetOptions(merge: true)),
+      'updatePriceAlert',
+    );
   }
 
   Future<void> deletePriceAlert(String uid, String alertId) async {
-    try {
-      await _firestore
+    await _write(
+      () => _firestore
           .collection(FirestorePaths.priceAlerts(uid))
           .doc(alertId)
-          .delete()
-          .timeout(const Duration(seconds: 4));
-    } catch (_) {
-      // Timeout or offline write persisted locally
-    }
+          .delete(),
+      'deletePriceAlert',
+    );
   }
 }

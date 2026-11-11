@@ -81,10 +81,10 @@ class SignInScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Stock Book',
+                    'Shares Book',
                     style: GoogleFonts.outfit(
                       fontSize: 42,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       color: primaryTextColor,
                       letterSpacing: 0.8,
                     ),
@@ -166,6 +166,16 @@ class SignInScreen extends ConsumerWidget {
                                 ),
                         ),
                       ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Shares Book is a personal portfolio tracking tool for record-keeping and informational purposes only. It does not provide investment or financial advice.',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: tertiaryTextColor.withOpacity(0.85),
+                      height: 1.35,
                     ),
                     textAlign: TextAlign.center,
                   ),

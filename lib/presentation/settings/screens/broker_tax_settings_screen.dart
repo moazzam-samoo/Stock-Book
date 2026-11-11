@@ -121,9 +121,9 @@ class _BrokerTaxSettingsScreenState
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Reset to Firebase Admin default rates'),
-          backgroundColor: AppColors.moneyGreen,
+        SnackBar(
+          content: const Text('Reset to Firebase Admin default rates'),
+          backgroundColor: AppColors.successFor(context),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -189,7 +189,7 @@ class _BrokerTaxSettingsScreenState
                 : 'Broker charges and tax rates saved successfully',
           ),
           backgroundColor:
-              isOffline ? AppColors.warningYellow : AppColors.moneyGreen,
+              isOffline ? AppColors.warningYellow : AppColors.successFor(context),
           behavior: SnackBarBehavior.floating,
         ),
       );

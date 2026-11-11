@@ -141,7 +141,7 @@ class _EditSaleBottomSheetState extends ConsumerState<EditSaleBottomSheet> {
           ),
           backgroundColor: isOffline
               ? AppColors.warningYellow
-              : AppColors.moneyGreen,
+              : AppColors.successFor(context),
         ),
       );
     } catch (e) {

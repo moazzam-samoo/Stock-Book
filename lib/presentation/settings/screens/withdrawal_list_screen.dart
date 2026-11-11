@@ -7,7 +7,6 @@ import 'package:stock_investment_tracker/core/theme/app_typography.dart';
 import 'package:stock_investment_tracker/core/utils/currency_formatter.dart';
 import 'package:stock_investment_tracker/presentation/common/custom_app_bar.dart';
 import 'package:stock_investment_tracker/presentation/dashboard/providers/dashboard_providers.dart';
-import 'package:stock_investment_tracker/presentation/settings/providers/settings_provider.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_bottom_sheet.dart';
 import 'package:stock_investment_tracker/presentation/settings/widgets/withdrawal_row.dart';
 
