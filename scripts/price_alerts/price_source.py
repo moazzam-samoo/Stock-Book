@@ -5,11 +5,67 @@ Behind a Protocol so the scraping dependency can be swapped or mocked
 without touching main.py.
 """
 
+import re
 import time
 from typing import Protocol
 
 import pandas as pd
 import psxdata
+import requests
+from bs4 import BeautifulSoup
+
+# Same browser-like headers psxdata itself sends; PSX rejects bare clients.
+_COMPANY_PAGE_URL = "https://dps.psx.com.pk/company/{symbol}"
+_COMPANY_PAGE_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Referer": "https://dps.psx.com.pk/",
+}
+_COMPANY_PAGE_TIMEOUT = 20  # seconds
+
+_NUMBER = re.compile(r"-?\d[\d,]*\.?\d*")
+
+
+def _first_number(text: str) -> float | None:
+    match = _NUMBER.search(text.replace("−", "-"))
+    if not match:
+        return None
+    try:
+        return float(match.group(0).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def parse_company_quote(html: str) -> dict | None:
+    """Current price + previous close from a PSX `/company/<SYM>` page.
+
+    The header block carries `.quote__close` ("Rs.8.80" — the live price
+    while the market is open, the official close after it) and
+    `.quote__change` ("0.33 (3.90%)", absolute change vs the previous
+    close). previousClose is derived as price - change; it is *not* read
+    from an "LDCP" stat because that label appears once per market segment
+    on the page, which is ambiguous.
+
+    Returns None (never a zero or guessed price) if the quote block is
+    missing or unparseable — the caller then moves on to the next source.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    close_el = soup.select_one(".quote__close")
+    if close_el is None:
+        return None
+    price = _first_number(close_el.get_text(" ", strip=True))
+    if price is None or price <= 0:
+        return None
+
+    change_el = soup.select_one(".quote__change")
+    change = _first_number(change_el.get_text(" ", strip=True)) if change_el else None
+    previous_close = price - change if change is not None else price
+    if previous_close <= 0:
+        previous_close = price
+    return {"price": price, "previousClose": previous_close}
 
 
 class PriceSource(Protocol):
@@ -91,12 +147,41 @@ class PsxdataScreenerSource:
         # For just those stragglers, fall back to the historical endpoint and
         # use the most recent real close. One extra request per missing ticker,
         # and only for tickers the single screener call didn't already cover.
+        #
+        # Order matters: the company page first, history second. PSX started
+        # answering 403 on /historical (and /timeseries/*) while the HTML
+        # company page kept working, so history alone left every
+        # screener-absent ticker frozen at its last successful run.
         for ticker in sorted(tickers - result.keys()):
-            entry = self._fetch_from_history(ticker)
+            entry = self._fetch_from_company_page(ticker)
+            if entry is None:
+                entry = self._fetch_from_history(ticker)
             if entry is not None:
                 result[ticker] = entry
 
         return result
+
+    def _fetch_from_company_page(self, ticker: str, *, retries: int = 1) -> dict | None:
+        """Live price for a ticker from PSX's HTML company page, or None.
+
+        Never raises: one unavailable ticker must not abort the run.
+        """
+        for attempt in range(retries + 1):
+            try:
+                resp = requests.get(
+                    _COMPANY_PAGE_URL.format(symbol=ticker),
+                    headers=_COMPANY_PAGE_HEADERS,
+                    timeout=_COMPANY_PAGE_TIMEOUT,
+                )
+                if resp.status_code == 200:
+                    return parse_company_quote(resp.text)
+                if resp.status_code in (401, 403, 404):
+                    return None  # blocked / unknown symbol: retrying won't help
+            except requests.RequestException:
+                pass
+            if attempt < retries:
+                time.sleep(1)
+        return None
 
     def _fetch_from_history(self, ticker: str, *, retries: int = 1) -> dict | None:
         """Most recent real close for a ticker, or None if it has never traded.

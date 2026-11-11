@@ -5,9 +5,20 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from price_source import PsxdataScreenerSource
+from price_source import PsxdataScreenerSource, parse_company_quote
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "screener_sample.json"
+COMPANY_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "company_humnl.html"
+
+
+@pytest.fixture(autouse=True)
+def _no_company_page_network():
+    """The company-page fallback does real HTTP. Every test in this file
+    except the ones that opt in below must stay offline, so it is stubbed to
+    "nothing found" by default — which makes the history fallback the next
+    (and, for these tests, only) source, exactly as before it existed."""
+    with patch.object(PsxdataScreenerSource, "_fetch_from_company_page", return_value=None):
+        yield
 
 
 def _load_screener_fixture() -> pd.DataFrame:
@@ -236,3 +247,75 @@ def test_missing_change_pct_falls_back_to_previous_close_equals_price():
         prices = source.fetch_prices({"ENGRO"})
 
     assert prices["ENGRO"] == {"price": 100.0, "previousClose": 100.0}
+
+
+# --- PSX company-page fallback -------------------------------------------
+# Real incident (Nov 2026): PSX started answering 403 (empty body) on its
+# data endpoints — /historical, /timeseries/* — while /screener and the HTML
+# /company/<SYM> page kept working. Every ticker missing from the screener
+# (HUMNL, ...) depended on /historical alone, so its price froze on whatever
+# the last successful run wrote (30 Oct) while PSX itself showed e.g. 8.80.
+
+
+def test_parse_company_quote_reads_close_and_derives_previous_close():
+    """Real captured /company/HUMNL page: Rs.8.80, change 0.33 (3.90%)
+    => previous close 8.47 (matches the page's own LDCP of 8.47)."""
+    html = COMPANY_FIXTURE_PATH.read_text(encoding="utf-8")
+    assert parse_company_quote(html) == {"price": 8.80, "previousClose": pytest.approx(8.47)}
+
+
+def test_parse_company_quote_handles_a_falling_price_and_thousands_separator():
+    html = (
+        '<div><div class="quote__close">Rs.1,234.50</div>'
+        '<div class="quote__change">-12.25 (-0.98%)</div></div>'
+    )
+    parsed = parse_company_quote(html)
+    assert parsed["price"] == 1234.50
+    assert parsed["previousClose"] == pytest.approx(1246.75)
+
+
+def test_parse_company_quote_without_a_quote_block_returns_none():
+    assert parse_company_quote("<html><body>Not found</body></html>") is None
+
+
+def test_parse_company_quote_never_returns_a_zero_price():
+    html = '<div class="quote__close">Rs.0.00</div><div class="quote__change">0.00 (0.00%)</div>'
+    assert parse_company_quote(html) is None
+
+
+def test_missing_change_falls_back_to_previous_close_equals_price():
+    html = '<div class="quote__close">Rs.8.80</div>'
+    assert parse_company_quote(html) == {"price": 8.80, "previousClose": 8.80}
+
+
+def test_ticker_absent_from_screener_uses_company_page_and_skips_history():
+    """The whole point: when /historical is blocked, a screener-absent
+    ticker still gets its real current price from the company page."""
+    with (
+        patch("price_source.psxdata.screener", return_value=_load_screener_fixture()),
+        patch.object(
+            PsxdataScreenerSource,
+            "_fetch_from_company_page",
+            return_value={"price": 8.80, "previousClose": 8.47},
+        ),
+        patch("price_source.psxdata.stocks") as mock_stocks,
+    ):
+        prices = PsxdataScreenerSource().fetch_prices({"ENGRO", "HUMNL"})
+
+    mock_stocks.assert_not_called()
+    assert prices["HUMNL"] == {"price": 8.80, "previousClose": 8.47}
+    assert prices["ENGRO"]["price"] == 485.38
+
+
+def test_company_page_failure_still_falls_back_to_history():
+    history = _history([
+        {"date": pd.Timestamp("2026-10-30"), "close": 8.10, "volume": 1000},
+    ])
+    with (
+        patch("price_source.psxdata.screener", return_value=pd.DataFrame()),
+        patch.object(PsxdataScreenerSource, "_fetch_from_company_page", return_value=None),
+        patch("price_source.psxdata.stocks", return_value=history),
+    ):
+        prices = PsxdataScreenerSource().fetch_prices({"HUMNL"})
+
+    assert prices["HUMNL"]["price"] == 8.10
